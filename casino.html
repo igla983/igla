@@ -1,0 +1,2212 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>An4l Casino - ULTIMATE v20.0</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #050608; --bg-main: #0a0c10; --bg-card: #12161d;
+            --bg-battle-card: #161b22; --bg-battle-footer: #1a2029;
+            --accent-blue: #3b82f6; --accent-green: #22c55e; --accent-gold: #fbbf24; --accent-red: #ef4444;
+            --border-ui: rgba(255,255,255,0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--bg-main); color: #fff; font-family: 'Inter', sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+
+        header { background: var(--bg-card); border-bottom: 1px solid var(--border-ui); padding: 0 40px; height: 90px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; z-index: 100; }
+        .logo { font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 32px; color: var(--accent-gold); letter-spacing: 2px; }
+        .logo span { color: #fff; }
+
+        nav { display: flex; gap: 5px; background: var(--bg-deep); padding: 5px; border-radius: 12px; }
+        nav button { background: transparent; border: none; color: #64748b; padding: 12px 18px; border-radius: 8px; font-weight: 800; cursor: pointer; transition: 0.3s; font-size: 12px; text-transform: uppercase; }
+        nav button.active { background: var(--bg-card); color: #fff; border: 1px solid var(--border-ui); }
+
+        .hud-stats { display: flex; gap: 15px; align-items: center; }
+        .hud-card { background: var(--bg-deep); padding: 15px 20px; border-radius: 10px; border: 1px solid var(--border-ui); min-width: 160px; }
+        .hud-stats .hud-card { text-align: right; padding: 12px 22px; }
+        .hud-card small { display: block; font-size: 10px; color: #64748b; font-weight: 900; text-transform: uppercase; }
+        .hud-card span { font-weight: 900; font-size: 22px; font-family: 'Rajdhani', sans-serif; color: var(--accent-green); }
+
+        main { flex: 1; padding: 30px; overflow-y: auto; }
+        .view { display: none; max-width: 1400px; margin: 0 auto; animation: fadeIn 0.3s ease; }
+        .view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- SKLEP & GRID --- */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; padding-bottom: 120px; }
+        .case-card { background: var(--bg-card); border-radius: 16px; padding: 20px; text-align: center; border: 1px solid var(--border-ui); transition: 0.3s; position: relative; }
+        .case-card:hover { transform: translateY(-5px); border-color: var(--accent-gold); }
+        .case-visual { width: 100px; height: 80px; margin: 0 auto 15px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 32px; box-shadow: 0 10px 20px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); }
+        .case-title { font-weight: 900; font-size: 12px; text-transform: uppercase; margin-bottom: 5px; color: #e2e8f0; height: 30px; display: flex; align-items: center; justify-content: center; }
+        .case-price { font-weight: 900; font-size: 18px; color: var(--accent-gold); font-family: 'Rajdhani', sans-serif; margin-bottom: 15px; }
+
+        /* --- CASE PREVIEW --- */
+        .preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; max-height: 60vh; overflow-y: auto; padding: 10px 5px; }
+        .preview-item { background: linear-gradient(180deg, #1a1e29 0%, #0f1218 100%); border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); padding: 12px 8px 10px; text-align: center; position: relative; cursor: default; transition: 0.2s; aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+        .preview-item:hover { border-color: var(--accent-gold); transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
+        .preview-item img { width: 80%; height: 50%; object-fit: contain; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.5)); }
+        .preview-item i.preview-icon { font-size: 36px; }
+        .preview-item .preview-chance { position: absolute; top: 6px; right: 8px; font-size: 10px; font-weight: 900; color: #64748b; }
+        .preview-item .preview-star { position: absolute; top: 5px; left: 7px; font-size: 11px; color: #fbbf24; }
+        .preview-item .preview-name { font-size: 10px; font-weight: 800; color: #cbd5e1; line-height: 1.2; max-width: 100%; }
+        .preview-item .preview-wear { font-size: 9px; color: #64748b; font-weight: 700; }
+        .preview-item .preview-price { font-size: 13px; font-weight: 900; color: var(--accent-gold); font-family: 'Rajdhani', sans-serif; }
+
+        .btn { padding: 12px 15px; border-radius: 8px; border: none; font-weight: 800; cursor: pointer; text-transform: uppercase; font-size: 10px; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; }
+        .btn-gold { background: var(--accent-gold); color: #000; }
+        .btn-blue { background: var(--accent-blue); color: #fff; }
+        .btn-green { background: var(--accent-green); color: #fff; }
+        .btn-red { background: var(--accent-red); color: #fff; }
+        .btn-outline { background: transparent; border: 1px solid #333; color: #fff; }
+        .btn-outline.active { border-color: var(--accent-green); color: var(--accent-green); background: rgba(34, 197, 94, 0.1); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .qty-btn { background: transparent; border: none; border-right: 1px solid #334155; color: #94a3b8; font-family: 'Rajdhani', sans-serif; font-size: 16px; font-weight: 900; padding: 8px 16px; cursor: pointer; transition: 0.2s; }
+        .qty-btn:last-child { border-right: none; }
+        .qty-btn:hover { background: rgba(255,255,255,0.05); color: #fff; }
+        .qty-btn.active { background: rgba(59,130,246,0.25); color: #3b82f6; }
+
+        /* --- JOKER TOGGLE --- */
+        .joker-toggle-container { background: rgba(168, 85, 247, 0.1); border: 1px solid #a855f7; padding: 15px 20px; border-radius: 12px; margin-bottom: 25px; display: inline-flex; align-items: center; gap: 15px; cursor: pointer; }
+        .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #a855f7; }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        /* --- RULETKA --- */
+        .roulette-container { width: 100%; height: 130px; background: #0a0c10; border: 2px solid #333; border-radius: 12px; position: relative; overflow: hidden; margin-bottom: 10px; }
+        .roulette-track { display: flex; height: 100%; transition: transform 4s cubic-bezier(0.1, 0.8, 0.1, 1); width: max-content; }
+        .r-item { width: 120px; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; border-right: 1px solid rgba(255,255,255,0.05); font-weight: 900; background: linear-gradient(to bottom, rgba(0,0,0,0) 60%, rgba(255,255,255,0.05)); padding: 5px 3px; gap: 2px; }
+        .r-item i { font-size: 24px; margin-bottom: 2px; }
+        .r-item img { width: 80px; height: 55px; object-fit: contain; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6)); }
+        .r-item .r-name { font-size: 9px; color: #aaa; text-align: center; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 110px; }
+        .r-item span { font-family: 'Rajdhani'; font-size: 14px; color: #fff; }
+        .roulette-center-line { position: absolute; left: 50%; top: 0; width: 4px; height: 100%; background: var(--accent-gold); z-index: 10; transform: translateX(-50%); box-shadow: 0 0 15px var(--accent-gold); border-radius: 2px; }
+
+        /* Hide scrollbars but keep scrolling */
+        [id^="battle-history-"], .preview-grid, #upgrade-inv-list, #inv-grid, #cart-list { scrollbar-width: none; -ms-overflow-style: none; }
+        [id^="battle-history-"]::-webkit-scrollbar, .preview-grid::-webkit-scrollbar, #upgrade-inv-list::-webkit-scrollbar, #inv-grid::-webkit-scrollbar, #cart-list::-webkit-scrollbar { display: none; }
+
+        /* --- MODAL (OVERLAY) --- */
+        .full-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; display: none; flex-direction: column; align-items: center; justify-content: center; }
+        .full-overlay.active { display: flex; }
+        .modal-content { background: var(--bg-card); padding: 40px; border-radius: 20px; border: 1px solid var(--border-ui); width: 90%; max-width: 800px; text-align: center; }
+
+        /* --- UPGRADER KOŁO & NEONOWA STRZAŁKA --- */
+        .upgrade-container { display: grid; grid-template-columns: 1fr 1.2fr; gap: 30px; background: var(--bg-card); padding: 30px; border-radius: 20px; }
+        .upgrade-box { text-align: center; background: var(--bg-deep); padding: 25px; border-radius: 15px; border: 1px solid var(--border-ui); position: relative; }
+        .wheel-outer { position: relative; width: 300px; height: 300px; margin: 0 auto 20px; border-radius: 50%; border: 12px solid #000; box-shadow: 0 0 30px rgba(0,0,0,0.8); background: #1a1e29; overflow: visible; }
+        #upgrade-wheel-visual { width: 100%; height: 100%; border-radius: 50%; background: conic-gradient(var(--accent-green) 0deg 0deg, #1a1e29 0deg 360deg); transition: 0.3s; }
+        .needle-pivot { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transition: transform 4s cubic-bezier(0.15, 0, 0.15, 1); z-index: 15; }
+        
+        .neon-arrow { position: absolute; bottom: 50%; left: 50%; transform: translateX(-50%); width: 4px; height: 50%; background: #fff; box-shadow: 0 0 10px #fff, 0 0 20px #fff; border-radius: 2px 2px 0 0; }
+        .neon-arrow::after { content: ''; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); border-left: 12px solid transparent; border-right: 12px solid transparent; border-bottom: 18px solid #fff; filter: drop-shadow(0 -5px 8px #fff); }
+
+        .selected-upgrade-item { min-height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid #333; border-radius: 12px; margin-bottom: 20px; background: rgba(0,0,0,0.2); }
+
+        /* --- BATTLE UI & PROFILE CARDS --- */
+        .battle-ui-panel { background: rgba(59, 130, 246, 0.05); border: 1px solid var(--border-ui); padding: 15px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; font-weight: 900; }
+        
+        .active-cases-queue { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding: 10px 0; }
+        .queue-item { background: var(--bg-deep); border: 1px solid var(--border-ui); padding: 10px 15px; border-radius: 8px; display: flex; align-items: center; gap: 8px; font-weight: 900; font-size: 11px; text-transform: uppercase; color: #64748b; opacity: 0.5; transition: 0.3s; white-space: nowrap; }
+        .queue-item.active { border-color: var(--accent-gold); color: #fff; opacity: 1; box-shadow: 0 0 15px rgba(251, 191, 36, 0.2); }
+
+        .battle-card { background: var(--bg-battle-card); border-radius: 12px; border: 1px solid var(--border-ui); display: flex; flex-direction: column; min-height: 320px; overflow: hidden; position: relative; box-shadow: 0 10px 20px rgba(0,0,0,0.5); animation: fadeIn 0.5s ease; transition: 0.3s; }
+        .battle-card-content { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; position: relative; }
+        .battle-card-footer { background: var(--bg-battle-footer); padding: 12px 15px; display: flex; align-items: center; gap: 15px; border-top: 1px solid rgba(255,255,255,0.05); }
+        .battle-card-footer img { width: 52px; height: 52px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.15); object-fit: cover; }
+        .battle-card-footer .p-info { display: flex; flex-direction: column; text-align: left; }
+        .battle-card-footer .p-name { font-weight: 900; font-size: 14px; text-transform: uppercase; color: #fff; }
+        .battle-card-footer .p-sub { font-size: 9px; font-weight: 700; color: #64748b; margin-top: 2px; }
+
+        .battle-score { position: absolute; top: 15px; left: 15px; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 6px; font-family: 'Rajdhani'; font-weight: 900; font-size: 20px; color: var(--accent-gold); border: 1px solid rgba(255,255,255,0.1); z-index: 5; }
+
+        .ready-badge { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 15px; }
+        .ready-icon { width: 80px; height: 80px; border-radius: 50%; border: 3px solid var(--accent-green); display: flex; justify-content: center; align-items: center; color: var(--accent-green); font-size: 35px; box-shadow: 0 0 20px rgba(34, 197, 94, 0.2); }
+        .ready-text { font-weight: 900; font-size: 20px; text-transform: uppercase; color: #fff; letter-spacing: 1px; }
+
+        /* Bot selection modal */
+        .bot-selection-row { display: flex; gap: 20px; margin-top: 10px; justify-content: center; flex-wrap: wrap; }
+        .bot-item { text-align: center; cursor: pointer; transition: 0.2s; opacity: 0.8; }
+        .bot-item:hover { opacity: 1; transform: scale(1.1); }
+        .bot-item img, .bot-item .random-icon { width: 60px; height: 60px; border-radius: 50%; border: 3px solid transparent; margin-bottom: 5px; }
+        .bot-item .random-icon { background: #333; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #fff; margin: 0 auto 5px; }
+        .bot-item div { font-size: 11px; font-weight: 900; text-transform: uppercase; }
+
+        #battle-bar { position: fixed; bottom: 0; width: 100%; height: 100px; background: rgba(5,6,8,0.98); border-top: 2px solid var(--accent-blue); display: none; align-items: center; padding: 0 40px; z-index: 500; gap: 20px; }
+        .cart-tag { background: #000; padding: 8px 12px; border-radius: 8px; font-size: 10px; white-space: nowrap; border: 1px solid #333; display: flex; align-items: center; gap: 8px; font-weight: 900; }
+
+        /* --- CONFETTI --- */
+        .confetti-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; overflow: hidden; }
+        .confetti-piece { position: absolute; width: 10px; height: 10px; opacity: 0; }
+        .confetti-piece.burst { animation: confettiBurst var(--duration) cubic-bezier(0.1, 0.8, 0.3, 1) forwards; animation-delay: var(--delay); }
+        @keyframes confettiBurst {
+            0% { opacity: 1; bottom: 0; transform: translate(var(--tx), 0) rotate(0deg) scale(1.5); }
+            40% { opacity: 1; transform: translate(var(--tx), var(--ty)) rotate(360deg) scale(1.2); }
+            100% { opacity: 0; bottom: 0; transform: translate(calc(var(--tx) * 1.5), calc(var(--ty) * 1.3)) rotate(720deg) scale(0); }
+        }
+        .confetti-piece.side { animation: confettiSide var(--duration) ease-out forwards; animation-delay: var(--delay); }
+        @keyframes confettiSide {
+            0% { opacity: 1; transform: translate(0, 0) rotate(0deg) scale(1.5); }
+            50% { opacity: 1; transform: translate(var(--tx), var(--ty)) rotate(360deg) scale(1); }
+            100% { opacity: 0; transform: translate(calc(var(--tx) * 1.8), calc(var(--ty) * 1.5)) rotate(720deg) scale(0); }
+        }
+        .confetti-flash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at 50% 80%, rgba(251,191,36,0.5) 0%, rgba(251,191,36,0.15) 40%, transparent 70%); pointer-events: none; z-index: 9998; animation: flashBang 0.8s ease-out forwards; }
+        @keyframes flashBang { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.2); } }
+
+        /* --- UPGRADE RESULT OVERLAY --- */
+        .upgrade-result-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 20; font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 56px; letter-spacing: 4px; text-shadow: 0 0 30px currentColor, 0 0 60px currentColor; animation: resultPulse 0.5s ease; pointer-events: none; }
+        @keyframes resultPulse { 0% { transform: scale(0.3); opacity: 0; } 50% { transform: scale(1.2); } 100% { transform: scale(1); opacity: 1; } }
+
+        /* --- CASE VISUAL REDESIGN --- */
+        .case-visual { position: relative; width: 100%; height: 120px; margin: 0 auto 15px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 38px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); background: transparent !important; }
+        .case-visual::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(ellipse at 50% 120%, currentColor 0%, transparent 70%); opacity: 0.08; }
+        .case-visual::after { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: conic-gradient(from 0deg, transparent, rgba(255,255,255,0.03), transparent, rgba(255,255,255,0.03), transparent); animation: caseShine 6s linear infinite; }
+        @keyframes caseShine { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .case-visual i { position: relative; z-index: 2; filter: drop-shadow(0 0 10px currentColor); }
+        .case-visual img { position: relative; z-index: 2; border-radius: 8px; background: #0a0c10; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo" style="cursor:pointer;" onclick="changeView('shop')">AN4L <span>CASINO</span></div>
+    <nav>
+        <button onclick="changeView('shop')" id="n-shop" class="active">Sklep</button>
+        <button onclick="changeView('battle')" id="n-battle">Bitwy</button>
+        <button onclick="changeView('upgrade')" id="n-upgrade">Upgrader</button>
+        <button onclick="changeView('inv')" id="n-inv">Ekwipunek</button>
+        <button onclick="changeView('bank')" id="n-bank">Bank</button>
+    </nav>
+    <div class="hud-stats">
+        <div class="hud-card" style="min-width:auto; padding:8px 10px; display:flex; align-items:center;">
+            <select id="currency-select" onchange="changeCurrency(this.value)" style="background:var(--bg-main); border:1px solid #333; border-radius:6px; color:var(--accent-gold); font-weight:900; font-size:13px; font-family:'Rajdhani',sans-serif; padding:6px 8px; cursor:pointer; outline:none;">
+                <option value="USD">$ USD</option>
+                <option value="EUR">€ EUR</option>
+                <option value="PLN">zł PLN</option>
+            </select>
+        </div>
+        <div class="hud-card"><small>Saldo</small><span id="h-bal">$0</span></div>
+        <div class="hud-card"><small>Dług ($600K Max)</small><span id="h-debt" style="color:var(--accent-red)">$0</span></div>
+        <div class="hud-card" style="cursor:pointer; position:relative; display:flex; align-items:center; gap:10px;" onclick="toggleProfileMenu()" title="Kliknij aby zmienić profil"><img id="h-nick-pic" src="" onerror="this.style.display='none'" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid #22c55e; display:none;"><div><small>Gracz</small><span id="h-nick" style="color:var(--accent-blue); font-size:14px;">-</span></div>
+            <div id="profile-menu" style="display:none; position:absolute; top:100%; right:0; margin-top:8px; background:var(--bg-card); border:1px solid var(--border-ui); border-radius:10px; min-width:200px; z-index:999; box-shadow:0 10px 30px rgba(0,0,0,0.6); padding:8px 0; max-height:300px; overflow-y:auto;"></div>
+        </div>
+    </div>
+</header>
+
+<main>
+    <section id="v-shop" class="view active">
+        <label class="joker-toggle-container">
+            <div class="switch">
+                <input type="checkbox" id="joker-toggle" onchange="toggleJokerMode()">
+                <span class="slider"></span>
+            </div>
+            <div>
+                <div style="font-weight: 900; color: #a855f7; text-transform: uppercase;">TRYB JOKER</div>
+                <div style="font-size: 10px; color: #64748b;">Równe szanse na każdy skin, cena skrzynki x5</div>
+            </div>
+        </label>
+        <div style="display:flex; gap:8px; margin-bottom:15px; align-items:center;">
+            <span style="font-size:10px; font-weight:900; color:#64748b; text-transform:uppercase;">Sortuj:</span>
+            <button class="btn btn-outline" id="sort-asc" style="width:auto; padding:6px 14px; font-size:10px;" onclick="setSortOrder('asc')"><i class="fa fa-arrow-up-short-wide" style="margin-right:4px"></i>Najtańsze</button>
+            <button class="btn btn-outline" id="sort-desc" style="width:auto; padding:6px 14px; font-size:10px;" onclick="setSortOrder('desc')"><i class="fa fa-arrow-down-wide-short" style="margin-right:4px"></i>Najdroższe</button>
+        </div>
+        <div class="grid" id="shop-grid"></div>
+    </section>
+
+    <section id="v-battle" class="view">
+        
+        <div id="battle-setup-panel">
+            <div class="battle-ui-panel">
+                <h2>KREATOR BITEW</h2>
+                <button class="btn btn-blue" style="width: auto; height: 45px; font-size: 12px;" onclick="openBattleCaseSelector()">+ DODAJ SKRZYNKI DO BATTLE</button>
+            </div>
+
+            <div style="display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap;">
+                <div class="hud-card" style="text-align: left; flex: 1;">
+                    <small>Wybierz Format Gry</small>
+                    <div style="display: flex; gap: 8px; margin-top: 15px;">
+                        <button class="btn btn-outline active" id="format-2p" onclick="setFormat('2p')">1 v 1</button>
+                        <button class="btn btn-outline" id="format-3p" onclick="setFormat('3p')">3 Graczy</button>
+                        <button class="btn btn-outline" id="format-4p" onclick="setFormat('4p')">4 Graczy</button>
+                        <button class="btn btn-outline" id="format-2v2" onclick="setFormat('2v2')">2 v 2</button>
+                    </div>
+                </div>
+                <div class="hud-card" style="text-align: left; flex: 1;">
+                    <small>Wybierz Tryb Rozliczania</small>
+                    <div style="display: flex; gap: 8px; margin-top: 15px; flex-wrap:wrap;">
+                        <button class="btn btn-outline" id="mode-classic" onclick="setMode('classic')" title="Wygrywa najwyższa suma"><i class="fa-solid fa-shield-halved" style="color:#3b82f6; margin-right:4px;"></i>Standardowy</button>
+                        <button class="btn btn-outline" id="mode-shared" onclick="setMode('shared')" title="Pula dzielona równo między wszystkich graczy"><i class="fa-solid fa-handshake" style="color:#22c55e; margin-right:4px;"></i>Shared</button>
+                        <button class="btn btn-outline" id="mode-underdog" onclick="setMode('underdog')" title="Wygrywa najniższa suma"><i class="fa-solid fa-skull" style="color:#ef4444; margin-right:4px;"></i>Underdog</button>
+                        <button class="btn btn-outline" id="mode-terminal" onclick="setMode('terminal')" title="Liczy się ostatni case — najwyższy wygrywa"><i class="fa-solid fa-crosshairs" style="color:#f97316; margin-right:4px;"></i>Terminal</button>
+                        <button class="btn btn-outline" id="mode-crazy_terminal" onclick="setMode('crazy_terminal')" title="Liczy się ostatni case — najniższy wygrywa"><i class="fa-solid fa-bomb" style="color:#a855f7; margin-right:4px;"></i>Crazy Terminal</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="battle-action-area" style="display: none; margin-bottom: 20px; justify-content:center; align-items:center; gap:15px;">
+            <button class="btn btn-green" id="btn-run-battle" style="height: 60px; width: 300px; font-size: 18px; font-weight: 900;" onclick="runBattle()">ROZPOCZNIJ WALKĘ</button>
+            <button class="btn btn-red" id="btn-leave-battle" style="height: 60px; width:auto; padding:0 30px; font-size: 12px; font-weight: 900;" onclick="leaveBattle()"><i class="fa fa-right-from-bracket" style="margin-right:6px;"></i>OPUŚĆ</button>
+        </div>
+        
+        <div class="active-cases-queue" id="battle-queue-display" style="display: none;"></div>
+        
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+            <div id="battle-mode-badge" style="display:none;"></div>
+            <button class="btn btn-red" id="btn-leave-battle-scene" style="display:none; width:auto; padding:8px 20px; font-size:11px;" onclick="leaveBattle()"><i class="fa fa-right-from-bracket" style="margin-right:6px;"></i>OPUŚĆ BITWĘ</button>
+        </div>
+        <div id="team-scores" style="display:none; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:15px;">
+            <div style="background:rgba(59,130,246,0.1); border:2px solid #3b82f6; border-radius:12px; padding:15px; text-align:center;">
+                <div style="font-size:10px; font-weight:900; color:#3b82f6; text-transform:uppercase;">TEAM 1 (BLUE)</div>
+                <div id="team-score-1" style="font-size:28px; font-weight:900; color:#3b82f6; font-family:'Rajdhani',sans-serif;">$0</div>
+            </div>
+            <div style="background:rgba(239,68,68,0.1); border:2px solid #ef4444; border-radius:12px; padding:15px; text-align:center;">
+                <div style="font-size:10px; font-weight:900; color:#ef4444; text-transform:uppercase;">TEAM 2 (RED)</div>
+                <div id="team-score-2" style="font-size:28px; font-weight:900; color:#ef4444; font-family:'Rajdhani',sans-serif;">$0</div>
+            </div>
+        </div>
+        <div id="arena" style="display: grid; gap: 20px;"></div>
+        <div id="battle-result-banner" style="display:none; margin-top:20px; border-radius:12px; padding:20px 30px; text-align:center; animation: fadeIn 0.5s ease;"></div>
+    </section>
+
+    <section id="v-upgrade" class="view">
+        <div class="upgrade-container">
+            <div class="upgrade-box">
+                <small>TWOJE PRZEDMIOTY <span style="color:#64748b; font-size:10px;">(max 10)</span></small>
+                <div id="upgrade-inv-list" style="margin-top:20px; display:grid; grid-template-columns:1fr 1fr; gap:10px; max-height:450px; overflow-y:auto; padding:5px;"></div>
+            </div>
+            <div class="upgrade-box">
+                <small>WYBRANY PRZEDMIOT</small>
+                <div id="selected-upgrade-preview" class="selected-upgrade-item">
+                    <span style="color:#444">Wybierz skina z listy</span>
+                </div>
+                <div class="wheel-outer">
+                    <div class="needle-pivot" id="up-needle-pivot">
+                        <div class="neon-arrow"></div>
+                    </div>
+                    <div id="upgrade-wheel-visual"></div>
+                    <div class="wheel-text-center" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-weight:900; font-size:30px;" id="up-chance-text">0%</div>
+                </div>
+                <div id="up-target-val" style="color:var(--accent-gold); font-weight:900; margin-bottom:15px;">CEL: $0</div>
+                <div style="display:flex; justify-content:center; gap:8px; margin-bottom:15px;">
+                    <button class="btn btn-outline" style="width:auto" onclick="setUpgradeMult(1.5)">1.5x</button>
+                    <button class="btn btn-outline active" style="width:auto" onclick="setUpgradeMult(2)">2x</button>
+                    <button class="btn btn-outline" style="width:auto" onclick="setUpgradeMult(5)">5x</button>
+                    <button class="btn btn-outline" style="width:auto" onclick="setUpgradeMult(10)">10x</button>
+                </div>
+                <div style="margin-bottom:15px;">
+                    <small style="display:block; margin-bottom:8px; color:#94a3b8; font-weight:900; text-transform:uppercase; font-size:10px;">CEL ULEPSZENIA</small>
+                    <select id="upgrade-target-select" onchange="setUpgradeTarget()" style="width:100%; background:var(--bg-main); border:1px solid #333; border-radius:8px; padding:10px 12px; color:#fff; font-family:'Rajdhani',sans-serif; font-size:14px; font-weight:900; outline:none; cursor:pointer;">
+                        <option value="">-- Automatyczny (mnożnik) --</option>
+                    </select>
+                </div>
+                <button class="btn btn-gold" id="btn-do-upgrade" style="height:55px;" onclick="doUpgrade()" disabled>ULEPSZ</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="v-inv" class="view">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 10px;">
+            <h2 style="font-weight: 900;">EKWIPUNEK</h2>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <button class="sort-btn active" id="inv-sort-desc" onclick="setInvSort('desc')" style="background:var(--bg-card); border:1px solid #333; color:#94a3b8; padding:6px 12px; border-radius:8px; cursor:pointer; font-weight:900; font-size:11px; transition:0.2s;">OD NAJDROŻSZEJ</button>
+                <button class="sort-btn" id="inv-sort-asc" onclick="setInvSort('asc')" style="background:var(--bg-card); border:1px solid #333; color:#94a3b8; padding:6px 12px; border-radius:8px; cursor:pointer; font-weight:900; font-size:11px; transition:0.2s;">OD NAJTAŃSZEJ</button>
+                <button class="btn btn-gold" style="width:auto" onclick="sellAll()">Sprzedaj Wszystko</button>
+            </div>
+        </div>
+        <div class="grid" id="inv-grid"></div>
+    </section>
+
+    <section id="v-bank" class="view">
+        <div class="upgrade-box" style="margin: 0 auto; max-width: 500px; border-color: var(--accent-blue);">
+            <i class="fa-solid fa-building-columns" style="font-size: 50px; color: var(--accent-blue); margin-bottom: 20px;"></i>
+            <h2>BANK CENTRALNY</h2>
+            <p style="color: #64748b; margin: 15px 0;">Limit długu: $600,000. Podatek 15% co 10 rund.</p>
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px;">
+                <span style="color:#64748b; font-weight:900; font-size:12px; white-space:nowrap;">KWOTA $</span>
+                <input type="number" id="bank-amount" value="10000" min="1" style="flex:1; background:var(--bg-main); border:1px solid #333; border-radius:8px; padding:12px 15px; color:#fff; font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:900; text-align:center; outline:none;">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button class="btn btn-blue" style="height: 50px;" onclick="takeLoan(Number(document.getElementById('bank-amount').value))">POŻYCZ</button>
+                <button class="btn btn-gold" style="height: 50px;" onclick="payDebt(Number(document.getElementById('bank-amount').value))">SPŁAĆ</button>
+            </div>
+            <button class="btn btn-green" style="margin-top:10px; height:45px;" onclick="payDebt(state.debt)">SPŁAĆ CAŁY DŁUG</button>
+            <button class="btn btn-red" style="margin-top: 15px;" onclick="resetSave()">RESET POSTĘPU</button>
+        </div>
+    </section>
+</main>
+
+<div id="battle-bar">
+    <div id="cart-list" style="flex: 1; display: flex; gap: 10px; overflow-x: auto;"></div>
+    <div style="text-align: right; min-width: 150px;">
+        <small style="color:#64748b">KOSZT BATTLE</small>
+        <div id="b-cost" style="font-family:'Rajdhani'; font-weight:900; font-size:24px; color:var(--accent-gold)">$0</div>
+    </div>
+    <button class="btn btn-blue" id="btn-create-battle" style="height: 55px; width: 180px; font-size: 14px;" onclick="createBattle()">UTWÓRZ BITWĘ</button>
+</div>
+
+<div class="full-overlay" id="cases-modal">
+    <div class="modal-content" style="max-height: 85vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2>WYBIERZ SKRZYNKĘ DO BITWY</h2>
+            <label class="joker-toggle-container" style="margin-bottom: 0;">
+                <div class="switch">
+                    <input type="checkbox" id="battle-joker-toggle" onchange="toggleBattleJokerMode()">
+                    <span class="slider"></span>
+                </div>
+                <div style="text-align: left;">
+                    <div style="font-weight: 900; color: #a855f7; text-transform: uppercase;">TRYB JOKER</div>
+                </div>
+            </label>
+            <button onclick="closeBattleCaseSelector()" style="background:none; border:1px solid #333; color:#94a3b8; font-size:18px; cursor:pointer; width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-radius:8px; transition:0.2s; flex-shrink:0;" onmouseover="this.style.color='#fff';this.style.borderColor='#fff'" onmouseout="this.style.color='#94a3b8';this.style.borderColor='#333'"><i class="fa fa-xmark"></i></button>
+        </div>
+        <div style="display:flex; gap:8px; margin-bottom:15px;">
+            <button class="btn btn-outline active" id="battle-sort-asc" style="width:auto; padding:8px 16px; font-size:11px;" onclick="battleSortOrder='asc'; openBattleCaseSelector()">Cena ↑</button>
+            <button class="btn btn-outline" id="battle-sort-desc" style="width:auto; padding:8px 16px; font-size:11px;" onclick="battleSortOrder='desc'; openBattleCaseSelector()">Cena ↓</button>
+        </div>
+        <div class="grid" id="battle-cases-grid"></div>
+    </div>
+</div>
+
+<div class="full-overlay" id="bot-modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <h2>DODAJ PRZECIWNIKA</h2>
+        <div class="bot-selection-row" id="modal-bot-selection" style="margin: 30px 0;"></div>
+        <button class="btn btn-outline" style="margin-top: 15px;" onclick="closeBotModal()">ANULUJ</button>
+    </div>
+</div>
+
+<div class="full-overlay" id="login-overlay" style="display:flex; z-index:9999;">
+    <div class="modal-content" style="max-width:450px; text-align:center;">
+        <i class="fa-solid fa-user-shield" style="font-size:50px; color:var(--accent-gold); margin-bottom:20px;"></i>
+        <h2 style="margin-bottom:5px;">AN4L CASINO</h2>
+        <p style="color:#64748b; margin-bottom:15px; font-size:12px;">Zaloguj się lub utwórz konto</p>
+
+        <!-- TABS -->
+        <div style="display:flex; gap:0; margin-bottom:20px; border-radius:10px; overflow:hidden; border:1px solid #333;">
+            <button id="tab-login" onclick="switchAuthTab('login')" style="flex:1; padding:12px; background:var(--accent-blue); color:#fff; border:none; font-weight:900; font-size:12px; cursor:pointer; text-transform:uppercase; transition:0.2s;">LOGOWANIE</button>
+            <button id="tab-register" onclick="switchAuthTab('register')" style="flex:1; padding:12px; background:var(--bg-deep); color:#64748b; border:none; font-weight:900; font-size:12px; cursor:pointer; text-transform:uppercase; transition:0.2s;">REJESTRACJA</button>
+        </div>
+
+        <!-- LOGIN FORM -->
+        <div id="auth-login-form">
+            <p style="color:#64748b; margin-bottom:10px; font-size:10px; text-transform:uppercase; font-weight:900;">Szybkie logowanie</p>
+            <div style="display:flex; gap:15px; margin-bottom:20px; justify-content:center;">
+                <button class="btn btn-blue" style="width:auto; height:45px; padding:0 20px; font-size:12px; font-weight:900;" onclick="quickLogin('Denis Załęcki')">Denis Załęcki</button>
+                <button class="btn btn-green" style="width:auto; height:45px; padding:0 20px; font-size:12px; font-weight:900;" onclick="quickLogin('Bartek Szachta')">Bartek Szachta</button>
+            </div>
+            <input type="text" id="login-nick" placeholder="Nick..." style="width:100%; background:var(--bg-main); border:2px solid #333; border-radius:10px; padding:14px 18px; color:#fff; font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:900; text-align:center; outline:none; margin-bottom:10px; transition:0.3s;" onfocus="this.style.borderColor='var(--accent-gold)'" onblur="this.style.borderColor='#333'">
+            <input type="password" id="login-pass" placeholder="Hasło..." style="width:100%; background:var(--bg-main); border:2px solid #333; border-radius:10px; padding:14px 18px; color:#fff; font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:900; text-align:center; outline:none; margin-bottom:10px; transition:0.3s;" onfocus="this.style.borderColor='var(--accent-gold)'" onblur="this.style.borderColor='#333'">
+            <button class="btn btn-gold" style="height:50px; font-size:14px;" onclick="loginWithNick()">ZALOGUJ SIĘ</button>
+        </div>
+
+        <!-- REGISTER FORM -->
+        <div id="auth-register-form" style="display:none;">
+            <input type="text" id="reg-nick" placeholder="Wymyśl nick..." style="width:100%; background:var(--bg-main); border:2px solid #333; border-radius:10px; padding:14px 18px; color:#fff; font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:900; text-align:center; outline:none; margin-bottom:10px; transition:0.3s;" onfocus="this.style.borderColor='var(--accent-green)'" onblur="this.style.borderColor='#333'">
+            <input type="password" id="reg-pass" placeholder="Hasło..." style="width:100%; background:var(--bg-main); border:2px solid #333; border-radius:10px; padding:14px 18px; color:#fff; font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:900; text-align:center; outline:none; margin-bottom:10px; transition:0.3s;" onfocus="this.style.borderColor='var(--accent-green)'" onblur="this.style.borderColor='#333'">
+            <input type="password" id="reg-pass2" placeholder="Powtórz hasło..." style="width:100%; background:var(--bg-main); border:2px solid #333; border-radius:10px; padding:14px 18px; color:#fff; font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:900; text-align:center; outline:none; margin-bottom:15px; transition:0.3s;" onfocus="this.style.borderColor='var(--accent-green)'" onblur="this.style.borderColor='#333'">
+            <button class="btn btn-green" style="height:50px; font-size:14px;" onclick="registerAccount()">ZAREJESTRUJ SIĘ</button>
+        </div>
+
+        <!-- STEAM LOGIN -->
+        <div style="border-top:1px solid #333; margin-top:20px; padding-top:15px;">
+            <button onclick="steamOpenID()" style="width:100%; height:56px; background:#171a21; border:2px solid #2a3f5f; border-radius:10px; color:#fff; font-weight:900; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:12px; transition:0.2s; letter-spacing:1px;" onmouseover="this.style.borderColor='#66c0f4';this.style.boxShadow='0 0 15px rgba(102,192,244,0.2)'" onmouseout="this.style.borderColor='#2a3f5f';this.style.boxShadow='none'">
+                <i class="fa-brands fa-steam" style="font-size:24px; color:#66c0f4;"></i>
+                ZALOGUJ PRZEZ STEAM
+            </button>
+        </div>
+    </div>
+
+    <!-- STEAM NICK FORM (shown after Steam redirect) -->
+    <div id="steam-nick-form" style="display:none; text-align:center;">
+        <i class="fa-brands fa-steam" style="font-size:50px; color:#66c0f4; margin-bottom:15px;"></i>
+        <h2 style="font-weight:900; margin-bottom:5px;">STEAM ZALOGOWANY</h2>
+        <p style="color:#64748b; margin-bottom:15px; font-size:12px;">Podaj nick, który będzie widoczny w kasynie</p>
+        <input type="text" id="steam-nick-input" placeholder="Twój nick..." style="width:100%; background:var(--bg-main); border:2px solid #66c0f4; border-radius:10px; padding:14px 18px; color:#fff; font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:900; text-align:center; outline:none; margin-bottom:15px;">
+        <button class="btn btn-blue" style="height:50px; font-size:14px; width:100%;" onclick="confirmSteamNick()">POTWIERDŹ</button>
+    </div>
+</div>
+
+<div class="full-overlay" id="profile-settings-modal">
+    <div class="modal-content" style="max-width:480px; text-align:center;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2 style="margin:0;"><i class="fa fa-user-gear" style="margin-right:8px; color:var(--accent-gold);"></i>USTAWIENIA PROFILU</h2>
+            <button onclick="closeProfileSettings()" style="background:none; border:1px solid #333; color:#94a3b8; font-size:18px; cursor:pointer; width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-radius:8px; transition:0.2s;" onmouseover="this.style.color='#fff';this.style.borderColor='#fff'" onmouseout="this.style.color='#94a3b8';this.style.borderColor='#333'"><i class="fa fa-xmark"></i></button>
+        </div>
+        <div style="margin-bottom:20px;">
+            <div id="profile-avatar-preview" style="width:80px; height:80px; border-radius:50%; border:3px solid var(--accent-green); margin:0 auto 15px; overflow:hidden; display:flex; align-items:center; justify-content:center; background:var(--bg-deep);">
+                <i class="fa fa-user" style="font-size:30px; color:#333;"></i>
+            </div>
+            <label style="color:#94a3b8; font-size:10px; font-weight:900; text-transform:uppercase; display:block; margin-bottom:8px;">Zdjęcie profilowe</label>
+            <input type="text" id="profile-pic-input" placeholder="Link do zdjęcia (URL lub img/plik.png)" style="width:100%; background:var(--bg-main); border:2px solid #333; border-radius:10px; padding:12px 16px; color:#fff; font-size:13px; outline:none; transition:0.3s; margin-bottom:8px;" onfocus="this.style.borderColor='var(--accent-gold)'" onblur="this.style.borderColor='#333'">
+            <label class="btn btn-outline" style="height:40px; font-size:11px; cursor:pointer; margin-bottom:0;"><i class="fa fa-upload" style="margin-right:6px;"></i>WGRAJ Z DYSKU<input type="file" id="profile-pic-file" accept="image/*" style="display:none;" onchange="handleProfileFileUpload(this)"></label>
+        </div>
+        <div style="margin-bottom:20px;">
+            <label style="color:#94a3b8; font-size:10px; font-weight:900; text-transform:uppercase; display:block; margin-bottom:8px;">O mnie</label>
+            <textarea id="profile-bio-input" placeholder="Napisz coś o sobie..." maxlength="150" style="width:100%; height:80px; background:var(--bg-main); border:2px solid #333; border-radius:10px; padding:12px 16px; color:#fff; font-size:13px; outline:none; resize:none; font-family:'Inter',sans-serif; transition:0.3s;" onfocus="this.style.borderColor='var(--accent-gold)'" onblur="this.style.borderColor='#333'"></textarea>
+            <div style="text-align:right; font-size:9px; color:#444; margin-top:4px;"><span id="bio-char-count">0</span>/150</div>
+        </div>
+        <button class="btn btn-gold" style="height:50px; font-size:14px;" onclick="saveProfileSettings()">ZAPISZ</button>
+    </div>
+</div>
+
+<div class="full-overlay" id="case-modal">
+    <div class="modal-content" style="max-width: 950px; max-height:90vh; overflow-y:auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h2 id="case-modal-title" style="color: var(--accent-gold); margin:0;">SKRZYNKA</h2>
+            <button class="btn btn-outline" style="width:auto; padding:8px 20px;" onclick="closeCaseModal()">✕ ZAMKNIJ</button>
+        </div>
+        <div id="case-roulette-area" style="display:none; margin-bottom:20px;">
+            <div id="roulette-tracks-container" style="display:flex; flex-direction:column; gap:10px;"></div>
+            <div id="open-result" style="margin-top: 15px; font-size: 22px; font-weight: 900; min-height: 30px; display: flex; flex-direction: column; align-items: center; gap: 5px;"></div>
+            <div id="case-result-actions" style="display:none; margin-top:12px; justify-content:center; align-items:center; gap:10px;">
+                <button class="btn btn-blue" id="btn-close-open" style="width:auto; padding:12px 30px;" onclick="hideRouletteArea()">ZABIERZ PRZEDMIOTY</button>
+                <button class="btn btn-gold" id="btn-sell-all-opened" style="width:auto; padding:12px 30px;" onclick="sellAllOpened()">SPRZEDAJ WSZYSTKO</button>
+            </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:15px; flex-wrap:wrap;">
+            <button class="btn btn-gold" id="btn-case-open" style="width:auto; padding:12px 30px; font-size:12px;" onclick="">OTWÓRZ</button>
+            <div style="display:flex; border:1px solid #334155; border-radius:8px; overflow:hidden;" id="qty-selector">
+                <button class="qty-btn active" onclick="setCaseQty(1)">1</button>
+                <button class="qty-btn" onclick="setCaseQty(2)">2</button>
+                <button class="qty-btn" onclick="setCaseQty(3)">3</button>
+                <button class="qty-btn" onclick="setCaseQty(4)">4</button>
+                <button class="qty-btn" onclick="setCaseQty(5)">5</button>
+            </div>
+            <label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; background:rgba(168,85,247,0.1); border:1px solid #a855f7; padding:8px 15px; border-radius:8px;">
+                <input type="checkbox" id="preview-joker-toggle" onchange="refreshCasePreview()" style="accent-color:#a855f7; width:16px; height:16px;">
+                <span style="font-weight:900; color:#a855f7; font-size:11px;">JOKER x5</span>
+            </label>
+            <span id="case-modal-price" style="font-weight:900; font-size:18px; color:var(--accent-gold); font-family:'Rajdhani',sans-serif;"></span>
+        </div>
+        <div id="multi-open-results" style="display:none; margin-bottom:15px;"></div>
+        <h3 style="font-size:12px; color:#64748b; font-weight:900; text-transform:uppercase; margin-bottom:10px;">Zawartość skrzynki</h3>
+        <div class="preview-grid" id="preview-grid"></div>
+    </div>
+</div>
+
+<script>
+    // --- BAZA ---
+    const THEMES = [
+        { name: "Clutch Case", color: "#4ade80", icon: "fa-hand-fist", price: 3, img: "img/clutch_case.png", items: [
+            { name: "P250 Sand Dune FT", value: 0.03, color: "#94a3b8", icon: "fa-gun", chance: 0.35 },
+            { name: "MP7 Forest DDPAT", value: 0.08, color: "#94a3b8", icon: "fa-gun", chance: 0.30 },
+            { name: "Tec-9 Groundwater", value: 0.15, color: "#3b82f6", icon: "fa-gun", chance: 0.17 },
+            { name: "FAMAS Mecha Industries FN", value: 1.50, color: "#3b82f6", icon: "fa-crosshairs", chance: 0.10 },
+            { name: "M4A4 Neo-Noir FT", value: 6, color: "#a855f7", icon: "fa-crosshairs", chance: 0.05 },
+            { name: "AWP Mortis FN", value: 12, color: "#ec4899", icon: "fa-bullseye", chance: 0.025 },
+            { name: "Gloves Crimson Kimono FT", value: 600, color: "#fbbf24", icon: "fa-mitten", chance: 0.005 }
+        ]},
+        { name: "Chroma Case", color: "#3b82f6", icon: "fa-palette", price: 5, img: "img/chrome_case.png", items: [
+            { name: "Galil AR Chatterbox WW", value: 5, color: "#94a3b8", icon: "fa-crosshairs", chance: 0.32 },
+            { name: "MAC-10 Neon Rider FN", value: 8, color: "#94a3b8", icon: "fa-gun", chance: 0.28 },
+            { name: "AK-47 Frontside Misty FN", value: 18, color: "#3b82f6", icon: "fa-crosshairs", chance: 0.18 },
+            { name: "M4A1-S Hyper Beast FN", value: 45, color: "#a855f7", icon: "fa-crosshairs", chance: 0.12 },
+            { name: "USP-S Kill Confirmed FN", value: 50, color: "#ec4899", icon: "fa-gun", chance: 0.06 },
+            { name: "AWP Hyper Beast FN", value: 38, color: "#ec4899", icon: "fa-bullseye", chance: 0.03 },
+            { name: "Butterfly Blue Steel FT", value: 580, color: "#fbbf24", icon: "fa-khanda", chance: 0.01 }
+        ]},
+        { name: "Prisma Case", color: "#a78bfa", icon: "fa-gem", price: 3, img: "img/prisma_case.png", items: [
+            { name: "Five-SeveN Angry Mob FN", value: 0.50, color: "#94a3b8", icon: "fa-gun", chance: 0.35 },
+            { name: "AK-47 Uncharted FN", value: 3, color: "#3b82f6", icon: "fa-crosshairs", chance: 0.25 },
+            { name: "AWP Chromatic Aberration FN", value: 5, color: "#3b82f6", icon: "fa-bullseye", chance: 0.18 },
+            { name: "M4A4 The Emperor FN", value: 32, color: "#a855f7", icon: "fa-crosshairs", chance: 0.12 },
+            { name: "Desert Eagle Blaze FN", value: 400, color: "#ec4899", icon: "fa-fire", chance: 0.06 },
+            { name: "Talon Knife Fade FN", value: 750, color: "#ec4899", icon: "fa-khanda", chance: 0.03 },
+            { name: "Sport Gloves Pandora's Box MW", value: 3200, color: "#fbbf24", icon: "fa-mitten", chance: 0.01 }
+        ]},
+        { name: "Danger Zone Case", color: "#f97316", icon: "fa-skull-crossbones", price: 4, img: "img/danger_zone_case.png", items: [
+            { name: "MP5-SD Lab Rats FT", value: 0.50, color: "#94a3b8", icon: "fa-gun", chance: 0.34 },
+            { name: "Desert Eagle Mecha Industries FN", value: 3, color: "#3b82f6", icon: "fa-gun", chance: 0.25 },
+            { name: "AK-47 Asiimov FT", value: 35, color: "#3b82f6", icon: "fa-crosshairs", chance: 0.18 },
+            { name: "AWP Containment Breach FN", value: 18, color: "#a855f7", icon: "fa-bullseye", chance: 0.12 },
+            { name: "M4A1-S Printstream FN", value: 42, color: "#ec4899", icon: "fa-crosshairs", chance: 0.06 },
+            { name: "Karambit Doppler FN", value: 700, color: "#ec4899", icon: "fa-khanda", chance: 0.04 },
+            { name: "Butterfly Doppler FN", value: 1250, color: "#fbbf24", icon: "fa-khanda", chance: 0.01 }
+        ]},
+        { name: "Spectrum Case", color: "#8b5cf6", icon: "fa-wand-magic-sparkles", price: 8, img: "img/spectrum2_case.png", items: [
+            { name: "Glock-18 Fade FN", value: 1200, color: "#94a3b8", icon: "fa-gun", chance: 0.005 },
+            { name: "USP-S Printstream FN", value: 100, color: "#3b82f6", icon: "fa-gun", chance: 0.30 },
+            { name: "AK-47 Vulcan FN", value: 150, color: "#a855f7", icon: "fa-crosshairs", chance: 0.20 },
+            { name: "AWP Lightning Strike FN", value: 200, color: "#a855f7", icon: "fa-bolt", chance: 0.15 },
+            { name: "M4A4 Howl FT", value: 2500, color: "#ec4899", icon: "fa-fire", chance: 0.04 },
+            { name: "Butterfly Marble Fade FN", value: 1500, color: "#ec4899", icon: "fa-khanda", chance: 0.02 },
+            { name: "Karambit Fade FN", value: 1200, color: "#fbbf24", icon: "fa-khanda", chance: 0.01 }
+        ]},
+        { name: "Operation Bravo", color: "#facc15", icon: "fa-star", price: 15, img: "img/bravo_case.png", items: [
+            { name: "P2000 Ocean Foam FN", value: 105, color: "#3b82f6", icon: "fa-gun", chance: 0.35 },
+            { name: "Desert Eagle Blaze FN", value: 400, color: "#a855f7", icon: "fa-fire", chance: 0.25 },
+            { name: "AK-47 Fire Serpent FT", value: 650, color: "#f97316", icon: "fa-fire", chance: 0.18 },
+            { name: "AWP Dragon Lore BS", value: 1500, color: "#ec4899", icon: "fa-dragon", chance: 0.10 },
+            { name: "M4A4 Howl FN", value: 7000, color: "#ec4899", icon: "fa-fire", chance: 0.05 },
+            { name: "AWP Gungnir FN", value: 10000, color: "#fbbf24", icon: "fa-bullseye", chance: 0.02 },
+            { name: "AWP Dragon Lore FN", value: 5500, color: "#fbbf24", icon: "fa-dragon", chance: 0.01 }
+        ]},
+        { name: "Titan Holo Case", color: "#2563eb", icon: "fa-diamond", price: 25, img: "img/titan_holo_case.png", items: [
+            { name: "Titan Holo Katowice 2014", value: 80000, color: "#fbbf24", img: "img/titan_holo.png", chance: 0.001 },
+            { name: "AWP Dragon Lore FN", value: 5500, color: "#fbbf24", img: "img/dragon_lore.png", chance: 0.02 },
+            { name: "AWP Gungnir FN", value: 10000, color: "#a855f7", img: "img/gungnir.png", chance: 0.01 },
+            { name: "Butterfly Marble Fade FN", value: 1500, color: "#ec4899", img: "img/butterfly_marble.png", chance: 0.08 },
+            { name: "Karambit Fade FN", value: 1200, color: "#ec4899", img: "img/karambit_fade.png", chance: 0.10 },
+            { name: "AK-47 Fire Serpent FT", value: 650, color: "#f97316", img: "img/fire_serpent.png", chance: 0.30 },
+            { name: "Szeliga Sticker", value: 0.12, color: "#3b82f6", img: "img/szeliga_sticker.png", chance: 0.479 }
+        ]},
+        { name: "Anubis Case", color: "#d97706", icon: "fa-ankh", price: 12, img: "img/anubis_case.png", items: [
+            { name: "AK-47 Gold Arabesque FN", value: 200, color: "#3b82f6", icon: "fa-crosshairs", chance: 0.30 },
+            { name: "AWP Fade FN", value: 950, color: "#a855f7", icon: "fa-bullseye", chance: 0.20 },
+            { name: "M4A1-S Golden Coil FN", value: 25, color: "#a855f7", icon: "fa-crosshairs", chance: 0.22 },
+            { name: "Butterfly Crimson Web MW", value: 1300, color: "#ec4899", icon: "fa-khanda", chance: 0.10 },
+            { name: "Sport Gloves Vice FN", value: 8000, color: "#ec4899", icon: "fa-mitten", chance: 0.03 },
+            { name: "Karambit Crimson Web FN", value: 3500, color: "#fbbf24", icon: "fa-khanda", chance: 0.01 },
+            { name: "Souvenir AWP Dragon Lore FN", value: 25000, color: "#fbbf24", icon: "fa-dragon", chance: 0.005 }
+        ]},
+        { name: "Revolution Case", color: "#ef4444", icon: "fa-rotate", price: 4, img: "img/revolution.png", items: [
+            { name: "Glock Gamma Doppler FN", value: 500, color: "#3b82f6", icon: "fa-gun", chance: 0.30 },
+            { name: "USP-S Neo-Noir FN", value: 10, color: "#a855f7", icon: "fa-gun", chance: 0.25 },
+            { name: "AK-47 Wild Lotus FN", value: 7000, color: "#ec4899", icon: "fa-leaf", chance: 0.02 },
+            { name: "Talon Marble Fade FN", value: 700, color: "#ec4899", icon: "fa-khanda", chance: 0.08 },
+            { name: "Sport Gloves Slingshot FT", value: 500, color: "#f97316", icon: "fa-mitten", chance: 0.15 },
+            { name: "Butterfly Sapphire FN", value: 2800, color: "#fbbf24", icon: "fa-gem", chance: 0.01 },
+            { name: "Karambit Ruby FN", value: 2000, color: "#fbbf24", icon: "fa-gem", chance: 0.015 }
+        ]},
+        { name: "Buzzball zielony", color: "#00ff95", icon: "fa-atom", price: 50, img: "img/bazzball_green_case.png", items: [
+            { name: "ST FN AK-47 Case Hardened #661", value: 1500000, color: "#fbbf24", icon: "fa-crosshairs", chance: 0.0001 },
+            { name: "AWP Dragon Lore FN", value: 5500, color: "#ec4899", icon: "fa-dragon", chance: 0.02 },
+            { name: "Butterfly Sapphire FN", value: 2800, color: "#ec4899", icon: "fa-gem", chance: 0.05 },
+            { name: "Karambit Ruby FN", value: 2000, color: "#fbbf24", icon: "fa-gem", chance: 0.08 },
+            { name: "Pandora's Box Gloves FN", value: 5000, color: "#fbbf24", icon: "fa-mitten", chance: 0.03 },
+            { name: "StatTrak M4A4 Howl FN", value: 15000, color: "#fbbf24", icon: "fa-fire", chance: 0.005 }
+        ]},
+        { name: "CS:GO Weapon Case", color: "#6b7280", icon: "fa-box", price: 2, img: "img/csgo_case.png", items: [
+            { name: "SG 553 Ultraviolet FT", value: 0.10, color: "#94a3b8", icon: "fa-gun", chance: 0.35 },
+            { name: "AUG Wings FT", value: 0.30, color: "#94a3b8", icon: "fa-gun", chance: 0.28 },
+            { name: "Glock-18 Dragon Tattoo FN", value: 7, color: "#3b82f6", icon: "fa-gun", chance: 0.18 },
+            { name: "M4A1-S Dark Water FT", value: 5, color: "#3b82f6", icon: "fa-crosshairs", chance: 0.10 },
+            { name: "AK-47 Case Hardened FT", value: 30, color: "#a855f7", icon: "fa-crosshairs", chance: 0.05 },
+            { name: "AWP Lightning Strike FN", value: 200, color: "#ec4899", icon: "fa-bolt", chance: 0.025 },
+            { name: "Karambit Boreal Forest FT", value: 250, color: "#fbbf24", icon: "fa-khanda", chance: 0.015 }
+        ]},
+        { name: "Breakout Case", color: "#16a34a", icon: "fa-lock-open", price: 4, img: "img/breakout_case.png", items: [
+            { name: "P90 Module FT", value: 0.10, color: "#94a3b8", icon: "fa-gun", chance: 0.35 },
+            { name: "CZ75-Auto Victoria FN", value: 4, color: "#94a3b8", icon: "fa-gun", chance: 0.28 },
+            { name: "P2000 Handgun FN", value: 1, color: "#3b82f6", icon: "fa-gun", chance: 0.18 },
+            { name: "M4A1-S Cyrex FN", value: 25, color: "#a855f7", icon: "fa-crosshairs", chance: 0.10 },
+            { name: "Butterfly Knife Scorched FT", value: 450, color: "#ec4899", icon: "fa-khanda", chance: 0.05 },
+            { name: "Butterfly Knife Fade FN", value: 1800, color: "#ec4899", icon: "fa-khanda", chance: 0.025 },
+            { name: "Butterfly Knife Slaughter FN", value: 1200, color: "#fbbf24", icon: "fa-khanda", chance: 0.015 }
+        ]},
+        { name: "Glove Case", color: "#f59e0b", icon: "fa-mitten", price: 4, img: "img/glove_case.png", items: [
+            { name: "MAG-7 Sonar FN", value: 0.30, color: "#94a3b8", icon: "fa-gun", chance: 0.35 },
+            { name: "Glock-18 Ironwork FN", value: 1, color: "#3b82f6", icon: "fa-gun", chance: 0.25 },
+            { name: "M4A4 Buzz Kill FN", value: 15, color: "#3b82f6", icon: "fa-crosshairs", chance: 0.18 },
+            { name: "USP-S Cyrex FN", value: 5, color: "#a855f7", icon: "fa-gun", chance: 0.12 },
+            { name: "Moto Gloves Transport FT", value: 80, color: "#ec4899", icon: "fa-mitten", chance: 0.06 },
+            { name: "Sport Gloves Arid FT", value: 150, color: "#ec4899", icon: "fa-mitten", chance: 0.03 },
+            { name: "Sport Gloves Pandora's Box FT", value: 1200, color: "#fbbf24", icon: "fa-mitten", chance: 0.01 }
+        ]},
+        { name: "Operation Hydra Case", color: "#059669", icon: "fa-dragon", price: 6, img: "img/hydra_case.png", items: [
+            { name: "Five-SeveN Hyper Beast FN", value: 3, color: "#94a3b8", icon: "fa-gun", chance: 0.32 },
+            { name: "Dual Berettas Cobra Strike FN", value: 4, color: "#3b82f6", icon: "fa-gun", chance: 0.25 },
+            { name: "AWP Oni Taiji FN", value: 12, color: "#3b82f6", icon: "fa-bullseye", chance: 0.18 },
+            { name: "M4A1-S Decimator FN", value: 10, color: "#a855f7", icon: "fa-crosshairs", chance: 0.12 },
+            { name: "AK-47 Orbit Mk01 FN", value: 12, color: "#ec4899", icon: "fa-crosshairs", chance: 0.07 },
+            { name: "Bayonet Lore FN", value: 500, color: "#ec4899", icon: "fa-khanda", chance: 0.04 },
+            { name: "Butterfly Knife Lore FN", value: 1500, color: "#fbbf24", icon: "fa-khanda", chance: 0.02 }
+        ]},
+        { name: "Riptide Case", color: "#0ea5e9", icon: "fa-water", price: 3, img: "img/riptide_case.png", items: [
+            { name: "MAC-10 Toybox FN", value: 1, color: "#94a3b8", icon: "fa-gun", chance: 0.35 },
+            { name: "SSG 08 Turbo Peek FN", value: 1, color: "#94a3b8", icon: "fa-gun", chance: 0.27 },
+            { name: "Glock-18 Snack Attack FN", value: 3, color: "#3b82f6", icon: "fa-gun", chance: 0.18 },
+            { name: "Desert Eagle Ocean Drive FN", value: 3, color: "#a855f7", icon: "fa-gun", chance: 0.10 },
+            { name: "AK-47 Leet Museo FN", value: 5, color: "#ec4899", icon: "fa-crosshairs", chance: 0.05 },
+            { name: "Nomad Knife Fade FN", value: 500, color: "#ec4899", icon: "fa-khanda", chance: 0.03 },
+            { name: "Skeleton Knife Crimson Web FN", value: 1000, color: "#fbbf24", icon: "fa-khanda", chance: 0.02 }
+        ]},
+        { name: "Dreams & Nightmares Case", color: "#7c3aed", icon: "fa-moon", price: 3, img: "img/dreams_and_nightmares_case.png", items: [
+            { name: "FAMAS Rapid Eye Movement FN", value: 0.50, color: "#94a3b8", icon: "fa-gun", chance: 0.35 },
+            { name: "MP9 Starlight Protector FN", value: 2, color: "#94a3b8", icon: "fa-gun", chance: 0.25 },
+            { name: "USP-S Ticket to Hell FN", value: 8, color: "#3b82f6", icon: "fa-gun", chance: 0.18 },
+            { name: "AK-47 Nightwish FN", value: 20, color: "#a855f7", icon: "fa-crosshairs", chance: 0.12 },
+            { name: "MP5-SD Kitbash FN", value: 5, color: "#ec4899", icon: "fa-gun", chance: 0.05 },
+            { name: "Butterfly Knife Autotronic FN", value: 1200, color: "#ec4899", icon: "fa-khanda", chance: 0.03 },
+            { name: "Karambit Gamma Doppler FN", value: 1500, color: "#fbbf24", icon: "fa-khanda", chance: 0.02 }
+        ]},
+        { name: "EMS One Katowice 2014", color: "#e11d48", icon: "fa-fire-flame-curved", price: 100, img: "img/ems_one_katowice2014.png", items: [
+            { name: "Sticker | 3DMAX (Holo) Katowice 2014", value: 3000, color: "#94a3b8", icon: "fa-note-sticky", chance: 0.20 },
+            { name: "Sticker | Clan-Mystik (Holo) Katowice 2014", value: 5000, color: "#94a3b8", icon: "fa-note-sticky", chance: 0.15 },
+            { name: "Sticker | compLexity (Holo) Katowice 2014", value: 5000, color: "#3b82f6", icon: "fa-note-sticky", chance: 0.13 },
+            { name: "Sticker | Fnatic (Holo) Katowice 2014", value: 4000, color: "#3b82f6", icon: "fa-note-sticky", chance: 0.12 },
+            { name: "Sticker | HellRaisers (Holo) Katowice 2014", value: 8000, color: "#3b82f6", icon: "fa-note-sticky", chance: 0.10 },
+            { name: "Sticker | Natus Vincere (Holo) Katowice 2014", value: 12000, color: "#a855f7", icon: "fa-note-sticky", chance: 0.08 },
+            { name: "Sticker | Dignitas (Holo) Katowice 2014", value: 45000, color: "#a855f7", icon: "fa-note-sticky", chance: 0.04 },
+            { name: "Sticker | Vox Eminor (Holo) Katowice 2014", value: 12000, color: "#ec4899", icon: "fa-note-sticky", chance: 0.06 },
+            { name: "Sticker | LGB eSports (Holo) Katowice 2014", value: 10000, color: "#ec4899", icon: "fa-note-sticky", chance: 0.05 },
+            { name: "Sticker | Reason Gaming (Holo) Katowice 2014", value: 25000, color: "#ec4899", icon: "fa-note-sticky", chance: 0.03 },
+            { name: "Sticker | Team LDLC.com (Holo) Katowice 2014", value: 8000, color: "#f97316", icon: "fa-note-sticky", chance: 0.02 },
+            { name: "Sticker | Titan (Holo) Katowice 2014", value: 80000, color: "#fbbf24", icon: "fa-note-sticky", chance: 0.005 },
+            { name: "Sticker | iBUYPOWER (Holo) Katowice 2014", value: 50000, color: "#fbbf24", icon: "fa-note-sticky", chance: 0.01 }
+        ]}
+    ];
+
+    const ALL_TARGET_ITEMS = [];
+    THEMES.forEach(t => {
+        if(t.items) t.items.forEach(it => {
+            if(!ALL_TARGET_ITEMS.find(x => x.name === it.name)) ALL_TARGET_ITEMS.push(it);
+        });
+    });
+    ALL_TARGET_ITEMS.sort((a,b) => a.value - b.value);
+
+    const BOTS = [
+        { id: 1, name: "Igla", img: "img/igla.png", steam: "https://steamcommunity.com/profiles/76561198409348745" },
+        { id: 2, name: "Wiesiu", img: "img/wiesiu.png", steam: "https://steamcommunity.com/profiles/76561199823093119" },
+        { id: 3, name: "Wonciaak", img: "img/wonciaak.png", steam: "https://steamcommunity.com/profiles/76561198879554341" },
+        { id: 4, name: "Hexi", img: "img/hexi.png", steam: "https://steamcommunity.com/profiles/76561199154727886" },
+        { id: 5, name: "An4l", img: "img/an4l.jpg", steam: "https://steamcommunity.com/profiles/76561199552357660" },
+        { id: 6, name: "FILIPOOOS", img: "img/FICIPEK.png", steam: "https://steamcommunity.com/profiles/76561199414953210" },
+        { id: 7, name: "ukraiński agent", img: "img/ukraiński_agent.png", steam: "https://steamcommunity.com/id/UA_FuRy" },
+        { id: 8, name: "snax", img: "img/snax.png", steam: "https://steamcommunity.com/profiles/76561197982141573" },
+        { id: 9, name: "m0nesy", img: "img/m0nesy.png", steam: "https://steamcommunity.com/id/m0NESY-" },
+        { id: 10, name: "paszabiceps", img: "img/paszabiceps.png", steam: "https://steamcommunity.com/id/Brekardo" },
+        { id: 11, name: "NIGOREK", img: "img/nigorek.png", steam: "https://steamcommunity.com/profiles/76561199223326691/" },
+        { id: 12, name: "Wikos", img: "img/wikos.jpg", steam: "https://steamcommunity.com/id/Wikos22" },
+        { id: 13, name: "bredzik", img: "img/bredzik.png", steam: "https://steamcommunity.com/id/magiczny4wpierdol1" },
+        { id: 14, name: "magik", img: "img/magik.png", steam: "" }
+    ];
+
+    const TIERS = [
+        { name: "Common", mult: 0.3, color: "#94a3b8" },
+        { name: "Uncommon", mult: 0.8, color: "#3b82f6" },
+        { name: "Rare", mult: 2.0, color: "#a855f7" },
+        { name: "Epic", mult: 5.0, color: "#ec4899" },
+        { name: "Legendary", mult: 20.0, color: "#fbbf24" }
+    ];
+
+    let state = { balance: 5000, debt: 0, inventory: [], cart: [], selectedBots: [], mode: 'classic', battleFormat: '2p', rounds: 0 };
+    let upState = { selectedIndices: [], multiplier: 2, isSpinning: false, targetItem: null };
+    
+    let battleState = 'idle'; 
+    let lastBattleConfig = null;
+    let isJokerMode = false;
+    let isBattleJokerMode = false;
+    function jokerPrice(c) { if(c.items && c.items.length > 0) { return Math.round(c.items.reduce((s,it) => s + it.value, 0) / c.items.length); } return c.price * 5; }
+    let currentNick = null;
+    let currentCaseIdx = null;
+    let caseOpenQty = 1;
+    let lastOpenedItems = [];
+    let shopSortOrder = 'asc';
+
+    // --- AUDIO API ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = new AudioContext();
+
+    const winSound = new Audio('winsound.mp3');
+    winSound.volume = 0.8; winSound.preload = 'auto'; winSound.load();
+    const loseSound = new Audio('loseupgrader.mp3');
+    loseSound.volume = 0.8; loseSound.preload = 'auto'; loseSound.load();
+
+    // Odblokuj audio przy pierwszym kliknięciu
+    document.addEventListener('click', function unlockAudio() {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        winSound.play().then(() => { winSound.pause(); winSound.currentTime = 0; }).catch(()=>{});
+        loseSound.play().then(() => { loseSound.pause(); loseSound.currentTime = 0; }).catch(()=>{});
+        document.removeEventListener('click', unlockAudio);
+    }, { once: true });
+
+    // --- CONFETTI ---
+    function launchConfetti() {
+        // Flash bang
+        const flash = document.createElement('div');
+        flash.className = 'confetti-flash';
+        document.body.appendChild(flash);
+        setTimeout(() => flash.remove(), 900);
+
+        const container = document.createElement('div');
+        container.className = 'confetti-container';
+        document.body.appendChild(container);
+        const colors = ['#fbbf24', '#f59e0b', '#d97706', '#fcd34d', '#fde68a', '#fff', '#22c55e', '#3b82f6', '#a855f7', '#ec4899', '#ef4444'];
+
+        // Eksplozja w górę ze środka dołu ekranu
+        for (let i = 0; i < 200; i++) {
+            const p = document.createElement('div');
+            p.className = 'confetti-piece burst';
+            const c = colors[Math.floor(Math.random() * colors.length)];
+            const size = 8 + Math.random() * 16;
+            const shape = Math.random() > 0.4 ? '50%' : Math.random() > 0.5 ? '2px' : '0';
+            const dur = 1.5 + Math.random() * 2.5;
+            const del = Math.random() * 0.4;
+            const tx = (Math.random() - 0.5) * 800;
+            const ty = -(200 + Math.random() * 600);
+            const left = 40 + Math.random() * 20;
+            p.style.cssText = `left:${left}%; background:${c}; width:${size}px; height:${size * (0.3 + Math.random() * 0.7)}px; border-radius:${shape}; --duration:${dur}s; --delay:${del}s; --tx:${tx}px; --ty:${ty}px; box-shadow: 0 0 ${size}px ${c};`;
+            container.appendChild(p);
+        }
+
+        // Boczne wybuchy
+        for (let i = 0; i < 60; i++) {
+            const p = document.createElement('div');
+            p.className = 'confetti-piece side';
+            const c = colors[Math.floor(Math.random() * colors.length)];
+            const size = 10 + Math.random() * 14;
+            const fromLeft = Math.random() > 0.5;
+            const tx = fromLeft ? (150 + Math.random() * 500) : -(150 + Math.random() * 500);
+            const ty = -(100 + Math.random() * 400);
+            const dur = 1.5 + Math.random() * 2;
+            const del = 0.1 + Math.random() * 0.3;
+            p.style.cssText = `${fromLeft ? 'left:0' : 'right:0'}; bottom:10%; background:${c}; width:${size}px; height:${size}px; border-radius:50%; --duration:${dur}s; --delay:${del}s; --tx:${tx}px; --ty:${ty}px; box-shadow: 0 0 ${size}px ${c};`;
+            container.appendChild(p);
+        }
+
+        // Druga fala eksplozji po 0.8s
+        setTimeout(() => {
+            for (let i = 0; i < 120; i++) {
+                const p = document.createElement('div');
+                p.className = 'confetti-piece burst';
+                const c = colors[Math.floor(Math.random() * colors.length)];
+                const size = 6 + Math.random() * 18;
+                const dur = 1.5 + Math.random() * 2;
+                const tx = (Math.random() - 0.5) * 1000;
+                const ty = -(300 + Math.random() * 500);
+                const left = 35 + Math.random() * 30;
+                p.style.cssText = `left:${left}%; background:${c}; width:${size}px; height:${size * 0.4}px; border-radius:2px; --duration:${dur}s; --delay:0s; --tx:${tx}px; --ty:${ty}px; box-shadow: 0 0 ${size}px ${c};`;
+                container.appendChild(p);
+            }
+        }, 800);
+
+        setTimeout(() => container.remove(), 7000);
+    }
+
+    function playBeep(freq, duration) {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    }
+
+    async function playBattleCountdown() {
+        playBeep(400, 0.3); // 3
+        await new Promise(r => setTimeout(r, 1000));
+        playBeep(400, 0.3); // 2
+        await new Promise(r => setTimeout(r, 1000));
+        playBeep(400, 0.3); // 1
+        await new Promise(r => setTimeout(r, 1000));
+        playBeep(800, 0.6); // GO!
+        await new Promise(r => setTimeout(r, 500));
+    }
+
+    // --- SOUND ENGINE ---
+    // Normal tick: nowoczesny, czysty cyfrowy "pop"
+    function playNormalTick() {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const t = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        const f = audioCtx.createBiquadFilter();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(3200, t);
+        osc.frequency.exponentialRampToValueAtTime(1200, t + 0.015);
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(5000, t);
+        osc2.frequency.exponentialRampToValueAtTime(2000, t + 0.01);
+        f.type = 'bandpass'; f.frequency.setValueAtTime(3000, t); f.Q.setValueAtTime(2, t);
+        g.gain.setValueAtTime(0.15, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+        osc.connect(f); osc2.connect(f); f.connect(g); g.connect(audioCtx.destination);
+        osc.start(t); osc.stop(t + 0.04);
+        osc2.start(t); osc2.stop(t + 0.04);
+    }
+
+    // Dźwięk sprzedaży: kasa/monety
+    function playSellSound() {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const t = audioCtx.currentTime;
+        [800, 1000, 1200, 1500, 1800].forEach((freq, i) => {
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            o.type = 'sine';
+            o.frequency.setValueAtTime(freq, t + i * 0.06);
+            g.gain.setValueAtTime(0.08, t + i * 0.06);
+            g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.06 + 0.12);
+            o.connect(g); g.connect(audioCtx.destination);
+            o.start(t + i * 0.06); o.stop(t + i * 0.06 + 0.12);
+        });
+    }
+
+    // Dźwięk rzadkiego itemu: epicka fanfara
+    function playRareItemSound() {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const t = audioCtx.currentTime;
+        // Shimmer
+        const bufSize = audioCtx.sampleRate * 0.3;
+        const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1);
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buf;
+        const bp = audioCtx.createBiquadFilter();
+        bp.type = 'bandpass'; bp.frequency.setValueAtTime(6000, t); bp.Q.setValueAtTime(5, t);
+        const ng = audioCtx.createGain();
+        ng.gain.setValueAtTime(0.04, t);
+        ng.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
+        noise.connect(bp); bp.connect(ng); ng.connect(audioCtx.destination);
+        noise.start(t); noise.stop(t + 0.8);
+        // Rising chord
+        [523, 659, 784, 1047, 1319].forEach((freq, i) => {
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            o.type = 'sine';
+            o.frequency.setValueAtTime(freq, t + i * 0.1);
+            g.gain.setValueAtTime(0, t);
+            g.gain.linearRampToValueAtTime(0.1, t + i * 0.1 + 0.05);
+            g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.1 + 0.5);
+            o.connect(g); g.connect(audioCtx.destination);
+            o.start(t + i * 0.1); o.stop(t + i * 0.1 + 0.5);
+        });
+    }
+
+    // Joker tick: agresywny, ciężki
+    function playJokerTick() {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const t = audioCtx.currentTime;
+        const bufSize = audioCtx.sampleRate * 0.015;
+        const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * 0.5;
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buf;
+        const osc = audioCtx.createOscillator();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(1400, t);
+        osc.frequency.exponentialRampToValueAtTime(400, t + 0.03);
+        const g = audioCtx.createGain();
+        g.gain.setValueAtTime(0.16, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+        const lp = audioCtx.createBiquadFilter();
+        lp.type = 'lowpass'; lp.frequency.setValueAtTime(2000, t);
+        noise.connect(lp); osc.connect(lp); lp.connect(g); g.connect(audioCtx.destination);
+        noise.start(t); noise.stop(t + 0.015);
+        osc.start(t); osc.stop(t + 0.05);
+    }
+
+    // Śledzi pozycję tracka i tika co 120px (= 1 item)
+    function runTrackTicker(trackEl, joker) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        let lastItemIndex = 0;
+        let running = true;
+        const tickFn = joker ? playJokerTick : playNormalTick;
+        function check() {
+            if (!running) return;
+            const style = getComputedStyle(trackEl);
+            const matrix = new DOMMatrix(style.transform);
+            const x = Math.abs(matrix.m41);
+            const currentItem = Math.floor(x / 120);
+            if (currentItem > lastItemIndex) {
+                tickFn();
+                lastItemIndex = currentItem;
+            }
+            requestAnimationFrame(check);
+        }
+        requestAnimationFrame(check);
+        return () => { running = false; };
+    }
+
+    // Upgrader: narastający drone + tiki
+    function runUpgraderEffect(duration) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const totalTime = duration || 4000;
+        const t = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        const f = audioCtx.createBiquadFilter();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(120, t);
+        osc.frequency.exponentialRampToValueAtTime(600, t + totalTime/1000);
+        f.type = 'lowpass';
+        f.frequency.setValueAtTime(400, t);
+        f.frequency.exponentialRampToValueAtTime(3000, t + totalTime/1000);
+        g.gain.setValueAtTime(0.06, t);
+        g.gain.linearRampToValueAtTime(0.14, t + totalTime/1000 * 0.8);
+        g.gain.exponentialRampToValueAtTime(0.001, t + totalTime/1000);
+        osc.connect(f); f.connect(g); g.connect(audioCtx.destination);
+        osc.start(t); osc.stop(t + totalTime/1000);
+        let delay = 60; let elapsed = 0;
+        function tick() {
+            if (elapsed >= totalTime) return;
+            const p = elapsed / totalTime;
+            playNormalTick();
+            delay = 60 + Math.pow(p, 2) * 300;
+            elapsed += delay;
+            setTimeout(tick, delay);
+        }
+        tick();
+    }
+
+    // --- WALUTA ---
+    const CURRENCIES = { USD: { symbol: '$', rate: 1 }, EUR: { symbol: '€', rate: 0.92 }, PLN: { symbol: 'zł', rate: 4.05 } };
+    let currentCurrency = localStorage.getItem('an4l_currency') || 'USD';
+    function changeCurrency(c) { currentCurrency = c; localStorage.setItem('an4l_currency', c); updateUI(); renderShop(); }
+    function formatMoney(amount) { const cur = CURRENCIES[currentCurrency]; const converted = Math.round(amount * cur.rate); return `${cur.symbol}${converted.toLocaleString()}`; }
+
+    // --- AUTH SYSTEM ---
+    function switchAuthTab(tab) {
+        document.getElementById('auth-login-form').style.display = tab === 'login' ? 'block' : 'none';
+        document.getElementById('auth-register-form').style.display = tab === 'register' ? 'block' : 'none';
+        document.getElementById('tab-login').style.background = tab === 'login' ? 'var(--accent-blue)' : 'var(--bg-deep)';
+        document.getElementById('tab-login').style.color = tab === 'login' ? '#fff' : '#64748b';
+        document.getElementById('tab-register').style.background = tab === 'register' ? 'var(--accent-green)' : 'var(--bg-deep)';
+        document.getElementById('tab-register').style.color = tab === 'register' ? '#fff' : '#64748b';
+    }
+    function quickLogin(nick) {
+        currentNick = nick;
+        document.getElementById('login-overlay').style.display = 'none';
+        load();
+    }
+    function loginWithNick() {
+        const nick = document.getElementById('login-nick').value.trim();
+        const pass = document.getElementById('login-pass').value.trim();
+        if (!nick) return alert('Wpisz nick!');
+        const existingPass = localStorage.getItem('an4l_pass_' + nick);
+        if(!existingPass) return alert('Konto nie istnieje! Przejdź do rejestracji.');
+        // Steam accounts (auto-generated password) — skip password check
+        if(existingPass.startsWith('steam_auth_')) {
+            currentNick = nick;
+            document.getElementById('login-overlay').style.display = 'none';
+            load();
+            return;
+        }
+        if (!pass) return alert('Wpisz hasło!');
+        if(existingPass !== pass) return alert('Złe hasło!');
+        currentNick = nick;
+        document.getElementById('login-overlay').style.display = 'none';
+        load();
+    }
+    function registerAccount() {
+        const nick = document.getElementById('reg-nick').value.trim();
+        const pass = document.getElementById('reg-pass').value.trim();
+        const pass2 = document.getElementById('reg-pass2').value.trim();
+        if(!nick) return alert('Wpisz nick!');
+        if(nick.length < 2) return alert('Nick musi mieć min. 2 znaki!');
+        if(!pass) return alert('Wpisz hasło!');
+        if(pass.length < 3) return alert('Hasło musi mieć min. 3 znaki!');
+        if(pass !== pass2) return alert('Hasła się nie zgadzają!');
+        if(localStorage.getItem('an4l_pass_' + nick)) return alert('To konto już istnieje! Zaloguj się.');
+        localStorage.setItem('an4l_pass_' + nick, pass);
+        currentNick = nick;
+        document.getElementById('login-overlay').style.display = 'none';
+        load();
+    }
+    let pendingSteamId = null;
+    function confirmSteamNick() {
+        let displayName = document.getElementById('steam-nick-input').value.trim();
+        if(!displayName) return alert('Wpisz nick!');
+        if(displayName.length < 2) return alert('Nick musi mieć min. 2 znaki!');
+        const steamId = pendingSteamId;
+        localStorage.setItem('an4l_steam_link_' + steamId, displayName);
+        if(!localStorage.getItem('an4l_pass_' + displayName)) {
+            localStorage.setItem('an4l_pass_' + displayName, 'steam_auth_' + steamId);
+        }
+        if(!localStorage.getItem('an4l_meta_' + displayName)) {
+            const meta = { pic: null, bio: '' };
+            localStorage.setItem('an4l_meta_' + displayName, JSON.stringify(meta));
+        }
+        if(!localStorage.getItem('an4l_' + displayName)) {
+            localStorage.setItem('an4l_' + displayName, JSON.stringify({ balance: 5000, debt: 0, inventory: [], cart: [], selectedBots: [], mode: 'classic', battleFormat: '2p', rounds: 0 }));
+        }
+        currentNick = displayName;
+        document.getElementById('steam-nick-form').style.display = 'none';
+        document.getElementById('login-overlay').style.display = 'none';
+        load();
+    }
+    function steamOpenID() {
+        const returnUrl = window.location.origin + window.location.pathname;
+        const steamOpenIDUrl = 'https://steamcommunity.com/openid/login' +
+            '?openid.ns=http://specs.openid.net/auth/2.0' +
+            '&openid.mode=checkid_setup' +
+            '&openid.return_to=' + encodeURIComponent(returnUrl) +
+            '&openid.realm=' + encodeURIComponent(window.location.origin) +
+            '&openid.identity=http://specs.openid.net/auth/2.0/identifier_select' +
+            '&openid.claimed_id=http://specs.openid.net/auth/2.0/identifier_select';
+        window.location.href = steamOpenIDUrl;
+    }
+    function handleSteamReturn() {
+        const params = new URLSearchParams(window.location.search);
+        const claimedId = params.get('openid.claimed_id');
+        if(!claimedId) return false;
+        let steamId = '';
+        if(claimedId.includes('/id/')) {
+            steamId = claimedId.split('/id/')[1];
+        } else {
+            const m = claimedId.match(/(\d{17})/);
+            steamId = m ? m[1] : '';
+        }
+        if(!steamId) return false;
+        window.history.replaceState({}, '', window.location.pathname);
+        // Check if this Steam ID already has a linked account
+        const linkedNick = localStorage.getItem('an4l_steam_link_' + steamId);
+        if(linkedNick && localStorage.getItem('an4l_' + linkedNick)) {
+            currentNick = linkedNick;
+            document.getElementById('login-overlay').style.display = 'none';
+            load();
+            return true;
+        }
+        // New user — show nick input form inside overlay
+        pendingSteamId = steamId;
+        const overlay = document.getElementById('login-overlay');
+        overlay.style.display = 'flex';
+        overlay.querySelector('.modal-content').style.display = 'none';
+        document.getElementById('steam-nick-form').style.display = 'block';
+        setTimeout(() => document.getElementById('steam-nick-input').focus(), 100);
+        return true;
+    }
+    function logoutNick() {
+        save();
+        currentNick = null;
+        state = { balance: 5000, debt: 0, inventory: [], cart: [], selectedBots: [], mode: 'classic', battleFormat: '2p', rounds: 0 };
+        const overlay = document.getElementById('login-overlay');
+        overlay.style.display = 'flex';
+        overlay.querySelector('.modal-content').style.display = '';
+        document.getElementById('steam-nick-form').style.display = 'none';
+        document.getElementById('login-nick').value = '';
+        document.getElementById('login-pass').value = '';
+        document.getElementById('profile-menu').style.display = 'none';
+    }
+    function getAllProfiles() {
+        const profiles = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key.startsWith('an4l_') && !key.startsWith('an4l_meta_') && !key.startsWith('an4l_pass_') && !key.startsWith('an4l_steam_link_') && key !== 'an4l_currency') profiles.push(key.substring(5));
+        }
+        return profiles.sort();
+    }
+    const DEFAULT_PICS = {
+        'Denis Załęcki': 'img/denis.png',
+        'Bartek Szachta': 'img/bartek.png'
+    };
+    function getProfileMeta(nick) {
+        const raw = localStorage.getItem('an4l_meta_' + nick);
+        return raw ? JSON.parse(raw) : {};
+    }
+    function saveProfileMeta(nick, meta) {
+        localStorage.setItem('an4l_meta_' + nick, JSON.stringify(meta));
+    }
+    function getProfilePic(nick) {
+        const meta = getProfileMeta(nick);
+        return meta.pic || DEFAULT_PICS[nick] || null;
+    }
+    function getProfileBio(nick) {
+        return getProfileMeta(nick).bio || '';
+    }
+    function openProfileSettings() {
+        document.getElementById('profile-menu').style.display = 'none';
+        const meta = getProfileMeta(currentNick);
+        document.getElementById('profile-pic-input').value = meta.pic || DEFAULT_PICS[currentNick] || '';
+        document.getElementById('profile-bio-input').value = meta.bio || '';
+        document.getElementById('bio-char-count').innerText = (meta.bio || '').length;
+        const preview = document.getElementById('profile-avatar-preview');
+        const pic = getProfilePic(currentNick);
+        preview.innerHTML = pic ? `<img src="${pic}" style="width:100%;height:100%;object-fit:cover;">` : '<i class="fa fa-user" style="font-size:30px; color:#333;"></i>';
+        document.getElementById('profile-settings-modal').classList.add('active');
+    }
+    function closeProfileSettings() { document.getElementById('profile-settings-modal').classList.remove('active'); }
+    function handleProfileFileUpload(input) {
+        const file = input.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const dataUrl = e.target.result;
+            document.getElementById('profile-pic-input').value = dataUrl;
+            const p = document.getElementById('profile-avatar-preview');
+            p.innerHTML = `<img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;">`;
+        };
+        reader.readAsDataURL(file);
+    }
+    function saveProfileSettings() {
+        const pic = document.getElementById('profile-pic-input').value.trim();
+        const bio = document.getElementById('profile-bio-input').value.trim().substring(0, 150);
+        saveProfileMeta(currentNick, { pic: pic || null, bio: bio || null });
+        closeProfileSettings();
+        load();
+    }
+
+    function toggleProfileMenu() {
+        const menu = document.getElementById('profile-menu');
+        if (menu.style.display !== 'none') { menu.style.display = 'none'; return; }
+        const allProfiles = getAllProfiles();
+        // Ensure Denis & Bartek are always first, then current user, then rest
+        const priority = ['Denis Załęcki', 'Bartek Szachta'];
+        const profiles = [...priority.filter(p => allProfiles.includes(p)), ...allProfiles.filter(p => !priority.includes(p))];
+        let html = '';
+        profiles.forEach(nick => {
+            const isActive = nick === currentNick;
+            const pic = getProfilePic(nick);
+            const picHtml = pic ? `<img src="${pic}" onerror="this.style.display='none'" style="width:28px; height:28px; border-radius:50%; object-fit:cover; border:2px solid ${isActive ? 'var(--accent-green)' : '#333'}; flex-shrink:0;">` : '';
+            html += `<div onclick="event.stopPropagation(); switchProfile('${nick.replace(/'/g, "\\'")}')" style="padding:10px 16px; cursor:pointer; display:flex; align-items:center; gap:10px; transition:0.2s; ${isActive ? 'background:rgba(59,130,246,0.15);' : ''}" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='${isActive ? 'rgba(59,130,246,0.15)' : 'transparent'}'">
+                ${picHtml}
+                <span style="font-weight:800; font-size:13px; flex:1; ${isActive ? 'color:var(--accent-blue)' : 'color:#fff'}">${nick}</span>
+                ${isActive ? '<i class="fa fa-check" style="color:var(--accent-green);font-size:11px"></i>' : ''}
+            </div>`;
+        });
+        const bio = getProfileBio(currentNick);
+        if(bio) html += `<div style="border-top:1px solid var(--border-ui); margin-top:4px; padding:10px 16px;"><div style="font-size:9px; color:#64748b; font-weight:900; text-transform:uppercase; margin-bottom:4px;">O mnie</div><div style="font-size:11px; color:#94a3b8; line-height:1.4;">${bio}</div></div>`;
+        html += `<div style="border-top:1px solid var(--border-ui); margin-top:4px; padding-top:4px;">
+            <div onclick="event.stopPropagation(); openProfileSettings()" style="padding:10px 16px; cursor:pointer; color:var(--accent-gold); font-weight:800; font-size:11px; text-transform:uppercase;" onmouseover="this.style.background='rgba(251,191,36,0.1)'" onmouseout="this.style.background='transparent'"><i class="fa fa-user-gear" style="margin-right:6px"></i>USTAWIENIA PROFILU</div>
+            <div onclick="event.stopPropagation(); logoutNick()" style="padding:10px 16px; cursor:pointer; color:var(--accent-red); font-weight:800; font-size:11px; text-transform:uppercase;" onmouseover="this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.background='transparent'"><i class="fa fa-right-from-bracket" style="margin-right:6px"></i>WYLOGUJ</div>
+        </div>`;
+        menu.innerHTML = html;
+        menu.style.display = 'block';
+    }
+    function switchProfile(nick) {
+        if (nick === currentNick) { document.getElementById('profile-menu').style.display = 'none'; return; }
+        const passKey = localStorage.getItem('an4l_pass_' + nick);
+        if(passKey) {
+            const pass = prompt(`Hasło dla "${nick}":`);
+            if(pass !== passKey) { alert('Złe hasło!'); return; }
+        }
+        save();
+        currentNick = nick;
+        document.getElementById('profile-menu').style.display = 'none';
+        load();
+    }
+    document.addEventListener('click', e => { if (!e.target.closest('#profile-menu') && !e.target.closest('[onclick*="toggleProfileMenu"]')) document.getElementById('profile-menu').style.display = 'none'; });
+    document.getElementById('login-nick').addEventListener('keydown', e => { if(e.key === 'Enter') document.getElementById('login-pass').focus(); });
+    document.getElementById('login-pass').addEventListener('keydown', e => { if(e.key === 'Enter') loginWithNick(); });
+    document.getElementById('reg-nick').addEventListener('keydown', e => { if(e.key === 'Enter') document.getElementById('reg-pass').focus(); });
+    document.getElementById('reg-pass').addEventListener('keydown', e => { if(e.key === 'Enter') document.getElementById('reg-pass2').focus(); });
+    document.getElementById('reg-pass2').addEventListener('keydown', e => { if(e.key === 'Enter') registerAccount(); });
+    document.getElementById('steam-nick-input').addEventListener('keydown', e => { if(e.key === 'Enter') confirmSteamNick(); });
+
+    // --- ZAPIS ---
+    function getSaveKey() { return 'an4l_' + currentNick; }
+    function save() { if(!currentNick) return; localStorage.setItem(getSaveKey(), JSON.stringify(state)); updateUI(); }
+    function load() { 
+        const s = localStorage.getItem(getSaveKey()); 
+        if(s) {
+            state = JSON.parse(s); 
+            if(!state.battleFormat) state.battleFormat = '2p';
+            if(!state.mode) state.mode = 'classic';
+            state.selectedBots = []; 
+            state.cart = []; 
+        } else {
+            state = { balance: 5000, debt: 0, inventory: [], cart: [], selectedBots: [], mode: 'classic', battleFormat: '2p', rounds: 0 };
+        }
+        battleState = 'idle';
+        document.getElementById('h-nick').innerText = currentNick;
+        const pic = getProfilePic(currentNick);
+        const picEl = document.getElementById('h-nick-pic');
+        if(pic) { picEl.src = pic; picEl.style.display = 'block'; } else { picEl.style.display = 'none'; }
+        // Sync button active states
+        document.querySelectorAll('[id^="format-"]').forEach(b => b.classList.remove('active'));
+        const fmtBtn = document.getElementById('format-' + state.battleFormat);
+        if(fmtBtn) fmtBtn.classList.add('active');
+        document.querySelectorAll('[id^="mode-"]').forEach(b => b.classList.remove('active'));
+        const modeBtn = document.getElementById('mode-' + state.mode);
+        if(modeBtn) modeBtn.classList.add('active');
+        updateUI(); 
+        document.getElementById('arena').innerHTML = ''; 
+        renderShop();
+        renderCart();
+    }
+    function resetSave() { if(confirm("Reset postępu? Tracisz wszystko!")) { localStorage.removeItem(getSaveKey()); location.reload(); } }
+
+    function updateUI() {
+        document.getElementById('h-bal').innerText = formatMoney(state.balance);
+        document.getElementById('h-debt').innerText = formatMoney(state.debt);
+        document.getElementById('currency-select').value = currentCurrency;
+        ['classic', 'shared', 'terminal', 'underdog', 'crazy_terminal'].forEach(m => document.getElementById('mode-'+m).classList.toggle('active', state.mode === m));
+        ['2p', '3p', '4p', '2v2'].forEach(m => document.getElementById('format-'+m).classList.toggle('active', state.battleFormat === m));
+    }
+
+    // --- GENEROWANIE PRZEDMIOTÓW ---
+    const STICKER_KEYWORDS = ['sticker', 'naklejka', 'szeliga'];
+    function isSticker(name) { return STICKER_KEYWORDS.some(k => name.toLowerCase().includes(k)); }
+    function addPattern(item) {
+        if(isSticker(item.name)) return item;
+        if(/#\d+/.test(item.name)) return item;
+        const pattern = Math.floor(Math.random() * 999) + 1;
+        item.name = `${item.name} [#${pattern}]`;
+        return item;
+    }
+
+    function rollItem(basePrice, useJoker, caseItems) {
+        if (caseItems && caseItems.length > 0) {
+            const r = Math.random();
+            if (useJoker) {
+                const equalChance = 1 / caseItems.length;
+                const idx = Math.floor(r * caseItems.length);
+                const item = caseItems[Math.min(idx, caseItems.length - 1)];
+                return addPattern({ name: item.name, value: item.value, color: item.color, icon: "fa-gem", img: item.img, _chance: equalChance });
+            }
+            let cumulative = 0;
+            for (const item of caseItems) {
+                cumulative += item.chance;
+                if (r < cumulative) { return addPattern({ name: item.name, value: item.value, color: item.color, icon: "fa-gem", img: item.img, _chance: item.chance }); }
+            }
+            const last = caseItems[caseItems.length - 1];
+            return addPattern({ name: last.name, value: last.value, color: last.color, icon: "fa-gem", img: last.img, _chance: last.chance });
+        }
+        const r = Math.random();
+        let tier;
+        if(useJoker) {
+            if(r < 0.2) tier = TIERS[0];
+            else if(r < 0.4) tier = TIERS[1];
+            else if(r < 0.6) tier = TIERS[2];
+            else if(r < 0.8) tier = TIERS[3];
+            else tier = TIERS[4];
+        } else {
+            if(r < 0.60) tier = TIERS[0];
+            else if(r < 0.85) tier = TIERS[1];
+            else if(r < 0.95) tier = TIERS[2];
+            else if(r < 0.99) tier = TIERS[3];
+            else tier = TIERS[4];
+        }
+        let value = Math.floor(basePrice * tier.mult);
+        return addPattern({ name: `${tier.name} Skin`, value: value, color: tier.color, icon: "fa-gem" });
+    }
+
+    function renderRouletteItem(item) {
+        const imgPart = item.img 
+            ? `<img src="${item.img}" onerror="this.style.display='none';this.nextElementSibling.style.display='block'" alt="${item.name}"><i class="fa ${item.icon}" style="color:${item.color}; display:none"></i>`
+            : `<i class="fa ${item.icon}" style="color:${item.color}"></i>`;
+        const namePart = item.img ? `<div class="r-name">${item.name}</div>` : '';
+        return `<div class="r-item" style="border-bottom: 4px solid ${item.color}">${imgPart}${namePart}<span>$${item.value.toLocaleString()}</span></div>`;
+    }
+
+    function generateRouletteItems(winnerItem, caseBasePrice, useJoker, caseItems) {
+        let html = "";
+        for(let i=0; i<80; i++) {
+            let item = (i === 68) ? winnerItem : rollItem(caseBasePrice, useJoker, caseItems);
+            html += renderRouletteItem(item);
+        }
+        return html;
+    }
+
+    // --- SKLEP ---
+    function toggleJokerMode() { isJokerMode = document.getElementById('joker-toggle').checked; renderShop(); }
+    function setSortOrder(order) { shopSortOrder = order; renderShop(); }
+    
+    function renderShop() {
+        document.getElementById('sort-asc').classList.toggle('active', shopSortOrder === 'asc');
+        document.getElementById('sort-desc').classList.toggle('active', shopSortOrder === 'desc');
+        const indices = THEMES.map((c, i) => i);
+        const ep = idx => isJokerMode ? jokerPrice(THEMES[idx]) : THEMES[idx].price;
+        indices.sort((a, b) => shopSortOrder === 'asc' ? ep(a) - ep(b) : ep(b) - ep(a));
+        document.getElementById('shop-grid').innerHTML = indices.map(i => {
+            const c = THEMES[i];
+            const finalPrice = isJokerMode ? jokerPrice(c) : c.price;
+            return `
+            <div class="case-card" style="cursor:pointer;" onclick="showCasePreview(${i})">
+                <div class="case-visual" style="background:${c.color}22; color:${c.color}">${c.img ? `<img src="${c.img}" style="width:80px;height:80px;object-fit:contain;filter:drop-shadow(0 0 6px ${c.color})">` : `<i class="fa ${c.icon}"></i>`}</div>
+                <div class="case-title">${c.name} ${isJokerMode ? '<span style="color:#a855f7; margin-left:5px;">(JOKER)</span>' : ''}</div>
+                <div class="case-price">${formatMoney(finalPrice)}</div>
+                <button class="btn btn-gold" onclick="event.stopPropagation(); showCasePreview(${i})">OTWÓRZ</button>
+            </div>`;
+        }).join('');
+    }
+
+    function getPreviewItems(idx, useJoker) {
+        const c = THEMES[idx];
+        if (c.items) {
+            if (useJoker) {
+                const eq = 1 / c.items.length;
+                return c.items.map(it => ({ ...it, chance: eq }));
+            }
+            return c.items;
+        }
+        const chances = useJoker ? [0.20, 0.20, 0.20, 0.20, 0.20] : [0.60, 0.25, 0.10, 0.04, 0.01];
+        return TIERS.map((t, i) => ({
+            name: t.name + ' Skin', value: Math.floor(c.price * t.mult), color: t.color, chance: chances[i], icon: 'fa-gem'
+        }));
+    }
+
+    function showCasePreview(idx) {
+        currentCaseIdx = idx;
+        const c = THEMES[idx];
+        const previewJoker = document.getElementById('preview-joker-toggle');
+        previewJoker.checked = isJokerMode;
+        refreshCasePreview();
+        document.getElementById('case-roulette-area').style.display = 'none';
+        document.getElementById('case-modal').classList.add('active');
+    }
+
+    function refreshCasePreview() {
+        if (currentCaseIdx === null) return;
+        const c = THEMES[currentCaseIdx];
+        const useJoker = document.getElementById('preview-joker-toggle').checked;
+        const finalPrice = useJoker ? jokerPrice(c) : c.price;
+        document.getElementById('case-modal-title').innerHTML = c.name;
+        document.getElementById('case-modal-price').innerHTML = `$${finalPrice.toLocaleString()}`;
+        document.getElementById('btn-case-open').setAttribute('onclick', `openCaseWithQty(${currentCaseIdx})`);
+        const items = getPreviewItems(currentCaseIdx, useJoker);
+        const sorted = [...items].sort((a, b) => a.chance - b.chance);
+        document.getElementById('preview-grid').innerHTML = sorted.map(item => {
+            const chanceStr = (item.chance * 100).toFixed(item.chance < 0.01 ? 2 : item.chance < 0.1 ? 1 : 0) + '%';
+            const isRare = item.chance <= 0.05;
+            const imgHtml = item.img ? `<img src="${item.img}" alt="${item.name}">` : `<i class="fa ${item.icon || 'fa-gem'} preview-icon" style="color:${item.color}"></i>`;
+            return `
+            <div class="preview-item" style="border-color:${item.color}22;">
+                ${isRare ? '<div class="preview-star"><i class="fa fa-star"></i></div>' : ''}
+                <div class="preview-chance" style="color:${item.color}">${chanceStr}</div>
+                ${imgHtml}
+                <div class="preview-name" style="color:${item.color}">${item.name}</div>
+                <div class="preview-price">${formatMoney(item.value)}</div>
+            </div>`;
+        }).join('');
+    }
+
+    function setCaseQty(n) {
+        caseOpenQty = n;
+        document.querySelectorAll('.qty-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.qty-btn')[n - 1].classList.add('active');
+    }
+
+    function openCaseWithQty(idx) {
+        const qty = caseOpenQty;
+        const c = THEMES[idx];
+        const useJoker = document.getElementById('preview-joker-toggle').checked;
+        const finalPrice = useJoker ? jokerPrice(c) : c.price;
+        const totalCost = finalPrice * qty;
+        if(state.balance < totalCost) return;
+        
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        state.balance -= totalCost; save();
+
+        const caseItems = c.items || null;
+        const allWinners = [];
+        for(let i = 0; i < qty; i++) {
+            allWinners.push(rollItem(c.price, useJoker, caseItems));
+        }
+
+        document.getElementById('multi-open-results').style.display = 'none';
+        document.getElementById('case-roulette-area').style.display = 'block';
+        document.getElementById('open-result').innerHTML = "";
+        document.getElementById('case-result-actions').style.display = 'none';
+        document.getElementById('btn-case-open').disabled = true;
+        document.querySelector('#case-modal .modal-content').scrollTop = 0;
+
+        const container = document.getElementById('roulette-tracks-container');
+        container.innerHTML = '';
+
+        const spinTime = qty > 1 ? 5000 : 8500;
+        const cubicBezier = qty > 1 ? 'cubic-bezier(0.15, 0, 0.15, 1)' : 'cubic-bezier(0.1, 0.8, 0.1, 1)';
+
+        allWinners.forEach((winner, i) => {
+            const rouletteDiv = document.createElement('div');
+            rouletteDiv.className = 'roulette-container';
+            rouletteDiv.innerHTML = `<div class="roulette-center-line"></div><div class="roulette-track" id="track-${i}"></div>`;
+            container.appendChild(rouletteDiv);
+
+            const track = document.getElementById(`track-${i}`);
+            track.style.transition = 'none';
+            track.style.transform = 'translateX(0)';
+            track.innerHTML = generateRouletteItems(winner, c.price, useJoker, caseItems);
+            track.offsetHeight;
+
+            const delay = i * 200;
+            setTimeout(() => {
+                track.style.transition = `transform ${spinTime / 1000}s ${cubicBezier}`;
+                const offset = (68 * 120) - (rouletteDiv.offsetWidth / 2) + 60;
+                track.style.transform = `translateX(-${offset}px)`;
+                runTrackTicker(track, useJoker);
+            }, delay);
+        });
+
+        setTimeout(() => {
+            let hasRare = false;
+            lastOpenedItems = [];
+            const startIdx = state.inventory.length;
+
+            allWinners.forEach(w => state.inventory.push(w));
+            save();
+
+            allWinners.forEach((w, wi) => {
+                if(w.color === '#fbbf24' || (w._chance && w._chance <= 0.05)) hasRare = true;
+                lastOpenedItems.push({ invIndex: startIdx + wi, item: w, sold: false });
+            });
+
+            if(hasRare) { playRareItemSound(); launchConfetti(); }
+
+            renderOpenedResults();
+            document.getElementById('case-result-actions').style.display = 'flex';
+            document.getElementById('btn-case-open').disabled = false;
+        }, spinTime + 500 + (qty - 1) * 200);
+    }
+
+    function renderOpenedResults() {
+        const totalValue = lastOpenedItems.filter(o => !o.sold).reduce((a, o) => a + o.item.value, 0);
+        const resultParts = lastOpenedItems.map((o, i) => {
+            const w = o.item;
+            const winImg = w.img ? `<img src="${w.img}" style="height:40px; object-fit:contain; filter:drop-shadow(0 0 8px ${w.color})">` : '';
+            if(o.sold) {
+                return `<div style="display:flex; align-items:center; gap:8px; justify-content:center; opacity:0.4;">
+                    ${winImg}<span style="color:${w.color}; text-decoration:line-through;">${w.name}</span>
+                    <span style="color:#22c55e; font-size:14px; font-weight:900;">SPRZEDANO</span>
+                </div>`;
+            }
+            return `<div style="display:flex; align-items:center; gap:8px; justify-content:center;">
+                ${winImg}<span style="color:${w.color}">${w.name}</span>
+                <span style="color:var(--accent-gold)">$${w.value.toLocaleString()}</span>
+                <button class="btn btn-red" style="width:auto; padding:4px 12px; font-size:9px; height:auto;" onclick="sellOpenedItem(${i})">SPRZEDAJ</button>
+            </div>`;
+        });
+        let resultHtml = resultParts.join('');
+        if(lastOpenedItems.length > 1) resultHtml += `<div style="margin-top:8px; font-size:16px; font-weight:900; color:var(--accent-gold);">Łącznie: $${totalValue.toLocaleString()}</div>`;
+        document.getElementById('open-result').innerHTML = resultHtml;
+
+        const anyLeft = lastOpenedItems.some(o => !o.sold);
+        document.getElementById('btn-sell-all-opened').style.display = anyLeft ? 'inline-flex' : 'none';
+        document.getElementById('btn-close-open').style.display = anyLeft ? 'inline-flex' : 'none';
+    }
+
+    function sellOpenedItem(i) {
+        const o = lastOpenedItems[i];
+        if(o.sold) return;
+        o.sold = true;
+        const idx = state.inventory.findIndex(inv => inv === o.item);
+        if(idx !== -1) {
+            state.balance += o.item.value;
+            state.inventory.splice(idx, 1);
+            save();
+        }
+        renderOpenedResults();
+    }
+
+    function sellAllOpened() {
+        lastOpenedItems.forEach(o => {
+            if(o.sold) return;
+            o.sold = true;
+            const idx = state.inventory.findIndex(inv => inv === o.item);
+            if(idx !== -1) {
+                state.balance += o.item.value;
+                state.inventory.splice(idx, 1);
+            }
+        });
+        save();
+        renderOpenedResults();
+    }
+
+    function hideRouletteArea() { 
+        document.getElementById('case-roulette-area').style.display = 'none'; 
+        document.getElementById('case-result-actions').style.display = 'none';
+        lastOpenedItems = [];
+    }
+    function closeCaseModal() { document.getElementById('case-modal').classList.remove('active'); currentCaseIdx = null; document.getElementById('multi-open-results').style.display = 'none'; lastOpenedItems = []; }
+
+    function leaveBattle() {
+        if(battleState === 'running') return;
+        if(battleState === 'waiting') {
+            const cost = state.cart.reduce((a,b)=>a+b.price,0);
+            state.balance += cost;
+        }
+        battleState = 'idle';
+        state.selectedBots = [];
+        state.cart = [];
+        document.getElementById('battle-queue-display').style.display = 'none';
+        document.getElementById('battle-setup-panel').style.display = 'block';
+        renderCart();
+        save();
+        renderArena();
+    }
+
+    // --- BITWY ---
+    function setFormat(f) { 
+        if(battleState === 'idle') { 
+            state.battleFormat = f; 
+            document.querySelectorAll('[id^="format-"]').forEach(b => b.classList.remove('active'));
+            document.getElementById('format-' + f).classList.add('active');
+            state.selectedBots = [];
+            save(); renderArena();
+        } 
+    }
+    function setMode(m) { 
+        if(battleState === 'idle') { 
+            state.mode = m; 
+            document.querySelectorAll('[id^="mode-"]').forEach(b => b.classList.remove('active'));
+            document.getElementById('mode-' + m).classList.add('active');
+            save(); 
+        } 
+    }
+    function toggleBattleJokerMode() { isBattleJokerMode = document.getElementById('battle-joker-toggle').checked; openBattleCaseSelector(); }
+
+    let battleSortOrder = 'asc';
+    function openBattleCaseSelector() {
+        if(battleState !== 'idle') return;
+        document.getElementById('cases-modal').classList.add('active');
+        document.getElementById('battle-sort-asc').classList.toggle('active', battleSortOrder === 'asc');
+        document.getElementById('battle-sort-desc').classList.toggle('active', battleSortOrder === 'desc');
+        const indices = THEMES.map((c, i) => i);
+        const bep = idx => isBattleJokerMode ? jokerPrice(THEMES[idx]) : THEMES[idx].price;
+        indices.sort((a, b) => battleSortOrder === 'asc' ? bep(a) - bep(b) : bep(b) - bep(a));
+        document.getElementById('battle-cases-grid').innerHTML = indices.map(i => {
+            const c = THEMES[i];
+            const finalPrice = isBattleJokerMode ? jokerPrice(c) : c.price;
+            return `
+            <div class="case-card">
+                <div class="case-visual" style="background:${c.color}22; color:${c.color}">${c.img ? `<img src="${c.img}" style="width:80px;height:80px;object-fit:contain;filter:drop-shadow(0 0 6px ${c.color})">` : `<i class="fa ${c.icon}"></i>`}</div>
+                <div class="case-title">${c.name} ${isBattleJokerMode ? '<span style="color:#a855f7;">(JOKER)</span>' : ''}</div>
+                <div class="case-price">${formatMoney(finalPrice)}</div>
+                <button class="btn btn-blue" onclick="addToBattle(${i})">+ DODAJ</button>
+            </div>`;
+        }).join('');
+    }
+
+    function closeBattleCaseSelector() { document.getElementById('cases-modal').classList.remove('active'); }
+    document.addEventListener('keydown', e => { if(e.key === 'Escape') { closeBattleCaseSelector(); closeBotModal(); closeProfileSettings(); document.getElementById('case-modal').classList.remove('active'); } });
+    document.getElementById('profile-bio-input').addEventListener('input', function() { document.getElementById('bio-char-count').innerText = this.value.length; });
+    document.getElementById('profile-pic-input').addEventListener('input', function() { const v = this.value.trim(); const p = document.getElementById('profile-avatar-preview'); p.innerHTML = v ? `<img src="${v}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='<i class=\\'fa fa-user\\' style=\\'font-size:30px;color:#333\\'></i>'">` : '<i class="fa fa-user" style="font-size:30px;color:#333"></i>'; });
+
+    function renderCart() {
+        const list = document.getElementById('cart-list');
+        const bBar = document.getElementById('battle-bar');
+        
+        if(battleState !== 'idle' || state.cart.length === 0) {
+            bBar.style.display = 'none';
+        } else {
+            bBar.style.display = 'flex';
+        }
+
+        list.innerHTML = state.cart.map((c, i) => `
+            <div class="cart-tag" style="border-color:${c.isJoker ? '#a855f7' : c.color}">
+                <i class="fa ${c.icon}" style="color:${c.isJoker ? '#a855f7' : c.color}"></i> ${c.name}
+                <i class="fa fa-times" onclick="removeFromCart(${i})" style="cursor:pointer; opacity:0.3"></i>
+            </div>`).join('');
+        document.getElementById('b-cost').innerText = formatMoney(state.cart.reduce((a,b)=>a+b.price,0));
+    }
+
+    function addToBattle(idx) { 
+        let c = JSON.parse(JSON.stringify(THEMES[idx]));
+        if(isBattleJokerMode) {
+            c.price = jokerPrice(THEMES[idx]); c.name += " (JOKER)"; c.isJoker = true; c.basePrice = THEMES[idx].price; 
+        } else {
+            c.basePrice = c.price;
+        }
+        state.cart.push(c); 
+        renderCart(); 
+        updateBattleQueueDisplay();
+    }
+    
+    function removeFromCart(idx) { if(battleState === 'idle') { state.cart.splice(idx,1); renderCart(); updateBattleQueueDisplay(); } }
+
+    function updateBattleQueueDisplay() {
+        const queueContainer = document.getElementById('battle-queue-display');
+        if(state.cart.length === 0 || battleState === 'idle') {
+            queueContainer.style.display = 'none';
+            return;
+        }
+        queueContainer.style.display = 'flex';
+        queueContainer.innerHTML = state.cart.map((c, i) => `
+            <div class="queue-item" id="q-item-${i}">
+                <i class="fa ${c.icon}" style="color:${c.isJoker ? '#a855f7' : c.color}"></i> ${c.name}
+            </div>`).join('');
+    }
+    
+    function getRequiredBots() {
+        if(state.battleFormat === '3p') return 2;
+        if(state.battleFormat === '4p' || state.battleFormat === '2v2') return 3;
+        return 1;
+    }
+
+    function createBattle() {
+        if(battleState !== 'idle' || state.cart.length === 0) return;
+        const cost = state.cart.reduce((a,b)=>a+b.price,0);
+        if(state.balance < cost) return alert("Brak kasy na bitwę!");
+        
+        state.balance -= cost; 
+        battleState = 'waiting';
+        state.selectedBots = []; 
+        save();
+        
+        document.getElementById('battle-setup-panel').style.display = 'none';
+        renderCart(); 
+        renderArena();
+    }
+
+    function createBattleCard(isReady, pIndex, teamTag, teamColor, name, img, steamUrl) {
+        let tagHtml = teamTag ? `<div style="position:absolute; top: -1px; left: 50%; transform: translateX(-50%); background: ${teamColor}; color: #fff; font-size: 10px; font-weight: 900; padding: 3px 15px; border-radius: 0 0 8px 8px; z-index: 10;">${teamTag}</div>` : '';
+        let borderColor = teamColor ? `border-color: ${teamColor};` : '';
+
+        if(isReady) {
+            return `<div class="battle-card" style="${borderColor}">
+                ${tagHtml}
+                <div class="battle-score" id="t-${pIndex}">$0</div>
+                <div class="battle-card-content" id="card-content-${pIndex}">
+                    <div class="ready-badge">
+                        <div class="ready-icon"><i class="fa-solid fa-khanda"></i></div>
+                        <div class="ready-text">GOTOWY DO BITWY!</div>
+                    </div>
+                </div>
+                <div id="battle-history-${pIndex}" style="display:flex; gap:6px; padding:8px; overflow-x:auto; overflow-y:hidden; white-space:nowrap; scroll-behavior:smooth;"></div>
+                <div id="battle-progress-${pIndex}" style="height:4px; margin:0 8px 4px; border-radius:2px; background:#1a1e29; overflow:hidden;">
+                    <div id="battle-progress-bar-${pIndex}" style="height:100%; width:0%; border-radius:2px; transition:width 0.5s ease; background:linear-gradient(90deg, #a855f7, #ec4899, #f97316);"></div>
+                </div>
+                <div class="battle-card-footer">
+                    <img src="${img}">
+                    <div class="p-info">
+                        <div class="p-name">${name}</div>
+                        ${steamUrl ? `<a href="${steamUrl}" target="_blank" class="p-sub" style="text-decoration:none; cursor:pointer; transition:0.2s;" onmouseover="this.style.color='#66c0f4'" onmouseout="this.style.color=''"><i class="fa-brands fa-steam" style="margin-right:3px;"></i> PROFIL STEAM</a>` : `<div class="p-sub"><i class="fa-brands fa-steam" style="margin-right:3px;"></i> PROFIL STEAM</div>`}
+                    </div>
+                </div>
+            </div>`;
+        } else {
+            return `<div class="battle-card empty" style="border-color: rgba(255,255,255,0.02); background: linear-gradient(180deg, #161b22 0%, #0a0c10 100%);">
+                ${tagHtml}
+                <div class="battle-card-content" style="align-items: center;">
+                    <button class="btn btn-outline" style="width: auto; padding: 10px 20px; font-size: 12px;" onclick="openBotModal()">+ DODAJ GRACZA</button>
+                </div>
+                <div class="battle-card-footer" style="background: rgba(0,0,0,0.2);">
+                    <div style="width:42px;height:42px;border-radius:8px;background:rgba(255,255,255,0.05);"></div>
+                    <div style="display:flex;flex-direction:column;gap:5px;flex:1;margin-left:10px;">
+                        <div style="height:10px;width:60%;background:rgba(255,255,255,0.05);border-radius:4px;"></div>
+                        <div style="height:10px;width:40%;background:rgba(255,255,255,0.05);border-radius:4px;"></div>
+                    </div>
+                </div>
+            </div>`;
+        }
+    }
+
+    const MODE_INFO = {
+        classic:        { label: 'Standardowy',    icon: 'fa-shield-halved', color: '#3b82f6' },
+        shared:         { label: 'Shared',          icon: 'fa-handshake',     color: '#22c55e' },
+        underdog:       { label: 'Underdog',        icon: 'fa-skull',         color: '#ef4444' },
+        terminal:       { label: 'Terminal',        icon: 'fa-crosshairs',    color: '#f97316' },
+        crazy_terminal: { label: 'Crazy Terminal',  icon: 'fa-bomb',          color: '#a855f7' }
+    };
+
+    function renderArena() { 
+        if(battleState === 'idle') {
+            document.getElementById('arena').innerHTML = '';
+            document.getElementById('battle-action-area').style.display = 'none';
+            document.getElementById('team-scores').style.display = 'none';
+            document.getElementById('battle-mode-badge').style.display = 'none';
+            document.getElementById('battle-result-banner').style.display = 'none';
+            document.getElementById('btn-leave-battle-scene').style.display = 'none';
+            return;
+        }
+
+        // Show mode badge
+        const mi = MODE_INFO[state.mode] || MODE_INFO.classic;
+        const badge = document.getElementById('battle-mode-badge');
+        badge.style.display = 'inline-flex';
+        badge.innerHTML = `<div style="display:inline-flex; align-items:center; gap:8px; background:${mi.color}15; border:1px solid ${mi.color}55; border-radius:8px; padding:8px 16px;">
+            <i class="fa-solid ${mi.icon}" style="font-size:16px; color:${mi.color};"></i>
+            <span style="font-size:13px; font-weight:900; color:${mi.color}; text-transform:uppercase; letter-spacing:1px;">${mi.label}</span>
+        </div>`;
+
+        const totalPlayers = getRequiredBots() + 1; 
+        document.getElementById('arena').style.gridTemplateColumns = `repeat(${totalPlayers}, 1fr)`; 
+        let is2v2 = state.battleFormat === '2v2';
+        
+        let h = createBattleCard(true, 0, is2v2 ? "TEAM 1 (BLUE)" : "", is2v2 ? "#3b82f6" : "", "TY", "https://api.dicebear.com/7.x/avataaars/svg?seed=Ty"); 
+
+        for(let i = 0; i < totalPlayers - 1; i++) {
+            let pIndex = i + 1;
+            let teamTag = ""; let teamColor = "";
+            if (is2v2) {
+                teamTag = pIndex < 2 ? "TEAM 1 (BLUE)" : "TEAM 2 (RED)";
+                teamColor = pIndex < 2 ? "#3b82f6" : "#ef4444";
+            }
+
+            if(i < state.selectedBots.length) {
+                let bId = state.selectedBots[i];
+                let b = BOTS.find(x=>x.id===bId); 
+                h += createBattleCard(true, pIndex, teamTag, teamColor, b.name, b.img, b.steam);
+            } else {
+                h += createBattleCard(false, pIndex, teamTag, teamColor, null, null);
+            }
+        }
+        document.getElementById('arena').innerHTML = h; 
+        updateBattleQueueDisplay();
+
+        document.getElementById('btn-leave-battle-scene').style.display = 'inline-flex';
+
+        if(state.selectedBots.length === getRequiredBots() && battleState === 'waiting') {
+            document.getElementById('battle-action-area').style.display = 'flex';
+        } else {
+            document.getElementById('battle-action-area').style.display = 'none';
+        }
+    }
+
+    function openBotModal() {
+        document.getElementById('bot-modal').classList.add('active');
+        renderBotList();
+    }
+    function closeBotModal() { document.getElementById('bot-modal').classList.remove('active'); }
+
+    function renderBotList() {
+        let html = `
+            <div class="bot-item" onclick="addBot('random')">
+                <div class="random-icon"><i class="fa fa-question"></i></div>
+                <div>LOSOWY</div>
+            </div>
+        `;
+        BOTS.forEach(b => {
+            let isUsed = state.selectedBots.includes(b.id);
+            if(!isUsed) {
+                html += `
+                <div class="bot-item" onclick="addBot(${b.id})">
+                    <img src="${b.img}"><div>${b.name}</div>
+                </div>`;
+            }
+        });
+        document.getElementById('modal-bot-selection').innerHTML = html;
+    }
+
+    function addBot(id) {
+        if(id === 'random') {
+            const available = BOTS.filter(b => !state.selectedBots.includes(b.id));
+            if(available.length > 0) {
+                const picked = available[Math.floor(Math.random() * available.length)];
+                state.selectedBots.push(picked.id);
+            }
+        } else {
+            if(!state.selectedBots.includes(id)) state.selectedBots.push(id);
+        }
+        closeBotModal();
+        renderArena();
+    }
+
+    async function runBattle() {
+        lastBattleConfig = {
+            cart: JSON.parse(JSON.stringify(state.cart)),
+            mode: state.mode,
+            battleFormat: state.battleFormat,
+            botCount: state.selectedBots.length
+        };
+        battleState = 'running';
+        document.getElementById('battle-action-area').style.display = 'none'; 
+        
+        const is2v2 = state.battleFormat === '2v2';
+        const teamScoresEl = document.getElementById('team-scores');
+        if (is2v2) {
+            teamScoresEl.style.display = 'grid';
+            document.getElementById('team-score-1').innerText = '$0';
+            document.getElementById('team-score-2').innerText = '$0';
+        } else {
+            teamScoresEl.style.display = 'none';
+        }
+
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        await playBattleCountdown();
+
+        const pCount = state.selectedBots.length + 1;
+        let sc = Array.from({length: pCount}, () => ({total: 0, last: 0}));
+
+        for(let p=0; p<pCount; p++) {
+            document.getElementById(`card-content-${p}`).innerHTML = `
+                <div class="roulette-container" style="width: 100%; border: none;">
+                    <div class="roulette-center-line"></div>
+                    <div class="roulette-track" id="track-${p}"></div>
+                </div>
+                <div id="res-${p}" style="margin-top: 15px; font-weight: 900; font-size: 18px; color: var(--accent-gold); height: 25px;"></div>
+            `;
+        }
+        let containerWidth = document.querySelector('.battle-card-content .roulette-container').offsetWidth;
+
+        for(let i=0; i<state.cart.length; i++) {
+            const c = state.cart[i];
+            
+            document.querySelectorAll('.queue-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(`q-item-${i}`).classList.add('active');
+            
+            let rollValues = [];
+            for(let p=0; p<pCount; p++) {
+                const caseItems = c.items || null;
+                const winnerItem = rollItem(c.basePrice, c.isJoker, caseItems); 
+                rollValues.push(winnerItem);
+                
+                document.getElementById(`res-${p}`).innerText = "";
+                const tr = document.getElementById(`track-${p}`);
+                tr.style.transition = 'none';
+                tr.style.transform = 'translateX(0)';
+                tr.innerHTML = generateRouletteItems(winnerItem, c.basePrice, c.isJoker, caseItems);
+                tr.offsetHeight;
+
+                tr.style.transition = 'transform 8.5s cubic-bezier(0.1, 0.8, 0.1, 1)';
+                const offset = (68 * 120) - (containerWidth / 2) + 60; 
+                tr.style.transform = `translateX(-${offset}px)`;
+            }
+
+            const stopTickers = [];
+            for(let p=0; p<pCount; p++) {
+                stopTickers.push(runTrackTicker(document.getElementById(`track-${p}`), c.isJoker));
+            }
+            await new Promise(r => setTimeout(r, 9000));
+            stopTickers.forEach(fn => fn());
+
+            for(let p=0; p<pCount; p++) {
+                const val = rollValues[p].value;
+                const item = rollValues[p];
+                sc[p].total += val; sc[p].last = val;
+                document.getElementById(`t-${p}`).innerText = formatMoney(sc[p].total);
+                document.getElementById(`res-${p}`).innerHTML = `<span style="color:${item.color}">${item.name}</span>`;
+                const histEl = document.getElementById(`battle-history-${p}`);
+                if (histEl) {
+                    const imgPart = item.img ? `<img src="${item.img}" style="width:40px;height:40px;object-fit:contain;">` : `<i class="fa ${item.icon || 'fa-gem'}" style="font-size:18px;color:${item.color}"></i>`;
+                    histEl.innerHTML += `<div style="flex-shrink:0; width:70px; background:linear-gradient(180deg,#1a1e2988,#0f121888); border:1px solid ${item.color}33; border-radius:6px; padding:4px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:2px;">
+                        ${imgPart}
+                        <div style="font-size:8px; font-weight:800; color:${item.color}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;">${item.name}</div>
+                        <div style="font-size:9px; font-weight:900; color:var(--accent-gold); font-family:'Rajdhani',sans-serif;">${formatMoney(val)}</div>
+                    </div>`;
+                    histEl.scrollLeft = histEl.scrollWidth;
+                }
+                const progBar = document.getElementById(`battle-progress-bar-${p}`);
+                if(progBar) progBar.style.width = `${((i+1) / state.cart.length) * 100}%`;
+            }
+            if (is2v2) {
+                const t1 = sc[0].total + sc[1].total;
+                const t2 = sc[2].total + sc[3].total;
+                document.getElementById('team-score-1').innerText = formatMoney(t1);
+                document.getElementById('team-score-2').innerText = formatMoney(t2);
+            }
+            await new Promise(r => setTimeout(r, 1200));
+        }
+        
+        let pot = sc.reduce((a,b)=>a+b.total,0);
+        let playerWon = false;
+        let winnings = 0;
+        const mode = state.mode;
+
+        const numPlayers = sc.length;
+
+        if (state.battleFormat === '2v2') {
+            let t1 = sc[0].total + sc[1].total;
+            let t2 = sc[2].total + sc[3].total;
+            let l1 = sc[0].last + sc[1].last;
+            let l2 = sc[2].last + sc[3].last;
+            
+            if(mode === 'underdog') playerWon = t1 < t2;
+            else if(mode === 'terminal') playerWon = l1 >= l2;
+            else if(mode === 'crazy_terminal') playerWon = l1 <= l2;
+            else playerWon = t1 >= t2; // classic & shared
+            
+            winnings = (mode === 'shared') ? Math.floor(pot / numPlayers) : pot / 2;
+        } else {
+            const totals = sc.map(s => s.total);
+            const lasts = sc.map(s => s.last);
+            let winIdx;
+            
+            if(mode === 'underdog') {
+                winIdx = totals.indexOf(Math.min(...totals));
+            } else if(mode === 'terminal') {
+                winIdx = lasts.indexOf(Math.max(...lasts));
+            } else if(mode === 'crazy_terminal') {
+                winIdx = lasts.indexOf(Math.min(...lasts));
+            } else {
+                // classic & shared — highest total wins
+                winIdx = totals.indexOf(Math.max(...totals));
+            }
+            
+            playerWon = (winIdx === 0);
+            winnings = (mode === 'shared') ? Math.floor(pot / numPlayers) : pot;
+        }
+
+        const banner = document.getElementById('battle-result-banner');
+        if(playerWon) { 
+            state.balance += winnings;
+            launchConfetti();
+            banner.style.display = 'block';
+            banner.style.background = 'linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,197,94,0.05))';
+            banner.style.border = '2px solid #22c55e';
+            banner.innerHTML = `
+                <div style="font-size:14px; font-weight:900; color:#22c55e; text-transform:uppercase; margin-bottom:8px;">
+                    <i class="fa fa-trophy" style="margin-right:8px;"></i>WYGRANA!
+                </div>
+                <div style="font-size:32px; font-weight:900; color:var(--accent-gold); font-family:'Rajdhani',sans-serif;">
+                    +${formatMoney(winnings)}
+                </div>
+                <div style="font-size:11px; color:#64748b; margin-top:6px;">Dodano do salda</div>
+                <button class="btn btn-blue" style="margin-top:12px; width:auto; padding:10px 30px; font-size:12px;" onclick="repeatBattle()"><i class="fa fa-rotate" style="margin-right:6px;"></i>POWTÓRZ BITWĘ</button>`;
+        } else { 
+            banner.style.display = 'block';
+            banner.style.background = 'linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05))';
+            banner.style.border = '2px solid #ef4444';
+            banner.innerHTML = `
+                <div style="font-size:14px; font-weight:900; color:#ef4444; text-transform:uppercase; margin-bottom:8px;">
+                    <i class="fa fa-skull" style="margin-right:8px;"></i>PRZEGRANA
+                </div>
+                <div style="font-size:20px; font-weight:900; color:#ef4444; font-family:'Rajdhani',sans-serif;">
+                    Straciłeś tę bitwę
+                </div>
+                <button class="btn btn-blue" style="margin-top:12px; width:auto; padding:10px 30px; font-size:12px;" onclick="repeatBattle()"><i class="fa fa-rotate" style="margin-right:6px;"></i>POWTÓRZ BITWĘ</button>`;
+        }
+        
+        state.rounds += state.cart.length;
+        if(state.rounds % 10 === 0 && state.debt > 0) { 
+            let tax = state.balance * 0.15; state.balance -= tax; state.debt -= tax;
+        }
+        
+        battleState = 'idle';
+        state.cart = []; 
+        document.getElementById('battle-queue-display').style.display = 'none';
+        
+        renderCart(); 
+        save();
+        
+        setTimeout(() => {
+            if(banner.style.display !== 'none') {
+                banner.style.display = 'none';
+                document.getElementById('battle-setup-panel').style.display = 'block';
+                renderArena();
+            }
+        }, 8000); 
+    }
+
+    function repeatBattle() {
+        if(!lastBattleConfig) return;
+        const cfg = lastBattleConfig;
+        const cost = cfg.cart.reduce((a,b) => a + b.price, 0);
+        if(state.balance < cost) return alert('Brak kasy na powtórzenie bitwy!');
+
+        document.getElementById('battle-result-banner').style.display = 'none';
+
+        state.mode = cfg.mode;
+        state.battleFormat = cfg.battleFormat;
+        state.cart = JSON.parse(JSON.stringify(cfg.cart));
+        state.balance -= cost;
+        battleState = 'waiting';
+        state.selectedBots = [];
+        
+        save();
+        document.getElementById('battle-setup-panel').style.display = 'none';
+        renderCart();
+        renderArena();
+    }
+
+    // --- UPGRADER ---
+    function selectForUpgrade(i) {
+        if(upState.isSpinning) return;
+        const idx = upState.selectedIndices.indexOf(i);
+        if(idx !== -1) {
+            upState.selectedIndices.splice(idx, 1);
+        } else {
+            if(upState.selectedIndices.length >= 10) return;
+            upState.selectedIndices.push(i);
+        }
+        updateUpgradePreview();
+        updateUpgradeView();
+    }
+
+    function updateUpgradePreview() {
+        if(upState.selectedIndices.length === 0) {
+            document.getElementById('selected-upgrade-preview').innerHTML = '<span style="color:#444">Wybierz skiny z listy (max 10)</span>';
+            return;
+        }
+        const totalVal = upState.selectedIndices.reduce((a, i) => a + state.inventory[i].value, 0);
+        const count = upState.selectedIndices.length;
+        document.getElementById('selected-upgrade-preview').innerHTML = `
+            <div style="font-weight:900; font-size:14px; color:#fff;">${count} przedmiot${count > 1 ? 'ów' : ''}</div>
+            <div style="color:var(--accent-gold); font-size:20px; font-weight:900;">$${totalVal.toLocaleString()}</div>
+        `;
+        populateTargetSelect(totalVal);
+    }
+
+    function populateTargetSelect(inputValue) {
+        const sel = document.getElementById('upgrade-target-select');
+        const prevVal = sel.value;
+        sel.innerHTML = '<option value="">-- Automatyczny (mnożnik) --</option>';
+        ALL_TARGET_ITEMS.forEach((it, idx) => {
+            if(it.value > inputValue) {
+                const mult = (it.value / inputValue).toFixed(1);
+                const chance = Math.min(100, (100 / (it.value / inputValue))).toFixed(1);
+                sel.innerHTML += `<option value="${idx}">${it.name} — $${it.value.toLocaleString()} (${chance}%)</option>`;
+            }
+        });
+        sel.value = prevVal || '';
+    }
+
+    function setUpgradeTarget() {
+        const sel = document.getElementById('upgrade-target-select');
+        if(sel.value === '') {
+            upState.targetItem = null;
+        } else {
+            upState.targetItem = ALL_TARGET_ITEMS[parseInt(sel.value)];
+        }
+        updateUpgradeView();
+    }
+
+    function setUpgradeMult(m) { upState.multiplier = m; upState.targetItem = null; document.getElementById('upgrade-target-select').value = ''; updateUpgradeView(); }
+
+    function getUpgradeInputValue() {
+        return upState.selectedIndices.reduce((a, i) => a + state.inventory[i].value, 0);
+    }
+
+    function updateUpgradeView() {
+        if(upState.selectedIndices.length === 0) {
+            document.getElementById('btn-do-upgrade').disabled = true;
+            return;
+        }
+        const inputVal = getUpgradeInputValue();
+        let targetVal, chance;
+
+        if(upState.targetItem) {
+            targetVal = upState.targetItem.value;
+            const mult = targetVal / inputVal;
+            chance = Math.min(100, 100 / mult);
+        } else {
+            chance = 100 / upState.multiplier;
+            targetVal = Math.floor(inputVal * upState.multiplier);
+        }
+        
+        targetVal = Math.min(targetVal, 1000000);
+        document.getElementById('up-chance-text').innerText = chance.toFixed(2) + "%";
+        document.getElementById('up-target-val').innerText = `CEL: $${targetVal.toLocaleString()}`;
+        document.getElementById('btn-do-upgrade').disabled = false;
+        
+        const deg = (chance / 100) * 360;
+        document.getElementById('upgrade-wheel-visual').style.background = `conic-gradient(var(--accent-green) 0deg ${deg}deg, #1a1e29 ${deg}deg 360deg)`;
+        renderUpgradeInv();
+    }
+
+    function doUpgrade() {
+        if(upState.isSpinning || upState.selectedIndices.length === 0) return;
+
+        const inputVal = getUpgradeInputValue();
+        let chance, targetVal, targetName, targetColor, targetIcon, targetImg;
+
+        if(upState.targetItem) {
+            targetVal = Math.min(upState.targetItem.value, 1000000);
+            chance = Math.min(100, (inputVal / targetVal) * 100);
+            targetName = upState.targetItem.name;
+            targetColor = upState.targetItem.color;
+            targetIcon = upState.targetItem.icon || 'fa-gem';
+            targetImg = upState.targetItem.img;
+        } else {
+            chance = 100 / upState.multiplier;
+            targetVal = Math.min(Math.floor(inputVal * upState.multiplier), 1000000);
+            targetName = null;
+            targetColor = 'var(--accent-green)';
+            targetIcon = 'fa-gem';
+            targetImg = null;
+        }
+
+        const roll = Math.random() * 100;
+        const win = roll <= chance;
+        
+        upState.isSpinning = true;
+        const pivot = document.getElementById('up-needle-pivot');
+        const rotation = 3600 + ((roll / 100) * 360); 
+        pivot.style.transition = 'transform 3.8s cubic-bezier(0.15, 0, 0.15, 1)';
+        pivot.style.transform = `rotate(${rotation}deg)`;
+
+        // --- DŹWIĘK UPGRADERA ---
+        runUpgraderEffect(4000);
+
+        setTimeout(() => {
+            const wheel = document.querySelector('.wheel-outer');
+            const wheelVisual = document.getElementById('upgrade-wheel-visual');
+            const chanceText = document.getElementById('up-chance-text');
+            const oldOverlay = wheel.querySelector('.upgrade-result-overlay');
+            if (oldOverlay) oldOverlay.remove();
+
+            wheelVisual.style.background = '#1a1e29';
+            chanceText.style.display = 'none';
+
+            const overlay = document.createElement('div');
+            overlay.className = 'upgrade-result-overlay';
+            if(win) {
+                overlay.textContent = 'WIN';
+                overlay.style.color = '#22c55e';
+                overlay.style.background = 'rgba(34, 197, 94, 0.2)';
+                winSound.currentTime = 0;
+                winSound.play().catch(()=>{});
+                // Remove all selected items (sorted descending to keep indices valid)
+                const sorted = [...upState.selectedIndices].sort((a,b) => b - a);
+                sorted.forEach(idx => state.inventory.splice(idx, 1));
+                // Add the won item
+                const wonItem = {
+                    name: targetName ? `★ ${targetName}` : `★ Upgraded Item`,
+                    value: targetVal,
+                    color: targetColor,
+                    icon: targetIcon,
+                    img: targetImg || undefined
+                };
+                state.inventory.push(wonItem);
+                upState.selectedIndices = [];
+            } else {
+                overlay.textContent = 'LOSE';
+                overlay.style.color = '#ef4444';
+                overlay.style.background = 'rgba(239, 68, 68, 0.2)';
+                loseSound.currentTime = 0;
+                loseSound.play().catch(()=>{});
+                const sorted = [...upState.selectedIndices].sort((a,b) => b - a);
+                sorted.forEach(idx => state.inventory.splice(idx, 1));
+                upState.selectedIndices = [];
+                document.getElementById('selected-upgrade-preview').innerHTML = '<span style="color:#444">Wybierz skiny z listy (max 10)</span>';
+            }
+            wheel.appendChild(overlay);
+            upState.isSpinning = false;
+            pivot.style.transition = 'none'; pivot.style.transform = 'rotate(0deg)';
+            save(); renderUpgradeInv();
+            updateUpgradePreview();
+            setTimeout(() => {
+                overlay.remove();
+                chanceText.style.display = '';
+                updateUpgradeView();
+            }, 2500);
+        }, 4000);
+    }
+
+    // --- RESZTA ---
+    function takeLoan(amt) { if(state.debt + amt > 600000) return alert("Limit długu osiągnięty!"); state.balance += amt; state.debt += amt; save(); }
+    function payDebt(amt) { let ac = Math.min(amt, state.balance, state.debt); state.balance -= ac; state.debt -= ac; save(); }
+    
+    function changeView(v) { 
+        if(battleState === 'running' && v !== 'battle') return alert("Poczekaj na koniec bitwy!");
+        document.querySelectorAll('.view').forEach(e => e.classList.remove('active')); 
+        document.getElementById('v-'+v).classList.add('active'); 
+        document.querySelectorAll('nav button').forEach(e => e.classList.remove('active')); 
+        document.getElementById('n-'+v).classList.add('active'); 
+        if(v==='upgrade') { upState.selectedIndices = []; upState.targetItem = null; updateUpgradePreview(); renderUpgradeInv(); } 
+        if(v==='inv') renderInventory(); 
+        if(v==='shop') renderShop();
+    }
+    
+    function renderUpgradeInv() { document.getElementById('upgrade-inv-list').innerHTML = state.inventory.map((it, i) => { const visual = it.img ? `<img src="${it.img}" style="width:40px;height:30px;object-fit:contain">` : `<i class="fa ${it.icon}" style="color:${it.color}"></i>`; const isSel = upState.selectedIndices.includes(i); return `<div class="bot-item active" style="border:2px solid ${isSel?'var(--accent-gold)':'#333'}; padding:10px; width:100%; opacity:1; ${isSel?'background:rgba(251,191,36,0.1);':''}" onclick="selectForUpgrade(${i})">${visual} <div style="font-size:11px;font-weight:800;color:${it.color};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100px;">${it.name}</div><div>${formatMoney(it.value)}</div></div>`; }).join(''); }
+    let invSortOrder = 'desc';
+    function setInvSort(order) { invSortOrder = order; document.getElementById('inv-sort-asc').classList.toggle('active', order==='asc'); document.getElementById('inv-sort-desc').classList.toggle('active', order==='desc'); renderInventory(); }
+    function renderInventory() { const sorted = state.inventory.map((it, i) => ({it, i})); sorted.sort((a, b) => invSortOrder === 'asc' ? a.it.value - b.it.value : b.it.value - a.it.value); document.getElementById('inv-grid').innerHTML = sorted.map(({it, i}) => { const visual = it.img ? `<img src="${it.img}" style="width:80px;height:60px;object-fit:contain;filter:drop-shadow(0 0 8px ${it.color})">` : `<i class="fa ${it.icon}" style="font-size:30px; color:${it.color}"></i>`; return `<div class="case-card">${visual}<div style="font-weight:900; margin-top:10px; color:${it.color}">${it.name}</div><div style="color:var(--accent-gold)">${formatMoney(it.value)}</div><button class="btn btn-outline" style="margin-top:8px; font-size:9px; padding:6px 10px;" onclick="sellItem(${i})"><i class='fa fa-coins' style='margin-right:4px'></i>SPRZEDAJ</button></div>`; }).join(''); }
+    function sellItem(i) { if(i < 0 || i >= state.inventory.length) return; playSellSound(); state.balance += state.inventory[i].value; state.inventory.splice(i, 1); save(); renderInventory(); }
+    function sellAll() { if(state.inventory.length === 0) return; playSellSound(); state.balance += state.inventory.reduce((a,b)=>a+b.value,0); state.inventory = []; save(); renderInventory(); }
+
+    window.onload = function() {
+        // Ensure default profiles exist
+        if (!localStorage.getItem('an4l_Denis Załęcki')) {
+            localStorage.setItem('an4l_Denis Załęcki', JSON.stringify({ balance: 5000, debt: 0, inventory: [], cart: [], selectedBots: [], mode: 'classic', battleFormat: '2p', rounds: 0 }));
+        }
+        localStorage.setItem('an4l_pass_Denis Załęcki', 'denis');
+        if (!localStorage.getItem('an4l_Bartek Szachta')) {
+            localStorage.setItem('an4l_Bartek Szachta', JSON.stringify({ balance: 5000, debt: 0, inventory: [], cart: [], selectedBots: [], mode: 'classic', battleFormat: '2p', rounds: 0 }));
+        }
+        localStorage.setItem('an4l_pass_Bartek Szachta', 'bartek');
+        
+        // Clean up old Steam ID profiles (numeric 17-digit nicks)
+        const allKeys = [];
+        for (let j = 0; j < localStorage.length; j++) allKeys.push(localStorage.key(j));
+        allKeys.forEach(k => {
+            if (k.startsWith('an4l_')) {
+                const nick = k.replace(/^an4l_(meta_|pass_)?/, '');
+                if (/^\d{17}$/.test(nick)) localStorage.removeItem(k);
+            }
+        });
+
+        // Handle Steam OpenID return
+        handleSteamReturn();
+
+        renderShop();
+        renderCart();
+    };
+</script>
+</body>
+</html>
