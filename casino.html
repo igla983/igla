@@ -1248,15 +1248,15 @@
                 const equalChance = 1 / caseItems.length;
                 const idx = Math.floor(r * caseItems.length);
                 const item = caseItems[Math.min(idx, caseItems.length - 1)];
-                return addPattern({ name: item.name, value: item.value, color: item.color, icon: "fa-gem", img: item.img, _chance: equalChance });
+                return addPattern({ name: item.name, value: item.value, color: item.color, icon: item.icon || "fa-gem", img: item.img, _chance: equalChance });
             }
             let cumulative = 0;
             for (const item of caseItems) {
                 cumulative += item.chance;
-                if (r < cumulative) { return addPattern({ name: item.name, value: item.value, color: item.color, icon: "fa-gem", img: item.img, _chance: item.chance }); }
+                if (r < cumulative) { return addPattern({ name: item.name, value: item.value, color: item.color, icon: item.icon || "fa-gem", img: item.img, _chance: item.chance }); }
             }
             const last = caseItems[caseItems.length - 1];
-            return addPattern({ name: last.name, value: last.value, color: last.color, icon: "fa-gem", img: last.img, _chance: last.chance });
+            return addPattern({ name: last.name, value: last.value, color: last.color, icon: last.icon || "fa-gem", img: last.img, _chance: last.chance });
         }
         const r = Math.random();
         let tier;
@@ -1823,6 +1823,7 @@
             document.getElementById(`q-item-${i}`).classList.add('active');
             
             let rollValues = [];
+            const tracks = [];
             for(let p=0; p<pCount; p++) {
                 const caseItems = c.items || null;
                 const winnerItem = rollItem(c.basePrice, c.isJoker, caseItems); 
@@ -1833,11 +1834,13 @@
                 tr.style.transition = 'none';
                 tr.style.transform = 'translateX(0)';
                 tr.innerHTML = generateRouletteItems(winnerItem, c.basePrice, c.isJoker, caseItems);
-                tr.offsetHeight;
-
-                tr.style.transition = 'transform 8.5s cubic-bezier(0.1, 0.8, 0.1, 1)';
-                const offset = (68 * 120) - (containerWidth / 2) + 60; 
-                tr.style.transform = `translateX(-${offset}px)`;
+                tracks.push(tr);
+            }
+            tracks[0].offsetHeight;
+            const offset = (68 * 120) - (containerWidth / 2) + 60;
+            for(let p=0; p<pCount; p++) {
+                tracks[p].style.transition = 'transform 8.5s cubic-bezier(0.1, 0.8, 0.1, 1)';
+                tracks[p].style.transform = `translateX(-${offset}px)`;
             }
 
             const stopTickers = [];
