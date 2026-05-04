@@ -352,23 +352,25 @@
 </div>
 
 <div class="full-overlay" id="cases-modal">
-    <div class="modal-content" style="max-height: 85vh; overflow-y: auto;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h2>WYBIERZ SKRZYNKĘ DO BITWY</h2>
-            <label class="joker-toggle-container" style="margin-bottom: 0;">
-                <div class="switch">
-                    <input type="checkbox" id="battle-joker-toggle" onchange="toggleBattleJokerMode()">
-                    <span class="slider"></span>
-                </div>
-                <div style="text-align: left;">
-                    <div style="font-weight: 900; color: #a855f7; text-transform: uppercase;">TRYB JOKER</div>
-                </div>
-            </label>
-            <button onclick="closeBattleCaseSelector()" style="background:none; border:1px solid #333; color:#94a3b8; font-size:18px; cursor:pointer; width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-radius:8px; transition:0.2s; flex-shrink:0;" onmouseover="this.style.color='#fff';this.style.borderColor='#fff'" onmouseout="this.style.color='#94a3b8';this.style.borderColor='#333'"><i class="fa fa-xmark"></i></button>
-        </div>
-        <div style="display:flex; gap:8px; margin-bottom:15px;">
-            <button class="btn btn-outline active" id="battle-sort-asc" style="width:auto; padding:8px 16px; font-size:11px;" onclick="battleSortOrder='asc'; openBattleCaseSelector()">Cena ↑</button>
-            <button class="btn btn-outline" id="battle-sort-desc" style="width:auto; padding:8px 16px; font-size:11px;" onclick="battleSortOrder='desc'; openBattleCaseSelector()">Cena ↓</button>
+    <div class="modal-content" style="max-height: 85vh; overflow-y: auto; display:flex; flex-direction:column;">
+        <div style="position:sticky; top:0; z-index:10; background:var(--bg-card); padding-bottom:15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h2>WYBIERZ SKRZYNKĘ DO BITWY</h2>
+                <label class="joker-toggle-container" style="margin-bottom: 0;">
+                    <div class="switch">
+                        <input type="checkbox" id="battle-joker-toggle" onchange="toggleBattleJokerMode()">
+                        <span class="slider"></span>
+                    </div>
+                    <div style="text-align: left;">
+                        <div style="font-weight: 900; color: #a855f7; text-transform: uppercase;">TRYB JOKER</div>
+                    </div>
+                </label>
+                <button onclick="closeBattleCaseSelector()" style="background:none; border:1px solid #333; color:#94a3b8; font-size:18px; cursor:pointer; width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-radius:8px; transition:0.2s; flex-shrink:0;" onmouseover="this.style.color='#fff';this.style.borderColor='#fff'" onmouseout="this.style.color='#94a3b8';this.style.borderColor='#333'"><i class="fa fa-xmark"></i></button>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button class="btn btn-outline active" id="battle-sort-asc" style="width:auto; padding:8px 16px; font-size:11px;" onclick="setBattleSortOrder('asc')">Cena ↑</button>
+                <button class="btn btn-outline" id="battle-sort-desc" style="width:auto; padding:8px 16px; font-size:11px;" onclick="setBattleSortOrder('desc')">Cena ↓</button>
+            </div>
         </div>
         <div class="grid" id="battle-cases-grid"></div>
     </div>
@@ -555,7 +557,7 @@
             { name: "Butterfly Marble Fade FN", value: 3000, color: "#ec4899", img: "img/butterfly_marble.png", chance: 0.08 },
             { name: "Karambit Fade FN", value: 2400, color: "#ec4899", img: "img/karambit_fade.png", chance: 0.10 },
             { name: "AK-47 Fire Serpent FT", value: 1300, color: "#f97316", img: "img/fire_serpent.png", chance: 0.30 },
-            { name: "Szeliga Sticker", value: 0.24, color: "#3b82f6", img: "img/szeliga_sticker.png", chance: 0.479 }
+            { name: "Szeliga Sticker", value: 2, color: "#3b82f6", img: "img/szeliga_sticker.png", chance: 0.479 }
         ]},
         { name: "Anubis Case", color: "#d97706", icon: "fa-ankh", price: 24, img: "img/anubis_case.png", items: [
             { name: "AK-47 Gold Arabesque FN", value: 400, color: "#3b82f6", icon: "fa-crosshairs", chance: 0.30 },
@@ -675,8 +677,7 @@
         { id: 10, name: "paszabiceps", img: "img/paszabiceps.png", steam: "https://steamcommunity.com/id/Brekardo" },
         { id: 11, name: "NIGOREK", img: "img/nigorek.png", steam: "https://steamcommunity.com/profiles/76561199223326691/" },
         { id: 12, name: "Wikos", img: "img/wikos.jpg", steam: "https://steamcommunity.com/id/Wikos22" },
-        { id: 13, name: "bredzik", img: "img/bredzik.png", steam: "https://steamcommunity.com/id/magiczny4wpierdol1" },
-        { id: 14, name: "magik", img: "img/magik.png", steam: "" }
+        { id: 13, name: "bredzik", img: "img/bredzik.png", steam: "https://steamcommunity.com/id/magiczny4wpierdol1" }
     ];
 
     const TIERS = [
@@ -1541,6 +1542,7 @@
     function toggleBattleJokerMode() { isBattleJokerMode = document.getElementById('battle-joker-toggle').checked; openBattleCaseSelector(); }
 
     let battleSortOrder = 'asc';
+    function setBattleSortOrder(order) { battleSortOrder = order; openBattleCaseSelector(); }
     function openBattleCaseSelector() {
         if(battleState !== 'idle') return;
         document.getElementById('cases-modal').classList.add('active');
@@ -1805,7 +1807,7 @@
 
         for(let p=0; p<pCount; p++) {
             document.getElementById(`card-content-${p}`).innerHTML = `
-                <div class="roulette-container" style="width: 100%; border: none;">
+                <div class="roulette-container" style="width: 100%; border: none; background: transparent;">
                     <div class="roulette-center-line"></div>
                     <div class="roulette-track" id="track-${p}"></div>
                 </div>
