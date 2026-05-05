@@ -605,7 +605,7 @@
             const imgPart = d.img ? `<img src="${d.img}">` : `<i class="fa fa-gem" style="font-size:16px;color:${d.color}"></i>`;
             const el = document.createElement('div');
             el.className = 'feed-item';
-            el.innerHTML = `${imgPart}<div style="display:flex;flex-direction:column;gap:1px;"><span style="font-size:9px;color:${d.color};font-weight:800;max-width:80px;overflow:hidden;text-overflow:ellipsis;">${d.name}</span><span style="font-size:8px;color:#64748b;">${d.player}</span></div>`;
+            el.innerHTML = `${imgPart}<div style="display:flex;flex-direction:column;gap:1px;"><span style="font-size:9px;color:${d.color};font-weight:800;max-width:120px;overflow:hidden;text-overflow:ellipsis;">${d.name}</span><span style="font-size:8px;color:#64748b;">${d.player}</span></div>`;
             track.appendChild(el);
             // Duplicate for seamless scroll
             const clone = el.cloneNode(true);
