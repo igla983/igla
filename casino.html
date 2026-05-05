@@ -222,6 +222,8 @@
 </div>
 <style>
     @keyframes feedScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+    @keyframes tbSpin { 0% { transform: rotateY(0deg); } 100% { transform: rotateY(360deg); } }
+    @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
     @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
     .feed-item { flex-shrink:0; display:flex; align-items:center; gap:6px; background:linear-gradient(135deg, #1a1e2988, #0f121888); border:1px solid #ffffff10; border-radius:8px; padding:8px 12px; min-height:48px; }
     .feed-item img { width:40px; height:36px; object-fit:contain; }
@@ -1978,6 +1980,88 @@
         renderArena();
     }
 
+    async function showTiebreakerAnimation(sc, pCount, format) {
+        return new Promise(resolve => {
+            const arena = document.getElementById('battle-arena');
+            const overlay = document.createElement('div');
+            overlay.id = 'tiebreaker-overlay';
+            overlay.style.cssText = `position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(5,6,8,0.92);backdrop-filter:blur(8px);animation:fadeIn 0.3s ease;`;
+
+            const is2v2 = format === '2v2';
+            const names = [];
+            if(is2v2) {
+                names.push('TEAM 1', 'TEAM 2');
+            } else {
+                for(let i=0;i<pCount;i++) {
+                    const el = document.querySelector(`#battle-arena .battle-card:nth-child(${i+1}) .p-name`);
+                    names.push(el ? el.textContent : `Gracz ${i+1}`);
+                }
+            }
+
+            overlay.innerHTML = `
+                <div style="text-align:center;">
+                    <div style="font-size:14px;font-weight:900;color:#fbbf24;text-transform:uppercase;letter-spacing:3px;margin-bottom:10px;animation:pulse 1s infinite;">
+                        <i class="fa fa-equals" style="margin-right:8px;"></i>REMIS — LOSOWANIE
+                    </div>
+                    <div id="tb-coin" style="width:120px;height:120px;margin:20px auto;border-radius:50%;border:4px solid #fbbf24;display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:900;color:#fbbf24;font-family:'Rajdhani',sans-serif;background:rgba(251,191,36,0.08);animation:tbSpin 0.15s linear infinite;">
+                        ?
+                    </div>
+                    <div id="tb-names" style="display:flex;gap:20px;justify-content:center;margin-top:20px;">
+                        ${names.map((n,i) => `<div id="tb-p-${i}" style="padding:12px 24px;border-radius:10px;border:2px solid #333;font-weight:900;font-size:16px;color:#94a3b8;font-family:'Rajdhani',sans-serif;transition:all 0.3s;">${n}</div>`).join('')}
+                    </div>
+                    <div id="tb-result" style="margin-top:20px;font-size:20px;font-weight:900;color:#22c55e;font-family:'Rajdhani',sans-serif;opacity:0;transition:opacity 0.3s;"></div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+
+            // Spinning animation - flash through names
+            let spinIdx = 0;
+            const spinInterval = setInterval(() => {
+                names.forEach((_, i) => {
+                    const el = document.getElementById(`tb-p-${i}`);
+                    if(el) {
+                        el.style.borderColor = i === spinIdx ? '#fbbf24' : '#333';
+                        el.style.color = i === spinIdx ? '#fbbf24' : '#94a3b8';
+                        el.style.background = i === spinIdx ? 'rgba(251,191,36,0.1)' : 'transparent';
+                    }
+                });
+                spinIdx = (spinIdx + 1) % names.length;
+            }, 150);
+
+            // After 2.5s, stop and reveal winner
+            setTimeout(() => {
+                clearInterval(spinInterval);
+                const winI = Math.floor(Math.random() * names.length);
+                const coin = document.getElementById('tb-coin');
+                if(coin) {
+                    coin.style.animation = 'none';
+                    coin.style.borderColor = '#22c55e';
+                    coin.style.color = '#22c55e';
+                    coin.style.background = 'rgba(34,197,94,0.1)';
+                    coin.innerHTML = '<i class="fa fa-crown"></i>';
+                }
+                names.forEach((_, i) => {
+                    const el = document.getElementById(`tb-p-${i}`);
+                    if(el) {
+                        const isW = i === winI;
+                        el.style.borderColor = isW ? '#22c55e' : '#ef4444';
+                        el.style.color = isW ? '#22c55e' : '#ef4444';
+                        el.style.background = isW ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.05)';
+                        el.style.transform = isW ? 'scale(1.1)' : 'scale(0.95)';
+                    }
+                });
+                const res = document.getElementById('tb-result');
+                if(res) { res.textContent = `${names[winI]} WYGRYWA!`; res.style.opacity = '1'; }
+
+                // Remove overlay after 1.5s
+                setTimeout(() => {
+                    overlay.style.animation = 'fadeIn 0.3s ease reverse';
+                    setTimeout(() => { overlay.remove(); resolve(); }, 300);
+                }, 1500);
+            }, 2500);
+        });
+    }
+
     async function runBattle() {
         lastBattleConfig = {
             cart: JSON.parse(JSON.stringify(state.cart)),
@@ -2120,37 +2204,53 @@
         let playerWon = false;
         let winnings = 0;
         const mode = state.mode;
-
         const numPlayers = sc.length;
 
+        // Detect tie
+        let isTie = false;
         if (state.battleFormat === '2v2') {
-            let t1 = sc[0].total + sc[1].total;
-            let t2 = sc[2].total + sc[3].total;
-            let l1 = sc[0].last + sc[1].last;
-            let l2 = sc[2].last + sc[3].last;
-            
-            if(mode === 'underdog') playerWon = t1 < t2;
+            let t1 = sc[0].total + sc[1].total, t2 = sc[2].total + sc[3].total;
+            let l1 = sc[0].last + sc[1].last, l2 = sc[2].last + sc[3].last;
+            if(mode === 'terminal' || mode === 'crazy_terminal') isTie = (l1 === l2);
+            else isTie = (t1 === t2);
+        } else {
+            const vals = (mode === 'terminal' || mode === 'crazy_terminal') ? sc.map(s => s.last) : sc.map(s => s.total);
+            const best = (mode === 'underdog' || mode === 'crazy_terminal') ? Math.min(...vals) : Math.max(...vals);
+            isTie = vals.filter(v => v === best).length > 1;
+        }
+
+        if(isTie) {
+            await showTiebreakerAnimation(sc, pCount, state.battleFormat);
+        }
+
+        // Determine winner (if tie, random)
+        if (state.battleFormat === '2v2') {
+            let t1 = sc[0].total + sc[1].total, t2 = sc[2].total + sc[3].total;
+            let l1 = sc[0].last + sc[1].last, l2 = sc[2].last + sc[3].last;
+            if(isTie) { playerWon = Math.random() < 0.5; }
+            else if(mode === 'underdog') playerWon = t1 < t2;
             else if(mode === 'terminal') playerWon = l1 >= l2;
             else if(mode === 'crazy_terminal') playerWon = l1 <= l2;
-            else playerWon = t1 >= t2; // classic & shared
-            
+            else playerWon = t1 >= t2;
             winnings = (mode === 'shared') ? Math.floor(pot / numPlayers) : pot / 2;
         } else {
             const totals = sc.map(s => s.total);
             const lasts = sc.map(s => s.last);
             let winIdx;
-            
-            if(mode === 'underdog') {
+            if(isTie) {
+                const vals = (mode === 'terminal' || mode === 'crazy_terminal') ? lasts : totals;
+                const best = (mode === 'underdog' || mode === 'crazy_terminal') ? Math.min(...vals) : Math.max(...vals);
+                const tiedIdxs = vals.map((v,i) => v === best ? i : -1).filter(i => i >= 0);
+                winIdx = tiedIdxs[Math.floor(Math.random() * tiedIdxs.length)];
+            } else if(mode === 'underdog') {
                 winIdx = totals.indexOf(Math.min(...totals));
             } else if(mode === 'terminal') {
                 winIdx = lasts.indexOf(Math.max(...lasts));
             } else if(mode === 'crazy_terminal') {
                 winIdx = lasts.indexOf(Math.min(...lasts));
             } else {
-                // classic & shared — highest total wins
                 winIdx = totals.indexOf(Math.max(...totals));
             }
-            
             playerWon = (winIdx === 0);
             winnings = (mode === 'shared') ? Math.floor(pot / numPlayers) : pot;
         }
