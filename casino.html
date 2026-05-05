@@ -2543,8 +2543,10 @@
         document.getElementById('battle-lobby-panel').style.display = '';
         loadActiveBattles();
     }
+    let battlesListener = null;
     function loadActiveBattles() {
-        db.ref('battles').orderByChild('timestamp').once('value', snap => {
+        if(battlesListener) db.ref('battles').off('value', battlesListener);
+        battlesListener = db.ref('battles').orderByChild('timestamp').on('value', snap => {
             const list = document.getElementById('active-battles-list');
             const msg = document.getElementById('no-battles-msg');
             if(!snap.exists()) { list.innerHTML = ''; msg.style.display = 'block'; return; }
@@ -2561,9 +2563,12 @@
                 const modeLabels = {classic:'Standardowy',shared:'Shared',underdog:'Underdog',terminal:'Terminal',crazy_terminal:'Crazy Terminal'};
                 const formatLabels = {'2p':'1v1','3p':'3 Graczy','4p':'4 Graczy','2v2':'2v2'};
                 const isMine = b.creator === currentNick;
+                const statusColor = b.status === 'running' ? '#f97316' : '#22c55e';
+                const statusText = b.status === 'running' ? 'W TRAKCIE' : 'OCZEKUJĄCA';
                 return `<div style="background:var(--bg-card);border:1px solid var(--border-ui);border-radius:14px;padding:16px 20px;display:grid;grid-template-columns:1fr auto;gap:15px;align-items:center;">
                     <div>
                         <div style="display:flex;gap:6px;margin-bottom:8px;align-items:center;">
+                            <span style="font-size:10px;font-weight:900;color:${statusColor};background:${statusColor}15;padding:3px 8px;border-radius:6px;display:flex;align-items:center;gap:4px;"><div style="width:6px;height:6px;background:${statusColor};border-radius:50%;${b.status==='running'?'animation:pulse 1s infinite':''}"></div>${statusText}</span>
                             <span style="font-size:10px;font-weight:900;color:var(--accent-blue);background:rgba(59,130,246,0.1);padding:3px 8px;border-radius:6px;">${formatLabels[b.format]||b.format}</span>
                             <span style="font-size:10px;font-weight:900;color:#a855f7;background:rgba(168,85,247,0.1);padding:3px 8px;border-radius:6px;">${modeLabels[b.mode]||b.mode}</span>
                             <span style="font-size:9px;color:#64748b;">od: ${b.creator}</span>
