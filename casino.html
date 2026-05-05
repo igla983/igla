@@ -2586,8 +2586,20 @@
             }).join('');
         });
     }
-    function joinBattle(key) { alert('Dołączanie do bitew multiplayer — wkrótce!'); }
-    function spectBattle(key) { alert('Podgląd bitew — wkrótce!'); }
+    function joinBattle(key) {
+        // TODO: full multiplayer join
+    }
+    function spectBattle(key) {
+        // TODO: spectate battle
+    }
+
+    // Auto-clean old battles (older than 10 minutes)
+    function cleanOldBattles() {
+        const cutoff = Date.now() - 10 * 60 * 1000;
+        db.ref('battles').orderByChild('timestamp').endAt(cutoff).once('value', snap => {
+            snap.forEach(child => child.ref.remove());
+        });
+    }
 
     // --- RESZTA ---
     function takeLoan(amt) { if(state.debt + amt > 600000) return alert("Limit długu osiągnięty!"); state.balance += amt; state.debt += amt; save(); }
@@ -2649,6 +2661,7 @@
         renderCart();
         initLiveFeed();
         initPresence();
+        cleanOldBattles();
     };
 </script>
 </body>
