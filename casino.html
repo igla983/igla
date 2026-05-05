@@ -1331,7 +1331,7 @@
         const profiles = [];
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
-            if (key.startsWith('an4l_') && !key.startsWith('an4l_meta_') && !key.startsWith('an4l_pass_') && !key.startsWith('an4l_steam_link_') && key !== 'an4l_currency' && key !== 'an4l_lastuser') profiles.push(key.substring(5));
+            if (key.startsWith('an4l_') && !key.startsWith('an4l_meta_') && !key.startsWith('an4l_pass_') && !key.startsWith('an4l_steam_link_') && !key.startsWith('an4l_bonus3m_') && key !== 'an4l_currency' && key !== 'an4l_lastuser' && key !== 'an4l_admin_override') profiles.push(key.substring(5));
         }
         return profiles.sort();
     }
