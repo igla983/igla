@@ -3220,18 +3220,21 @@
         }
         let containerWidth = document.querySelector('.battle-card-content .roulette-container')?.offsetWidth || 300;
         const frozenCart = JSON.parse(JSON.stringify(state.cart));
+        const totalRounds = allRollResults.length;
 
-        for(let i=0; i<frozenCart.length; i++) {
-            const c = frozenCart[i];
+        for(let i=0; i<totalRounds; i++) {
+            const c = frozenCart[i] || frozenCart[0] || {basePrice: 0, isJoker: false, items: null};
             document.querySelectorAll('.queue-item').forEach(el => el.classList.remove('active'));
             const qItem = document.getElementById(`q-item-${i}`);
             if(qItem) qItem.classList.add('active');
 
             let rollValues = allRollResults[i];
+            if(!rollValues || !rollValues.length) continue;
             const tracks = [];
             for(let p=0; p<pCount; p++) {
                 const caseItems = c.items || null;
                 const winnerItem = rollValues[p];
+                if(!winnerItem) continue;
                 const resEl = document.getElementById(`res-${p}`);
                 if(resEl) resEl.innerText = "";
                 const tr = document.getElementById(`track-${p}`);
@@ -3257,7 +3260,8 @@
             stopTickers.forEach(fn => fn());
 
             for(let p=0; p<pCount; p++) {
-                const val = rollValues[p].value;
+                if(!rollValues[p]) continue;
+                const val = rollValues[p].value || 0;
                 const item = rollValues[p];
                 sc[p].total += val; sc[p].last = val; sc[p].items.push(item);
                 const tEl = document.getElementById(`t-${p}`);
@@ -3275,13 +3279,13 @@
                     histEl.scrollLeft = histEl.scrollWidth;
                 }
                 const progBar = document.getElementById(`battle-progress-bar-${p}`);
-                if(progBar) progBar.style.width = `${((i+1) / frozenCart.length) * 100}%`;
+                if(progBar) progBar.style.width = `${((i+1) / totalRounds) * 100}%`;
             }
             // Highlight leading player/team
             const isUnderdog = state.mode === 'underdog' || state.mode === 'crazy_terminal';
             const isTerminal = state.mode === 'terminal' || state.mode === 'crazy_terminal';
             const isShared = state.mode === 'shared';
-            const isLastRound = (i === frozenCart.length - 1);
+            const isLastRound = (i === totalRounds - 1);
             const useLastOnly = isTerminal && isLastRound;
             if (!isShared) {
                 if (is2v2) {
