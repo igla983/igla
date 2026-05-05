@@ -176,6 +176,8 @@
         .case-visual i { position: relative; z-index: 2; filter: drop-shadow(0 0 10px currentColor); }
         .case-visual img { position: relative; z-index: 2; border-radius: 8px; background: #0a0c10; }
     </style>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
@@ -186,6 +188,7 @@
         <button onclick="changeView('battle')" id="n-battle">Bitwy</button>
         <button onclick="changeView('upgrade')" id="n-upgrade">Upgrader</button>
         <button onclick="changeView('inv')" id="n-inv">Ekwipunek</button>
+        <button onclick="changeView('market')" id="n-market">Market</button>
         <button onclick="changeView('bank')" id="n-bank">Bank</button>
     </nav>
     <div class="hud-stats">
@@ -203,6 +206,22 @@
         </div>
     </div>
 </header>
+
+<!-- LIVE DROP FEED -->
+<div id="live-feed-bar" style="background:linear-gradient(90deg, #0a0c10, #12161d, #0a0c10); border-bottom:1px solid #1a1e29; padding:8px 0; overflow:hidden; position:relative;">
+    <div style="display:flex; align-items:center; gap:6px; padding:0 15px; margin-bottom:4px;">
+        <div style="width:8px; height:8px; background:#22c55e; border-radius:50%; animation:pulse 1.5s infinite;"></div>
+        <span style="font-size:10px; font-weight:900; color:#64748b; text-transform:uppercase; letter-spacing:1px;">LIVE DROPS</span>
+        <span id="live-online-count" style="font-size:10px; color:#22c55e; font-weight:700; margin-left:auto;">0 online</span>
+    </div>
+    <div id="live-feed-track" style="display:flex; gap:10px; padding:0 15px; overflow-x:hidden; white-space:nowrap; animation:feedScroll 30s linear infinite;"></div>
+</div>
+<style>
+    @keyframes feedScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+    .feed-item { flex-shrink:0; display:flex; align-items:center; gap:6px; background:linear-gradient(135deg, #1a1e2988, #0f121888); border:1px solid #ffffff10; border-radius:8px; padding:6px 10px; }
+    .feed-item img { width:32px; height:32px; object-fit:contain; }
+</style>
 
 <main>
     <section id="v-shop" class="view active">
@@ -326,6 +345,25 @@
             </div>
         </div>
         <div class="grid" id="inv-grid"></div>
+    </section>
+
+    <section id="v-market" class="view">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2 style="margin:0;"><i class="fa fa-store" style="margin-right:10px; color:var(--accent-gold);"></i>MARKETPLACE</h2>
+            <button class="btn btn-gold" style="width:auto; padding:10px 20px; font-size:12px;" onclick="openSellModal()"><i class="fa fa-plus" style="margin-right:6px;"></i>WYSTAW ITEM</button>
+        </div>
+        <div style="display:flex; gap:8px; margin-bottom:15px; flex-wrap:wrap;">
+            <button class="btn btn-outline market-filter active" style="width:auto; padding:6px 14px; font-size:10px;" onclick="filterMarket('all')">Wszystkie</button>
+            <button class="btn btn-outline market-filter" style="width:auto; padding:6px 14px; font-size:10px;" onclick="filterMarket('knives')">Noże</button>
+            <button class="btn btn-outline market-filter" style="width:auto; padding:6px 14px; font-size:10px;" onclick="filterMarket('gloves')">Rękawice</button>
+            <button class="btn btn-outline market-filter" style="width:auto; padding:6px 14px; font-size:10px;" onclick="filterMarket('rifles')">Karabiny</button>
+        </div>
+        <div class="grid" id="market-grid" style="grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));"></div>
+        <div id="market-empty" style="text-align:center; padding:60px 20px; color:#64748b;">
+            <i class="fa fa-store-slash" style="font-size:50px; margin-bottom:15px; opacity:0.3;"></i>
+            <p style="font-weight:900;">Brak ofert na rynku</p>
+            <p style="font-size:11px;">Wystaw swoje itemy na sprzedaż!</p>
+        </div>
     </section>
 
     <section id="v-bank" class="view">
@@ -512,6 +550,68 @@
 </div>
 
 <script>
+    // --- FIREBASE INIT ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyCYnQiczuzRlHlfN8UYMbf2Plimy85wKNk",
+        authDomain: "igla-casino.firebaseapp.com",
+        databaseURL: "https://igla-casino-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "igla-casino",
+        storageBucket: "igla-casino.firebasestorage.app",
+        messagingSenderId: "32885144433",
+        appId: "1:32885144433:web:4c05b1b36b78bbd6ac14d0"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // --- LIVE FEED ---
+    function pushDrop(item, player) {
+        db.ref('drops').push({
+            name: item.name,
+            value: item.value,
+            color: item.color,
+            img: item.img || null,
+            player: player || currentNick || 'Anonim',
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        });
+        // Keep only last 50 drops
+        db.ref('drops').orderByChild('timestamp').limitToFirst(1).once('value', snap => {
+            snap.forEach(child => { if(snap.numChildren() > 50) child.ref.remove(); });
+        });
+    }
+
+    function initLiveFeed() {
+        const track = document.getElementById('live-feed-track');
+        db.ref('drops').orderByChild('timestamp').limitToLast(20).on('child_added', snap => {
+            const d = snap.val();
+            const imgPart = d.img ? `<img src="${d.img}">` : `<i class="fa fa-gem" style="font-size:16px;color:${d.color}"></i>`;
+            const el = document.createElement('div');
+            el.className = 'feed-item';
+            el.innerHTML = `${imgPart}<div style="display:flex;flex-direction:column;gap:1px;"><span style="font-size:9px;color:${d.color};font-weight:800;max-width:80px;overflow:hidden;text-overflow:ellipsis;">${d.name}</span><span style="font-size:8px;color:#64748b;">${d.player}</span></div>`;
+            track.appendChild(el);
+            // Duplicate for seamless scroll
+            const clone = el.cloneNode(true);
+            track.appendChild(clone);
+            // Keep max 40 elements (20 original + 20 clones)
+            while(track.children.length > 40) track.removeChild(track.firstChild);
+        });
+    }
+
+    // Online presence
+    function initPresence() {
+        const connRef = db.ref('.info/connected');
+        const presenceRef = db.ref('presence/' + Math.random().toString(36).substr(2,9));
+        connRef.on('value', snap => {
+            if(snap.val() === true) {
+                presenceRef.onDisconnect().remove();
+                presenceRef.set(true);
+            }
+        });
+        db.ref('presence').on('value', snap => {
+            const count = snap.numChildren();
+            document.getElementById('live-online-count').innerText = count + ' online';
+        });
+    }
+
     // --- BAZA ---
     const THEMES = [
         { name: "Clutch Case", color: "#4ade80", icon: "fa-hand-fist", price: 6, img: "img/clutch_case.png", items: [
@@ -1477,7 +1577,7 @@
             lastOpenedItems = [];
             const startIdx = state.inventory.length;
 
-            allWinners.forEach(w => state.inventory.push(w));
+            allWinners.forEach(w => { state.inventory.push(w); pushDrop(w, currentNick); });
             save();
 
             allWinners.forEach((w, wi) => {
@@ -2243,6 +2343,97 @@
         }, 4000);
     }
 
+    // --- MARKETPLACE ---
+    let marketFilter = 'all';
+    function openSellModal() {
+        if(state.inventory.length === 0) return alert('Brak itemów w ekwipunku!');
+        let html = '<div style="max-height:400px; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; padding:10px;">';
+        state.inventory.forEach((it, i) => {
+            const vis = it.img ? `<img src="${it.img}" style="width:50px;height:40px;object-fit:contain;">` : `<i class="fa ${it.icon||'fa-gem'}" style="color:${it.color};font-size:20px;"></i>`;
+            html += `<div onclick="listOnMarket(${i})" style="cursor:pointer;background:var(--bg-deep);border:1px solid #333;border-radius:10px;padding:10px;text-align:center;transition:0.2s;" onmouseover="this.style.borderColor='var(--accent-gold)'" onmouseout="this.style.borderColor='#333'">
+                ${vis}<div style="font-size:9px;font-weight:800;color:${it.color};margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${it.name}</div>
+                <div style="font-size:11px;color:var(--accent-gold);font-weight:900;">${formatMoney(it.value)}</div>
+            </div>`;
+        });
+        html += '</div>';
+        const modal = document.getElementById('case-modal');
+        modal.classList.add('active');
+        modal.querySelector('.modal-content').innerHTML = `<h2 style="margin-bottom:15px;"><i class="fa fa-store" style="color:var(--accent-gold);margin-right:8px;"></i>WYSTAW NA MARKET</h2><p style="color:#64748b;font-size:11px;margin-bottom:15px;">Kliknij item aby wystawić go na sprzedaż</p>${html}<button class="btn btn-outline" style="margin-top:15px;" onclick="document.getElementById('case-modal').classList.remove('active')">ZAMKNIJ</button>`;
+    }
+    function listOnMarket(idx) {
+        const item = state.inventory[idx];
+        const price = item.value;
+        db.ref('market').push({
+            name: item.name, value: price, color: item.color, img: item.img || null, icon: item.icon || null,
+            seller: currentNick, timestamp: firebase.database.ServerValue.TIMESTAMP
+        });
+        state.inventory.splice(idx, 1);
+        save();
+        document.getElementById('case-modal').classList.remove('active');
+        renderMarket();
+        renderInventory();
+    }
+    function renderMarket() {
+        const grid = document.getElementById('market-grid');
+        const empty = document.getElementById('market-empty');
+        db.ref('market').orderByChild('timestamp').once('value', snap => {
+            if(!snap.exists()) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
+            let items = [];
+            snap.forEach(child => { items.push({...child.val(), key: child.key}); });
+            items.reverse();
+            if(marketFilter !== 'all') {
+                items = items.filter(it => {
+                    const n = it.name.toLowerCase();
+                    if(marketFilter === 'knives') return n.includes('knife') || n.includes('karambit') || n.includes('bayonet') || n.includes('butterfly');
+                    if(marketFilter === 'gloves') return n.includes('glove');
+                    if(marketFilter === 'rifles') return n.includes('ak-47') || n.includes('m4a') || n.includes('awp') || n.includes('sg 553');
+                    return true;
+                });
+            }
+            if(items.length === 0) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
+            empty.style.display = 'none';
+            grid.innerHTML = items.map(it => {
+                const vis = it.img ? `<img src="${it.img}" style="width:80px;height:60px;object-fit:contain;filter:drop-shadow(0 0 6px ${it.color})">` : `<i class="fa ${it.icon||'fa-gem'}" style="font-size:28px;color:${it.color}"></i>`;
+                const isMine = it.seller === currentNick;
+                const btn = isMine 
+                    ? `<button class="btn btn-outline" style="font-size:9px;padding:5px 10px;margin-top:6px;" onclick="cancelListing('${it.key}')"><i class="fa fa-xmark" style="margin-right:4px;"></i>COFNIJ</button>`
+                    : `<button class="btn btn-green" style="font-size:9px;padding:5px 10px;margin-top:6px;" onclick="buyFromMarket('${it.key}')"><i class="fa fa-cart-shopping" style="margin-right:4px;"></i>KUP</button>`;
+                return `<div class="case-card" style="position:relative;">${vis}<div style="font-weight:900;margin-top:8px;color:${it.color};font-size:11px;">${it.name}</div><div style="color:var(--accent-gold);font-weight:900;">${formatMoney(it.value)}</div><div style="font-size:9px;color:#64748b;">Sprzedaje: ${it.seller}</div>${btn}</div>`;
+            }).join('');
+        });
+    }
+    function buyFromMarket(key) {
+        db.ref('market/' + key).once('value', snap => {
+            if(!snap.exists()) return alert('Oferta już nie istnieje!');
+            const it = snap.val();
+            if(it.seller === currentNick) return alert('Nie możesz kupić własnego itemu!');
+            if(state.balance < it.value) return alert('Brak środków!');
+            state.balance -= it.value;
+            state.inventory.push({name: it.name, value: it.value, color: it.color, img: it.img, icon: it.icon});
+            save();
+            snap.ref.remove();
+            renderMarket();
+        });
+    }
+    function cancelListing(key) {
+        db.ref('market/' + key).once('value', snap => {
+            if(!snap.exists()) return;
+            const it = snap.val();
+            if(it.seller !== currentNick) return;
+            state.inventory.push({name: it.name, value: it.value, color: it.color, img: it.img, icon: it.icon});
+            save();
+            snap.ref.remove();
+            renderMarket();
+            renderInventory();
+        });
+    }
+    function filterMarket(f) {
+        marketFilter = f;
+        document.querySelectorAll('.market-filter').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+        renderMarket();
+    }
+
     // --- RESZTA ---
     function takeLoan(amt) { if(state.debt + amt > 600000) return alert("Limit długu osiągnięty!"); state.balance += amt; state.debt += amt; save(); }
     function payDebt(amt) { let ac = Math.min(amt, state.balance, state.debt); state.balance -= ac; state.debt -= ac; save(); }
@@ -2255,6 +2446,7 @@
         document.getElementById('n-'+v).classList.add('active'); 
         if(v==='upgrade') { upState.selectedIndices = []; upState.targetItem = null; updateUpgradePreview(); renderUpgradeInv(); } 
         if(v==='inv') renderInventory(); 
+        if(v==='market') renderMarket();
         if(v==='shop') renderShop();
     }
     
@@ -2291,6 +2483,8 @@
 
         renderShop();
         renderCart();
+        initLiveFeed();
+        initPresence();
     };
 </script>
 </body>
