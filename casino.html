@@ -410,6 +410,7 @@
             </div>
             <input type="text" id="login-nick" placeholder="Nick..." style="width:100%; background:var(--bg-main); border:2px solid #333; border-radius:10px; padding:14px 18px; color:#fff; font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:900; text-align:center; outline:none; margin-bottom:10px; transition:0.3s;" onfocus="this.style.borderColor='var(--accent-gold)'" onblur="this.style.borderColor='#333'">
             <input type="password" id="login-pass" placeholder="Hasło..." style="width:100%; background:var(--bg-main); border:2px solid #333; border-radius:10px; padding:14px 18px; color:#fff; font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:900; text-align:center; outline:none; margin-bottom:10px; transition:0.3s;" onfocus="this.style.borderColor='var(--accent-gold)'" onblur="this.style.borderColor='#333'">
+            <div id="login-error" style="color:#ef4444; font-size:12px; font-weight:900; margin-bottom:10px; min-height:18px;"></div>
             <button class="btn btn-gold" style="height:50px; font-size:14px;" onclick="loginWithNick()">ZALOGUJ SIĘ</button>
         </div>
 
@@ -418,6 +419,7 @@
             <input type="text" id="reg-nick" placeholder="Wymyśl nick..." style="width:100%; background:var(--bg-main); border:2px solid #333; border-radius:10px; padding:14px 18px; color:#fff; font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:900; text-align:center; outline:none; margin-bottom:10px; transition:0.3s;" onfocus="this.style.borderColor='var(--accent-green)'" onblur="this.style.borderColor='#333'">
             <input type="password" id="reg-pass" placeholder="Hasło..." style="width:100%; background:var(--bg-main); border:2px solid #333; border-radius:10px; padding:14px 18px; color:#fff; font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:900; text-align:center; outline:none; margin-bottom:10px; transition:0.3s;" onfocus="this.style.borderColor='var(--accent-green)'" onblur="this.style.borderColor='#333'">
             <input type="password" id="reg-pass2" placeholder="Powtórz hasło..." style="width:100%; background:var(--bg-main); border:2px solid #333; border-radius:10px; padding:14px 18px; color:#fff; font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:900; text-align:center; outline:none; margin-bottom:15px; transition:0.3s;" onfocus="this.style.borderColor='var(--accent-green)'" onblur="this.style.borderColor='#333'">
+            <div id="reg-error" style="color:#ef4444; font-size:12px; font-weight:900; margin-bottom:10px; min-height:18px;"></div>
             <button class="btn btn-green" style="height:50px; font-size:14px;" onclick="registerAccount()">ZAREJESTRUJ SIĘ</button>
         </div>
 
@@ -980,12 +982,13 @@
         document.getElementById('login-overlay').style.display = 'none';
         load();
     }
+    function showAuthError(id, msg) { const el = document.getElementById(id); if(el) { el.innerText = msg; setTimeout(() => el.innerText = '', 4000); } }
     function loginWithNick() {
         const nick = document.getElementById('login-nick').value.trim();
         const pass = document.getElementById('login-pass').value.trim();
-        if (!nick) return alert('Wpisz nick!');
+        if (!nick) return showAuthError('login-error', 'Wpisz nick!');
         const existingPass = localStorage.getItem('an4l_pass_' + nick);
-        if(!existingPass) return alert('Konto nie istnieje! Przejdź do rejestracji.');
+        if(!existingPass) return showAuthError('login-error', 'Konto nie istnieje! Przejdź do rejestracji.');
         // Steam accounts (auto-generated password) — skip password check
         if(existingPass.startsWith('steam_auth_')) {
             currentNick = nick;
@@ -993,8 +996,8 @@
             load();
             return;
         }
-        if (!pass) return alert('Wpisz hasło!');
-        if(existingPass !== pass) return alert('Złe hasło!');
+        if (!pass) return showAuthError('login-error', 'Wpisz hasło!');
+        if(existingPass !== pass) return showAuthError('login-error', 'Złe hasło!');
         currentNick = nick;
         document.getElementById('login-overlay').style.display = 'none';
         load();
@@ -1003,13 +1006,14 @@
         const nick = document.getElementById('reg-nick').value.trim();
         const pass = document.getElementById('reg-pass').value.trim();
         const pass2 = document.getElementById('reg-pass2').value.trim();
-        if(!nick) return alert('Wpisz nick!');
-        if(nick.length < 2) return alert('Nick musi mieć min. 2 znaki!');
-        if(!pass) return alert('Wpisz hasło!');
-        if(pass.length < 3) return alert('Hasło musi mieć min. 3 znaki!');
-        if(pass !== pass2) return alert('Hasła się nie zgadzają!');
-        if(localStorage.getItem('an4l_pass_' + nick)) return alert('To konto już istnieje! Zaloguj się.');
+        if(!nick) return showAuthError('reg-error', 'Wpisz nick!');
+        if(nick.length < 2) return showAuthError('reg-error', 'Nick musi mieć min. 2 znaki!');
+        if(!pass) return showAuthError('reg-error', 'Wpisz hasło!');
+        if(pass.length < 3) return showAuthError('reg-error', 'Hasło musi mieć min. 3 znaki!');
+        if(pass !== pass2) return showAuthError('reg-error', 'Hasła się nie zgadzają!');
+        if(localStorage.getItem('an4l_pass_' + nick)) return showAuthError('reg-error', 'To konto już istnieje! Zaloguj się.');
         localStorage.setItem('an4l_pass_' + nick, pass);
+        localStorage.setItem('an4l_' + nick, JSON.stringify({ balance: 5000, debt: 0, inventory: [], cart: [], selectedBots: [], mode: 'classic', battleFormat: '2p', rounds: 0 }));
         currentNick = nick;
         document.getElementById('login-overlay').style.display = 'none';
         load();
@@ -1179,7 +1183,7 @@
         const passKey = localStorage.getItem('an4l_pass_' + nick);
         if(passKey && !passKey.startsWith('steam_auth_')) {
             const pass = prompt(`Hasło dla "${nick}":`);
-            if(pass !== passKey) { alert('Złe hasło!'); return; }
+            if(pass !== passKey) { showAuthError('login-error', 'Złe hasło!'); return; }
         }
         save();
         currentNick = nick;
