@@ -1293,6 +1293,83 @@
         load();
     }
 
+    function openDeleteProfileModal() {
+        document.getElementById('profile-menu').style.display = 'none';
+        const profiles = getAllProfiles();
+        if(profiles.length === 0) return;
+        const modal = document.createElement('div');
+        modal.id = 'delete-profile-modal';
+        modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(5,6,8,0.92);backdrop-filter:blur(6px);';
+        modal.onclick = e => { if(e.target === modal) modal.remove(); };
+        let listHtml = profiles.map(nick => {
+            const isCurrent = nick === currentNick;
+            const pic = getProfilePic(nick);
+            const picHtml = pic ? `<img src="${pic}" onerror="this.style.display='none'" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid #333;flex-shrink:0;">` : `<div style="width:32px;height:32px;border-radius:50%;background:#1a1e29;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fa fa-user" style="color:#64748b;font-size:12px;"></i></div>`;
+            return `<div id="del-prof-${nick.replace(/[^a-zA-Z0-9]/g,'_')}" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;border:2px solid transparent;cursor:pointer;transition:0.2s;background:rgba(255,255,255,0.02);" onclick="selectProfileToDelete(this,'${nick.replace(/'/g,"\\'")}')" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="if(!this.classList.contains('selected'))this.style.background='rgba(255,255,255,0.02)'">
+                ${picHtml}
+                <div style="flex:1;">
+                    <div style="font-weight:800;font-size:13px;color:#fff;">${nick}</div>
+                    <div style="font-size:10px;color:#64748b;">${isCurrent ? 'Aktywny profil' : ''}</div>
+                </div>
+                <div class="del-check" style="width:22px;height:22px;border-radius:6px;border:2px solid #333;display:flex;align-items:center;justify-content:center;transition:0.2s;flex-shrink:0;"></div>
+            </div>`;
+        }).join('');
+        modal.innerHTML = `<div style="background:var(--bg-card);border:1px solid var(--border-ui);border-radius:16px;padding:28px;max-width:420px;width:90%;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+                <h2 style="font-weight:900;font-size:16px;color:#ef4444;"><i class="fa fa-trash" style="margin-right:8px;"></i>Usuń profil</h2>
+                <button onclick="this.closest('#delete-profile-modal').remove()" style="background:none;border:none;color:#64748b;font-size:18px;cursor:pointer;"><i class="fa fa-xmark"></i></button>
+            </div>
+            <div style="font-size:11px;color:#64748b;margin-bottom:14px;">Wybierz profil do usunięcia. Wszystkie dane profilu zostaną trwale usunięte.</div>
+            <div id="del-profile-list" style="display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto;margin-bottom:16px;">${listHtml}</div>
+            <button id="btn-confirm-delete" class="btn" style="width:100%;height:44px;font-size:13px;font-weight:900;background:#ef4444;color:#fff;border:none;border-radius:10px;cursor:pointer;opacity:0.4;pointer-events:none;transition:0.2s;" onclick="confirmDeleteProfile()"><i class="fa fa-trash" style="margin-right:6px;"></i>USUŃ WYBRANY PROFIL</button>
+        </div>`;
+        document.body.appendChild(modal);
+        window._deleteProfileTarget = null;
+    }
+    function selectProfileToDelete(el, nick) {
+        document.querySelectorAll('#del-profile-list > div').forEach(d => {
+            d.classList.remove('selected');
+            d.style.borderColor = 'transparent';
+            d.style.background = 'rgba(255,255,255,0.02)';
+            d.querySelector('.del-check').innerHTML = '';
+            d.querySelector('.del-check').style.borderColor = '#333';
+        });
+        el.classList.add('selected');
+        el.style.borderColor = '#ef4444';
+        el.style.background = 'rgba(239,68,68,0.08)';
+        el.querySelector('.del-check').innerHTML = '<i class="fa fa-check" style="font-size:11px;color:#ef4444;"></i>';
+        el.querySelector('.del-check').style.borderColor = '#ef4444';
+        window._deleteProfileTarget = nick;
+        const btn = document.getElementById('btn-confirm-delete');
+        btn.style.opacity = '1';
+        btn.style.pointerEvents = 'auto';
+    }
+    function confirmDeleteProfile() {
+        const nick = window._deleteProfileTarget;
+        if(!nick) return;
+        if(!confirm(`Na pewno usunąć profil "${nick}"? Wszystkie dane zostaną utracone!`)) return;
+        // Remove all localStorage keys for this profile
+        localStorage.removeItem('an4l_' + nick);
+        localStorage.removeItem('an4l_meta_' + nick);
+        localStorage.removeItem('an4l_pass_' + nick);
+        localStorage.removeItem('an4l_steam_link_' + nick);
+        // If deleting current profile, switch to another or logout
+        if(nick === currentNick) {
+            const remaining = getAllProfiles();
+            if(remaining.length > 0) {
+                currentNick = remaining[0];
+                localStorage.setItem('an4l_lastuser', currentNick);
+                load();
+            } else {
+                currentNick = '';
+                localStorage.removeItem('an4l_lastuser');
+                document.getElementById('login-overlay').style.display = 'flex';
+            }
+        }
+        const modal = document.getElementById('delete-profile-modal');
+        if(modal) modal.remove();
+    }
+
     function toggleProfileMenu() {
         const menu = document.getElementById('profile-menu');
         if (menu.style.display !== 'none') { menu.style.display = 'none'; return; }
@@ -1315,6 +1392,7 @@
         if(bio) html += `<div style="border-top:1px solid var(--border-ui); margin-top:4px; padding:10px 16px;"><div style="font-size:9px; color:#64748b; font-weight:900; text-transform:uppercase; margin-bottom:4px;">O mnie</div><div style="font-size:11px; color:#94a3b8; line-height:1.4;">${bio}</div></div>`;
         html += `<div style="border-top:1px solid var(--border-ui); margin-top:4px; padding-top:4px;">
             <div onclick="event.stopPropagation(); openProfileSettings()" style="padding:10px 16px; cursor:pointer; color:var(--accent-gold); font-weight:800; font-size:11px; text-transform:uppercase;" onmouseover="this.style.background='rgba(251,191,36,0.1)'" onmouseout="this.style.background='transparent'"><i class="fa fa-user-gear" style="margin-right:6px"></i>USTAWIENIA PROFILU</div>
+            <div onclick="event.stopPropagation(); openDeleteProfileModal()" style="padding:10px 16px; cursor:pointer; color:#f97316; font-weight:800; font-size:11px; text-transform:uppercase;" onmouseover="this.style.background='rgba(249,115,22,0.1)'" onmouseout="this.style.background='transparent'"><i class="fa fa-trash" style="margin-right:6px"></i>USUŃ PROFIL</div>
             <div onclick="event.stopPropagation(); logoutNick()" style="padding:10px 16px; cursor:pointer; color:var(--accent-red); font-weight:800; font-size:11px; text-transform:uppercase;" onmouseover="this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.background='transparent'"><i class="fa fa-right-from-bracket" style="margin-right:6px"></i>WYLOGUJ</div>
         </div>`;
         menu.innerHTML = html;
