@@ -565,6 +565,14 @@
             </div>
         </div>
 
+        <div style="background:rgba(245,158,11,0.05); border:1px solid rgba(245,158,11,0.2); border-radius:12px; padding:16px; margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <h3 style="margin:0; font-size:13px; color:#f59e0b;"><i class="fa fa-network-wired" style="margin-right:6px;"></i>LOGI IP (ostatnie 50)</h3>
+                <button onclick="renderAdminIPLogs()" style="background:none;border:1px solid #f59e0b;color:#f59e0b;border-radius:4px;padding:4px 10px;font-size:10px;font-weight:900;cursor:pointer;"><i class="fa fa-rotate" style="margin-right:4px;"></i>ODŚWIEŻ</button>
+            </div>
+            <div id="admin-iplogs-list" style="font-size:11px; color:#94a3b8; max-height:240px; overflow-y:auto;"></div>
+        </div>
+
         <div style="background:rgba(34,197,94,0.05); border:1px solid rgba(34,197,94,0.2); border-radius:12px; padding:16px;">
             <h3 style="margin:0 0 12px 0; font-size:13px; color:#22c55e;"><i class="fa fa-users" style="margin-right:6px;"></i>KONTA LOKALNE</h3>
             <div id="admin-accounts-list" style="font-size:11px; color:#94a3b8; max-height:160px; overflow-y:auto;"></div>
@@ -1604,6 +1612,7 @@
         document.getElementById('admin-panel-modal').classList.add('active');
         renderAdminBanList();
         renderAdminAccountsList();
+        renderAdminIPLogs();
     }
     function activateAndOpenAdmin() {
         document.getElementById('profile-menu').style.display = 'none';
@@ -1618,6 +1627,7 @@
             document.getElementById('admin-panel-modal').classList.add('active');
             renderAdminBanList();
             renderAdminAccountsList();
+            renderAdminIPLogs();
             const adminBtn = document.getElementById('admin-btn');
             if(adminBtn) adminBtn.style.display = 'inline-flex';
         }
@@ -1714,7 +1724,53 @@
                 document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a0c10;color:#ef4444;font-family:Inter,sans-serif;flex-direction:column;gap:20px;text-align:center;padding:40px;"><i class="fa fa-ban" style="font-size:80px;"></i><h1 style="margin:0;font-size:32px;">DOSTĘP ZABLOKOWANY</h1><p style="color:#94a3b8;font-size:14px;">Twoje IP zostało zbanowane.</p></div>';
                 throw new Error('IP banned');
             }
+            // Log this IP visit
+            logIPVisit(ip);
         } catch(e) { /* Network error - allow access */ }
+    }
+
+    function logIPVisit(ip) {
+        if(!ip) return;
+        const ipKey = ip.replace(/[.#$\/\[\]]/g, '_');
+        const data = {
+            ip: ip,
+            nick: currentNick || localStorage.getItem('an4l_lastuser') || 'anon',
+            timestamp: Date.now(),
+            userAgent: navigator.userAgent.substring(0, 100)
+        };
+        db.ref('iplogs/' + ipKey).set(data).catch(()=>{});
+    }
+
+    function renderAdminIPLogs() {
+        const list = document.getElementById('admin-iplogs-list');
+        if(!list) return;
+        list.innerHTML = '<div style="color:#64748b;">Ładowanie...</div>';
+        db.ref('iplogs').orderByChild('timestamp').limitToLast(50).once('value', snap => {
+            if(!snap.exists()) { list.innerHTML = '<div style="color:#64748b;">Brak logów</div>'; return; }
+            const entries = [];
+            snap.forEach(c => entries.push({key: c.key, ...c.val()}));
+            entries.reverse(); // newest first
+            list.innerHTML = entries.map(e => {
+                const date = new Date(e.timestamp);
+                const timeStr = date.toLocaleString('pl-PL', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+                return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #1a1e29;gap:8px;">
+                    <div style="flex:1;min-width:0;">
+                        <div style="color:#fff;font-weight:700;font-family:monospace;font-size:11px;">${e.ip}</div>
+                        <div style="color:#94a3b8;font-size:10px;">${e.nick} · ${timeStr}</div>
+                    </div>
+                    <button onclick="adminBanIPDirect('${e.ip}')" style="background:none;border:1px solid #ef4444;color:#ef4444;border-radius:4px;padding:4px 10px;font-size:10px;font-weight:900;cursor:pointer;">BAN</button>
+                </div>`;
+            }).join('');
+        }).catch(err => {
+            list.innerHTML = '<div style="color:#ef4444;">Błąd: ' + err.message + '</div>';
+        });
+    }
+    function adminBanIPDirect(ip) {
+        if(!isAdmin()) return;
+        if(!confirm('Zbanować IP ' + ip + '?')) return;
+        const key = ip.replace(/[.#$\/\[\]]/g, '_');
+        db.ref('bans/' + key).set({ target: ip, by: currentNick, timestamp: Date.now() })
+            .then(() => { adminStatus('Zbanowano ' + ip); renderAdminBanList(); });
     }
 
     // --- GENEROWANIE PRZEDMIOTÓW ---
