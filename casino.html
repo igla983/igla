@@ -3566,6 +3566,7 @@
         });
     }
     setInterval(updateRankingTimer, 60000);
+    setInterval(() => { if(document.getElementById('v-ranking').classList.contains('active')) loadRanking(); }, 7200000);
 
     // Clean old ranking weeks (keep only current + last)
     function cleanOldRankings() {
