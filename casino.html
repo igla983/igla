@@ -2256,7 +2256,7 @@
         renderArena();
     }
 
-    async function showTiebreakerAnimation(sc, pCount, format) {
+    async function showTiebreakerAnimation(sc, pCount, format, tiedIdxs) {
         return new Promise(resolve => {
             const arena = document.getElementById('battle-arena');
             const overlay = document.createElement('div');
@@ -2307,7 +2307,7 @@
             // After 2.5s, stop and reveal winner
             setTimeout(() => {
                 clearInterval(spinInterval);
-                const winI = Math.floor(Math.random() * names.length);
+                const winI = tiedIdxs ? tiedIdxs[Math.floor(Math.random() * tiedIdxs.length)] : Math.floor(Math.random() * names.length);
                 const coin = document.getElementById('tb-coin');
                 if(coin) {
                     coin.style.animation = 'none';
@@ -2332,7 +2332,7 @@
                 // Remove overlay after 1.5s
                 setTimeout(() => {
                     overlay.style.animation = 'fadeIn 0.3s ease reverse';
-                    setTimeout(() => { overlay.remove(); resolve(); }, 300);
+                    setTimeout(() => { overlay.remove(); resolve(winI); }, 300);
                 }, 1500);
             }, 2500);
         });
@@ -2574,61 +2574,69 @@
         let winnings = 0;
         const mode = state.mode;
         const numPlayers = sc.length;
+        const pSlot = state.playerSlot || 0;
+        const frozenCartLen = state.cart.length;
 
-        let isTie = false;
-        if (is2v2) {
+        // --- Determine winner ---
+        let winIdx = -1; // for non-2v2
+        let team1Won = false; // for 2v2
+
+        if(mode === 'shared') {
+            // Shared: everyone wins their share
+            playerWon = true;
+            winnings = Math.floor(pot / numPlayers);
+        } else if(is2v2) {
             let t1 = sc[0].total + sc[1].total, t2 = sc[2].total + sc[3].total;
             let l1 = sc[0].last + sc[1].last, l2 = sc[2].last + sc[3].last;
+            let isTie = false;
             if(mode === 'terminal' || mode === 'crazy_terminal') isTie = (l1 === l2);
             else isTie = (t1 === t2);
-        } else {
-            const vals = (mode === 'terminal' || mode === 'crazy_terminal') ? sc.map(s => s.last) : sc.map(s => s.total);
-            const best = (mode === 'underdog' || mode === 'crazy_terminal') ? Math.min(...vals) : Math.max(...vals);
-            isTie = vals.filter(v => v === best).length > 1;
-        }
-        if(isTie) await showTiebreakerAnimation(sc, pCount, state.battleFormat);
 
-        if (is2v2) {
-            let t1 = sc[0].total + sc[1].total, t2 = sc[2].total + sc[3].total;
-            let l1 = sc[0].last + sc[1].last, l2 = sc[2].last + sc[3].last;
-            const pSlot = state.playerSlot || 0;
-            const playerInTeam1 = pSlot < 2;
-            let team1Won;
-            if(isTie) team1Won = Math.random() < 0.5;
-            else if(mode === 'underdog') team1Won = t1 < t2;
+            if(isTie) {
+                const tbResult = await showTiebreakerAnimation(sc, pCount, state.battleFormat, [0, 1]);
+                team1Won = (tbResult === 0);
+            } else if(mode === 'underdog') team1Won = t1 < t2;
             else if(mode === 'terminal') team1Won = l1 >= l2;
             else if(mode === 'crazy_terminal') team1Won = l1 <= l2;
             else team1Won = t1 >= t2;
+
+            const playerInTeam1 = pSlot < 2;
             playerWon = playerInTeam1 ? team1Won : !team1Won;
-            winnings = (mode === 'shared') ? Math.floor(pot / numPlayers) : pot / 2;
+            winnings = Math.floor(pot / 2);
         } else {
             const totals = sc.map(s => s.total);
             const lasts = sc.map(s => s.last);
-            let winIdx;
+            const vals = (mode === 'terminal' || mode === 'crazy_terminal') ? lasts : totals;
+            const best = (mode === 'underdog' || mode === 'crazy_terminal') ? Math.min(...vals) : Math.max(...vals);
+            const isTie = vals.filter(v => v === best).length > 1;
+
             if(isTie) {
-                const vals = (mode === 'terminal' || mode === 'crazy_terminal') ? lasts : totals;
-                const best = (mode === 'underdog' || mode === 'crazy_terminal') ? Math.min(...vals) : Math.max(...vals);
                 const tiedIdxs = vals.map((v,i) => v === best ? i : -1).filter(i => i >= 0);
-                winIdx = tiedIdxs[Math.floor(Math.random() * tiedIdxs.length)];
+                winIdx = await showTiebreakerAnimation(sc, pCount, state.battleFormat, tiedIdxs);
             } else if(mode === 'underdog') winIdx = totals.indexOf(Math.min(...totals));
             else if(mode === 'terminal') winIdx = lasts.indexOf(Math.max(...lasts));
             else if(mode === 'crazy_terminal') winIdx = lasts.indexOf(Math.min(...lasts));
             else winIdx = totals.indexOf(Math.max(...totals));
-            const pSlot = state.playerSlot || 0;
+
             playerWon = (winIdx === pSlot);
-            winnings = (mode === 'shared') ? Math.floor(pot / numPlayers) : pot;
+            winnings = pot;
         }
 
+        // --- Visual overlays ---
         const battleCards = document.querySelectorAll('.battle-card');
-        if(is2v2) {
-            const t1 = sc[0].total + sc[1].total, t2 = sc[2].total + sc[3].total;
-            const l1 = sc[0].last + sc[1].last, l2 = sc[2].last + sc[3].last;
-            let team1Won;
-            if(mode === 'underdog') team1Won = t1 < t2;
-            else if(mode === 'terminal') team1Won = l1 >= l2;
-            else if(mode === 'crazy_terminal') team1Won = l1 <= l2;
-            else team1Won = t1 >= t2;
-            const perPlayer = Math.floor((t1 + t2) / 2);
+        if(mode === 'shared') {
+            for(let p=0; p<pCount; p++) {
+                const card = battleCards[p]; if(!card) continue;
+                const overlay = document.createElement('div');
+                overlay.style.cssText = `position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;z-index:20;border-radius:14px;animation:resultPulse 0.5s ease;pointer-events:none;`;
+                overlay.style.background = 'rgba(34,197,94,0.1)';
+                overlay.innerHTML = `<div style="width:60px;height:60px;border-radius:50%;border:3px solid #22c55e;display:flex;align-items:center;justify-content:center;background:rgba(34,197,94,0.1);"><i class="fa fa-handshake" style="font-size:24px;color:#22c55e;"></i></div><div style="font-size:22px;font-weight:900;color:#22c55e;font-family:'Rajdhani',sans-serif;">+${formatMoney(Math.floor(pot/numPlayers))}</div><div style="font-size:11px;font-weight:800;color:#22c55e;text-transform:uppercase;letter-spacing:1px;">Shared</div>`;
+                card.style.position = 'relative'; card.appendChild(overlay);
+                card.style.borderColor = '#22c55e';
+                card.style.boxShadow = '0 0 20px rgba(34,197,94,0.3)';
+            }
+        } else if(is2v2) {
+            const perPlayer = Math.floor(pot / 2);
             for(let p=0; p<pCount; p++) {
                 const card = battleCards[p]; if(!card) continue;
                 const isWinTeam = (p < 2) ? team1Won : !team1Won;
@@ -2643,15 +2651,9 @@
                 card.style.boxShadow = isWinTeam ? '0 0 20px rgba(34,197,94,0.3)' : 'none';
             }
         } else {
-            const totals = sc.map(s => s.total), lasts = sc.map(s => s.last);
-            let winnerIdx;
-            if(mode === 'underdog') winnerIdx = totals.indexOf(Math.min(...totals));
-            else if(mode === 'terminal') winnerIdx = lasts.indexOf(Math.max(...lasts));
-            else if(mode === 'crazy_terminal') winnerIdx = lasts.indexOf(Math.min(...lasts));
-            else winnerIdx = totals.indexOf(Math.max(...totals));
             for(let p=0; p<pCount; p++) {
                 const card = battleCards[p]; if(!card) continue;
-                const isW = p === winnerIdx;
+                const isW = p === winIdx;
                 const overlay = document.createElement('div');
                 overlay.style.cssText = `position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:20;border-radius:14px;animation:resultPulse 0.5s ease;pointer-events:none;`;
                 overlay.style.background = isW ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.1)';
@@ -2664,22 +2666,27 @@
             }
         }
 
+        // --- Reward player ---
         const banner = document.getElementById('battle-result-banner');
         if(isSpectating) {
-            // Spectator: no winnings, just show who won
             banner.style.display = 'block';
             banner.style.background = 'linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.05))';
             banner.style.border = '2px solid #3b82f6';
             banner.innerHTML = `<div style="font-size:14px;font-weight:900;color:#3b82f6;text-transform:uppercase;margin-bottom:8px;"><i class="fa fa-eye" style="margin-right:8px;"></i>TRYB WIDZA</div><div style="font-size:18px;font-weight:900;color:#94a3b8;font-family:'Rajdhani',sans-serif;">Pula: ${formatMoney(pot)}</div><div style="font-size:11px;color:#64748b;margin-top:6px;">Oglądałeś tę bitwę</div>`;
         } else if(playerWon) {
-            if(is2v2) { state.balance += winnings; }
-            else { sc.flatMap(s => s.items).forEach(it => state.inventory.push({name:it.name,value:it.value,color:it.color,icon:it.icon,img:it.img})); }
+            if(mode === 'shared') {
+                state.balance += winnings;
+            } else if(is2v2) {
+                state.balance += winnings;
+            } else {
+                sc.flatMap(s => s.items).forEach(it => state.inventory.push({name:it.name,value:it.value,color:it.color,icon:it.icon,img:it.img}));
+            }
             launchConfetti();
             banner.style.display = 'block';
             banner.style.background = 'linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,197,94,0.05))';
             banner.style.border = '2px solid #22c55e';
-            const itemsText = is2v2 ? `+${formatMoney(winnings)}` : `+${sc.flatMap(s=>s.items).length} itemów (${formatMoney(winnings)})`;
-            const subText = is2v2 ? 'Dodano do salda' : 'Itemy dodane do ekwipunku';
+            const itemsText = (is2v2 || mode === 'shared') ? `+${formatMoney(winnings)}` : `+${sc.flatMap(s=>s.items).length} itemów (${formatMoney(pot)})`;
+            const subText = (is2v2 || mode === 'shared') ? 'Dodano do salda' : 'Itemy dodane do ekwipunku';
             banner.innerHTML = `<div style="font-size:14px;font-weight:900;color:#22c55e;text-transform:uppercase;margin-bottom:8px;"><i class="fa fa-trophy" style="margin-right:8px;"></i>WYGRANA!</div><div style="font-size:28px;font-weight:900;color:var(--accent-gold);font-family:'Rajdhani',sans-serif;">${itemsText}</div><div style="font-size:11px;color:#64748b;margin-top:6px;">${subText}</div><button class="btn btn-blue" style="margin-top:12px;width:auto;padding:10px 30px;font-size:12px;" onclick="repeatBattle()"><i class="fa fa-rotate" style="margin-right:6px;"></i>POWTÓRZ BITWĘ</button>`;
         } else {
             banner.style.display = 'block';
@@ -2689,7 +2696,7 @@
         }
 
         if(!isSpectating) {
-            state.rounds += state.cart.length;
+            state.rounds += frozenCartLen;
             if(state.rounds % 10 === 0 && state.debt > 0) { let tax = state.balance * 0.15; state.balance -= tax; state.debt -= tax; }
         }
 
