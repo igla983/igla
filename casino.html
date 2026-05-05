@@ -2108,7 +2108,7 @@
         document.getElementById('btn-leave-battle-scene').style.display = 'inline-flex';
 
         const allSlotsFilled = (battlePlayers.length + state.selectedBots.length) >= totalPlayers;
-        if(allSlotsFilled && battleState === 'waiting') {
+        if(allSlotsFilled && battleState === 'waiting' && isBattleCreator) {
             document.getElementById('battle-action-area').style.display = 'flex';
         } else {
             document.getElementById('battle-action-area').style.display = 'none';
@@ -2243,6 +2243,7 @@
     }
 
     async function runBattle() {
+        if(!isBattleCreator) return; // only creator can start
         lastBattleConfig = {
             cart: JSON.parse(JSON.stringify(state.cart)),
             mode: state.mode,
