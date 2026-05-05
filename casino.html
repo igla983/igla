@@ -1913,16 +1913,30 @@
                 renderArena();
             }
         });
+        // Listen for bot changes from creator
+        db.ref('battles/' + key + '/bots').on('value', snap => {
+            if(!isBattleCreator && battleState === 'waiting') {
+                const bots = snap.val();
+                if(bots && Array.isArray(bots)) {
+                    state.selectedBots = bots;
+                    state.botSlots = {};
+                    renderArena();
+                }
+            }
+        });
     }
 
     function stopBattleListeners() {
-        if(battlePlayersListener && currentBattleRef) {
-            db.ref('battles/' + currentBattleRef.key + '/players').off('value', battlePlayersListener);
-            battlePlayersListener = null;
-        }
-        if(battleResultsListener && currentBattleRef) {
-            db.ref('battles/' + currentBattleRef.key + '/results').off('value', battleResultsListener);
-            battleResultsListener = null;
+        if(currentBattleRef) {
+            if(battlePlayersListener) {
+                db.ref('battles/' + currentBattleRef.key + '/players').off('value', battlePlayersListener);
+                battlePlayersListener = null;
+            }
+            if(battleResultsListener) {
+                db.ref('battles/' + currentBattleRef.key + '/status').off('value', battleResultsListener);
+                battleResultsListener = null;
+            }
+            db.ref('battles/' + currentBattleRef.key + '/bots').off();
         }
     }
 
@@ -1956,7 +1970,7 @@
             return `<div class="battle-card empty" style="border-color: rgba(255,255,255,0.02); background: linear-gradient(180deg, #161b22 0%, #0a0c10 100%);">
                 ${tagHtml}
                 <div class="battle-card-content" style="align-items: center;">
-                    <button class="btn btn-outline" style="width: auto; padding: 10px 20px; font-size: 12px;" onclick="openBotModal()">+ DODAJ GRACZA</button>
+                    ${isBattleCreator ? '<button class="btn btn-outline" style="width: auto; padding: 10px 20px; font-size: 12px;" onclick="openBotModal()">+ DODAJ GRACZA</button>' : '<div style="color:#64748b; font-size:12px; font-weight:900;">OCZEKIWANIE...</div>'}
                 </div>
                 <div class="battle-card-footer" style="background: rgba(0,0,0,0.2);">
                     <div style="width:42px;height:42px;border-radius:8px;background:rgba(255,255,255,0.05);"></div>
@@ -2137,6 +2151,10 @@
             }
         } else {
             if(!state.selectedBots.includes(id)) state.selectedBots.push(id);
+        }
+        // Sync bots to Firebase so joiners see them
+        if(currentBattleRef && isBattleCreator) {
+            currentBattleRef.update({bots: state.selectedBots});
         }
         closeBotModal();
         renderArena();
