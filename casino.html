@@ -2362,6 +2362,15 @@
             allRollResults.push(roundResults);
         }
 
+        // Build bot info for Firebase so joiners/spectators can see bot names+images
+        const botSlotInfo = {};
+        if(state.botSlots) {
+            for(const [slot, botIdx] of Object.entries(state.botSlots)) {
+                const bot = BOTS.find(x => x.id === state.selectedBots[botIdx]);
+                if(bot) botSlotInfo[slot] = { name: bot.name, img: bot.img, steam: bot.steam || null };
+            }
+        }
+
         // Push results to Firebase so joiner can replay (status set HERE so results are always available)
         if(currentBattleRef) {
             currentBattleRef.update({
@@ -2370,6 +2379,7 @@
                     icon: item.icon || null, img: item.img || null
                 }))),
                 pCount: pCount,
+                botSlotInfo: botSlotInfo,
                 status: 'running'
             });
         }
@@ -3128,9 +3138,11 @@
                 let results = null, pCount = null;
                 const battleSnap = await db.ref('battles/' + key).once('value');
                 const bData = battleSnap.val();
+                let remoteBotInfo = null;
                 if(bData && bData.results) {
                     results = bData.results;
                     pCount = bData.pCount || null;
+                    remoteBotInfo = bData.botSlotInfo || null;
                 }
                 // Fallback: if not yet available, retry up to 3 times with short delay
                 if(!results) {
@@ -3138,17 +3150,17 @@
                         await new Promise(r => setTimeout(r, 150));
                         const retry = await db.ref('battles/' + key).once('value');
                         const rd = retry.val();
-                        if(rd && rd.results) { results = rd.results; pCount = rd.pCount || null; break; }
+                        if(rd && rd.results) { results = rd.results; pCount = rd.pCount || null; remoteBotInfo = rd.botSlotInfo || null; break; }
                     }
                 }
                 if(results) {
-                    await playBattleFromResults(results, pCount);
+                    await playBattleFromResults(results, pCount, remoteBotInfo);
                 }
             }
         });
     }
 
-    async function playBattleFromResults(allRollResults, remotePCount) {
+    async function playBattleFromResults(allRollResults, remotePCount, remoteBotInfo) {
         const safetyTimer = setTimeout(() => {
             if(battleState === 'running') emergencyFinishBattle('Timeout - bitwa trwała za długo');
         }, 90000);
@@ -3176,9 +3188,15 @@
             let teamTag = "", teamColor = "";
             if(is2v2) { teamTag = i < 2 ? "TEAM 1 (BLUE)" : "TEAM 2 (RED)"; teamColor = i < 2 ? "#3b82f6" : "#ef4444"; }
             const rp = battlePlayers.find(p => p.slot === i);
-            const name = rp ? (rp.nick === currentNick ? 'TY' : rp.nick) : 'BOT';
-            const img = rp ? rp.avatar : null;
-            h += createBattleCard(true, i, teamTag, teamColor, name, img);
+            if(rp) {
+                const name = rp.nick === currentNick ? 'TY' : rp.nick;
+                h += createBattleCard(true, i, teamTag, teamColor, name, rp.avatar);
+            } else if(remoteBotInfo && remoteBotInfo[i]) {
+                const bi = remoteBotInfo[i];
+                h += createBattleCard(true, i, teamTag, teamColor, bi.name, bi.img, bi.steam);
+            } else {
+                h += createBattleCard(true, i, teamTag, teamColor, 'BOT', null);
+            }
         }
         document.getElementById('arena').innerHTML = h;
 
@@ -3333,7 +3351,7 @@
                 state.playerSlot = -1; // spectator has no slot
                 changeView('battle');
                 try {
-                    await playBattleFromResults(b.results, b.pCount || null);
+                    await playBattleFromResults(b.results, b.pCount || null, b.botSlotInfo || null);
                 } catch(err) {
                     console.error('Spectate error:', err);
                 }
