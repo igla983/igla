@@ -1852,7 +1852,9 @@
                 <div class="case-visual" style="background:${c.color}22; color:${c.color}">${c.img ? `<img src="${c.img}" style="width:80px;height:80px;object-fit:contain;filter:drop-shadow(0 0 6px ${c.color})">` : `<i class="fa ${c.icon}"></i>`}</div>
                 <div class="case-title">${c.name} ${isBattleJokerMode ? '<span style="color:#a855f7;">(JOKER)</span>' : ''}</div>
                 <div class="case-price" id="battle-case-price-${i}">${formatMoney(finalPrice)}</div>
-                <button class="btn btn-blue" onclick="addToBattle(${i})">+ DODAJ</button>
+                <div style="display:flex;gap:4px;margin-bottom:6px;justify-content:center;">
+                    ${[1,2,3,4,5].map(n => `<button class="btn btn-outline" style="padding:4px 8px;font-size:10px;min-width:28px;" onclick="addMultipleToBattle(${i},${n})">+${n}</button>`).join('')}
+                </div>
             </div>`;
         }).join('');
     }
@@ -1879,6 +1881,8 @@
             </div>`).join('');
         document.getElementById('b-cost').innerText = formatMoney(state.cart.reduce((a,b)=>a+b.price,0));
     }
+
+    function addMultipleToBattle(idx, qty) { for(let i=0; i<qty; i++) addToBattle(idx); }
 
     function addToBattle(idx) { 
         let c = JSON.parse(JSON.stringify(THEMES[idx]));
