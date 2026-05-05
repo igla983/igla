@@ -2162,8 +2162,14 @@
             // Team-based, highlight teams
             const t1 = sc[0].total + sc[1].total;
             const t2 = sc[2].total + sc[3].total;
-            const team1Won = (mode === 'underdog') ? t1 < t2 : t1 >= t2;
-            const winTeamPot = team1Won ? t1 + t2 : t1 + t2;
+            const l1 = sc[0].last + sc[1].last;
+            const l2 = sc[2].last + sc[3].last;
+            let team1Won;
+            if(mode === 'underdog') team1Won = t1 < t2;
+            else if(mode === 'terminal') team1Won = l1 >= l2;
+            else if(mode === 'crazy_terminal') team1Won = l1 <= l2;
+            else team1Won = t1 >= t2;
+            const winTeamPot = t1 + t2;
             const perPlayer = Math.floor(winTeamPot / 2);
             for(let p=0; p<pCount; p++) {
                 const card = battleCards[p];
