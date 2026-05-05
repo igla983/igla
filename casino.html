@@ -2343,10 +2343,11 @@
         };
         battleState = 'running';
         const battleKey = currentBattleRef ? currentBattleRef.key : null;
-        // Safety timeout: if battle takes >90s, emergency finish
+        // Safety timeout: scale with number of rounds (12s per round + 30s buffer)
+        const battleTimeoutMs = Math.max(90000, state.cart.length * 12000 + 30000);
         const safetyTimer = setTimeout(() => {
             if(battleState === 'running') emergencyFinishBattle('Timeout - bitwa trwała za długo');
-        }, 90000);
+        }, battleTimeoutMs);
         try {
         document.getElementById('battle-action-area').style.display = 'none'; 
         
@@ -2373,8 +2374,7 @@
             const c = frozenCart[i];
             const roundResults = [];
             for(let p=0; p<pCount; p++) {
-                const origCase = state.cart[i];
-                const caseItems = (origCase && origCase.items) || null;
+                const caseItems = c.items || null;
                 roundResults.push(rollItem(c.basePrice, c.isJoker, caseItems));
             }
             allRollResults.push(roundResults);
@@ -3184,9 +3184,10 @@
         for(let r=0; r<allRollResults.length; r++) {
             if(allRollResults[r] && !Array.isArray(allRollResults[r])) allRollResults[r] = Object.values(allRollResults[r]);
         }
+        const battleTimeoutMs = Math.max(90000, allRollResults.length * 12000 + 30000);
         const safetyTimer = setTimeout(() => {
             if(battleState === 'running') emergencyFinishBattle('Timeout - bitwa trwała za długo');
-        }, 90000);
+        }, battleTimeoutMs);
         try {
         // Joiner plays same animation using pre-computed results from Firebase
         document.getElementById('battle-action-area').style.display = 'none';
