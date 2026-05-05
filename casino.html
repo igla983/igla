@@ -1707,6 +1707,7 @@
         battlePlayers = [];
         isBattleCreator = false;
         state.selectedBots = [];
+        state.botSlots = {};
         state.cart = [];
         state.playerSlot = 0;
         document.getElementById('battle-queue-display').style.display = 'none';
@@ -1824,8 +1825,8 @@
     let battlePlayers = []; // [{nick, avatar, slot}]
 
     function getPlayerAvatar(nick) {
-        const meta = localStorage.getItem('an4l_meta_' + nick);
-        if(meta) { try { const m = JSON.parse(meta); if(m.pic) return m.pic; } catch(e){} }
+        const pic = getProfilePic(nick);
+        if(pic) return pic;
         return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(nick)}`;
     }
 
@@ -1842,7 +1843,8 @@
         
         state.balance -= cost; 
         battleState = 'waiting';
-        state.selectedBots = []; 
+        state.selectedBots = [];
+        state.botSlots = {};
         state.playerSlot = 0;
         isBattleCreator = true;
         save();
@@ -1951,13 +1953,21 @@
 
     function swapBattleSlots(a, b) {
         if(battleState !== 'waiting') return;
-        const total = getRequiredBots() + 1;
+        const total = getRequiredPlayers();
         if(a < 0 || b < 0 || a >= total || b >= total) return;
-        // Swap in battlePlayers array if both are real players
+        // Swap in battlePlayers array
         const pA = battlePlayers.find(p => p.slot === a);
         const pB = battlePlayers.find(p => p.slot === b);
         if(pA) pA.slot = b;
         if(pB) pB.slot = a;
+        // Also swap bots: track which slots bots occupy
+        if(!state.botSlots) state.botSlots = {};
+        const botA = state.botSlots[a];
+        const botB = state.botSlots[b];
+        delete state.botSlots[a];
+        delete state.botSlots[b];
+        if(botA !== undefined) state.botSlots[b] = botA;
+        if(botB !== undefined) state.botSlots[a] = botB;
         // Update playerSlot for self
         const me = battlePlayers.find(p => p.nick === currentNick);
         if(me) state.playerSlot = me.slot;
@@ -1993,6 +2003,22 @@
 
         if(typeof state.playerSlot === 'undefined') state.playerSlot = 0;
 
+        // Build bot slot mapping if not present
+        if(!state.botSlots) state.botSlots = {};
+        // Auto-assign bots to empty slots if not yet assigned
+        const occupiedSlots = new Set(battlePlayers.map(p => p.slot).concat(Object.keys(state.botSlots).map(Number)));
+        let unassignedBots = state.selectedBots.filter((id, idx) => !Object.values(state.botSlots).includes(idx));
+        for(let ui = 0; ui < unassignedBots.length; ui++) {
+            for(let s = 0; s < totalPlayers; s++) {
+                if(!occupiedSlots.has(s)) {
+                    const origIdx = state.selectedBots.indexOf(unassignedBots[ui]);
+                    state.botSlots[s] = origIdx;
+                    occupiedSlots.add(s);
+                    break;
+                }
+            }
+        }
+
         // Build slot list: real players from Firebase + bots + empty
         let h = '';
         for(let i = 0; i < totalPlayers; i++) {
@@ -2008,19 +2034,16 @@
                 const isMe = realPlayer.nick === currentNick;
                 const displayName = isMe ? 'TY' : realPlayer.nick;
                 h += createBattleCard(true, i, teamTag, teamColor, displayName, realPlayer.avatar);
-            } else {
-                // Check for bot in this slot
-                const botIdx = i - battlePlayers.length;
-                if(botIdx >= 0 && botIdx < state.selectedBots.length) {
-                    let b = BOTS.find(x => x.id === state.selectedBots[botIdx]);
-                    if(b) {
-                        h += createBattleCard(true, i, teamTag, teamColor, b.name, b.img, b.steam);
-                    } else {
-                        h += createBattleCard(false, i, teamTag, teamColor, null, null);
-                    }
+            } else if(state.botSlots[i] !== undefined) {
+                // Bot in this slot
+                let b = BOTS.find(x => x.id === state.selectedBots[state.botSlots[i]]);
+                if(b) {
+                    h += createBattleCard(true, i, teamTag, teamColor, b.name, b.img, b.steam);
                 } else {
                     h += createBattleCard(false, i, teamTag, teamColor, null, null);
                 }
+            } else {
+                h += createBattleCard(false, i, teamTag, teamColor, null, null);
             }
         }
 
