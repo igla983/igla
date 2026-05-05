@@ -215,14 +215,14 @@
 </header>
 
 <!-- LIVE DROP FEED -->
-<div id="live-feed-bar" style="background:linear-gradient(90deg, #0a0c10, #12161d, #0a0c10); border-bottom:1px solid #1a1e29; padding:8px 0; overflow:hidden; position:relative;">
+<div id="live-feed-bar" style="background:linear-gradient(90deg, #0a0c10, #12161d, #0a0c10); border-bottom:1px solid #1a1e29; padding:10px 0; overflow:hidden; position:relative;">
     <div id="live-feed-track" style="display:flex; gap:10px; padding:0 15px; overflow-x:hidden; white-space:nowrap; animation:feedScroll 30s linear infinite;"></div>
 </div>
 <style>
     @keyframes feedScroll { 0% { transform: translateX(-50%); } 100% { transform: translateX(0); } }
     @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
-    .feed-item { flex-shrink:0; display:flex; align-items:center; gap:6px; background:linear-gradient(135deg, #1a1e2988, #0f121888); border:1px solid #ffffff10; border-radius:8px; padding:6px 10px; }
-    .feed-item img { width:32px; height:32px; object-fit:contain; }
+    .feed-item { flex-shrink:0; display:flex; align-items:center; gap:6px; background:linear-gradient(135deg, #1a1e2988, #0f121888); border:1px solid #ffffff10; border-radius:8px; padding:8px 12px; min-height:48px; }
+    .feed-item img { width:40px; height:36px; object-fit:contain; }
 </style>
 
 <main>
