@@ -209,6 +209,7 @@
         </div>
         <div class="hud-card"><small>Saldo</small><span id="h-bal">$0</span></div>
         <div class="hud-card"><small>Dług ($600K Max)</small><span id="h-debt" style="color:var(--accent-red)">$0</span></div>
+        <button id="admin-btn" onclick="openAdminPanel()" title="Panel Admina" style="display:none; background:linear-gradient(135deg,#ef4444,#a855f7); border:none; border-radius:10px; width:46px; height:46px; cursor:pointer; color:#fff; font-size:18px; box-shadow:0 0 12px rgba(239,68,68,0.4); transition:0.2s;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'"><i class="fa fa-user-shield"></i></button>
         <div class="hud-card" style="cursor:pointer; position:relative; display:flex; align-items:center; gap:10px;" onclick="toggleProfileMenu()" title="Kliknij aby zmienić profil"><img id="h-nick-pic" src="" onerror="this.style.display='none'" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid #22c55e; display:none;"><div><small>Gracz</small><span id="h-nick" style="color:var(--accent-blue); font-size:14px;">-</span></div>
             <div id="profile-menu" style="display:none; position:absolute; top:100%; right:0; margin-top:8px; background:var(--bg-card); border:1px solid var(--border-ui); border-radius:10px; min-width:200px; z-index:999; box-shadow:0 10px 30px rgba(0,0,0,0.6); padding:8px 0; max-height:300px; overflow-y:auto;"></div>
         </div>
@@ -523,6 +524,53 @@
             <button class="btn btn-outline" style="flex:1; height:50px; font-size:14px;" onclick="closeSwitchPass()">ANULUJ</button>
             <button class="btn btn-gold" style="flex:1; height:50px; font-size:14px;" onclick="confirmSwitchPass()">ZALOGUJ</button>
         </div>
+    </div>
+</div>
+
+<div class="full-overlay" id="admin-panel-modal">
+    <div class="modal-content" style="max-width:600px; max-height:90vh; overflow-y:auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2 style="margin:0;"><i class="fa fa-user-shield" style="margin-right:10px; color:#ef4444;"></i>PANEL ADMINA</h2>
+            <button onclick="closeAdminPanel()" style="background:none; border:1px solid #333; color:#94a3b8; font-size:18px; cursor:pointer; width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-radius:8px;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#94a3b8'"><i class="fa fa-xmark"></i></button>
+        </div>
+
+        <div style="background:rgba(239,68,68,0.05); border:1px solid rgba(239,68,68,0.2); border-radius:12px; padding:16px; margin-bottom:16px;">
+            <h3 style="margin:0 0 12px 0; font-size:13px; color:#ef4444;"><i class="fa fa-coins" style="margin-right:6px;"></i>SALDO</h3>
+            <div style="display:flex; gap:8px; margin-bottom:8px;">
+                <input type="number" id="admin-money-amount" placeholder="Kwota $" style="flex:1; background:var(--bg-main); border:2px solid #333; border-radius:8px; padding:10px 14px; color:#fff; font-size:13px; outline:none;">
+                <button class="btn btn-green" style="width:auto; padding:10px 20px;" onclick="adminAddMoney()">+ DODAJ</button>
+                <button class="btn btn-blue" style="width:auto; padding:10px 20px;" onclick="adminSetMoney()">USTAW</button>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button class="btn btn-outline" style="width:auto; padding:8px 16px; font-size:11px;" onclick="adminClearDebt()"><i class="fa fa-eraser" style="margin-right:6px;"></i>WYZERUJ DŁUG</button>
+                <button class="btn btn-outline" style="width:auto; padding:8px 16px; font-size:11px;" onclick="adminAddInvItem()"><i class="fa fa-gem" style="margin-right:6px;"></i>+ ITEM ($1M)</button>
+            </div>
+        </div>
+
+        <div style="background:rgba(168,85,247,0.05); border:1px solid rgba(168,85,247,0.2); border-radius:12px; padding:16px; margin-bottom:16px;">
+            <h3 style="margin:0 0 12px 0; font-size:13px; color:#a855f7;"><i class="fa fa-ban" style="margin-right:6px;"></i>BAN IP / NICK</h3>
+            <div style="display:flex; gap:8px; margin-bottom:8px;">
+                <input type="text" id="admin-ban-target" placeholder="IP lub nick" style="flex:1; background:var(--bg-main); border:2px solid #333; border-radius:8px; padding:10px 14px; color:#fff; font-size:13px; outline:none;">
+                <button class="btn btn-red" style="width:auto; padding:10px 20px;" onclick="adminBan()"><i class="fa fa-ban" style="margin-right:6px;"></i>BAN</button>
+                <button class="btn btn-outline" style="width:auto; padding:10px 20px;" onclick="adminUnban()">UNBAN</button>
+            </div>
+            <div id="admin-ban-list" style="font-size:11px; color:#94a3b8; max-height:120px; overflow-y:auto;"></div>
+        </div>
+
+        <div style="background:rgba(59,130,246,0.05); border:1px solid rgba(59,130,246,0.2); border-radius:12px; padding:16px; margin-bottom:16px;">
+            <h3 style="margin:0 0 12px 0; font-size:13px; color:#3b82f6;"><i class="fa fa-trophy" style="margin-right:6px;"></i>RANKING</h3>
+            <div style="display:flex; gap:8px;">
+                <button class="btn btn-red" style="width:auto; padding:8px 16px; font-size:11px;" onclick="adminResetRanking()"><i class="fa fa-rotate-left" style="margin-right:6px;"></i>RESET RANKINGU</button>
+                <button class="btn btn-outline" style="width:auto; padding:8px 16px; font-size:11px;" onclick="adminClearFeed()"><i class="fa fa-broom" style="margin-right:6px;"></i>WYCZYŚĆ FEED</button>
+            </div>
+        </div>
+
+        <div style="background:rgba(34,197,94,0.05); border:1px solid rgba(34,197,94,0.2); border-radius:12px; padding:16px;">
+            <h3 style="margin:0 0 12px 0; font-size:13px; color:#22c55e;"><i class="fa fa-users" style="margin-right:6px;"></i>KONTA LOKALNE</h3>
+            <div id="admin-accounts-list" style="font-size:11px; color:#94a3b8; max-height:160px; overflow-y:auto;"></div>
+        </div>
+
+        <div id="admin-status" style="margin-top:14px; font-size:12px; text-align:center; color:#22c55e; min-height:18px;"></div>
     </div>
 </div>
 
@@ -1485,6 +1533,13 @@
     // --- ZAPIS ---
     function getSaveKey() { return 'an4l_' + currentNick; }
     function save() { if(!currentNick) return; localStorage.setItem(getSaveKey(), JSON.stringify(state)); updateUI(); }
+    const ADMIN_STEAM_ID = '76561199223326691';
+    function isAdmin() {
+        if(!currentNick) return false;
+        const pass = localStorage.getItem('an4l_pass_' + currentNick);
+        return pass === 'steam_auth_' + ADMIN_STEAM_ID;
+    }
+
     function load() { 
         const s = localStorage.getItem(getSaveKey()); 
         if(s) {
@@ -1521,6 +1576,117 @@
         document.getElementById('currency-select').value = currentCurrency;
         ['classic', 'shared', 'terminal', 'underdog', 'crazy_terminal'].forEach(m => document.getElementById('mode-'+m).classList.toggle('active', state.mode === m));
         ['2p', '3p', '4p', '2v2'].forEach(m => document.getElementById('format-'+m).classList.toggle('active', state.battleFormat === m));
+        const adminBtn = document.getElementById('admin-btn');
+        if(adminBtn) adminBtn.style.display = isAdmin() ? 'inline-flex' : 'none';
+    }
+
+    // --- PANEL ADMINA ---
+    function adminStatus(msg, color) {
+        const el = document.getElementById('admin-status');
+        if(!el) return;
+        el.style.color = color || '#22c55e';
+        el.innerText = msg;
+        setTimeout(() => { el.innerText = ''; }, 3000);
+    }
+    function openAdminPanel() {
+        if(!isAdmin()) return;
+        document.getElementById('admin-panel-modal').classList.add('active');
+        renderAdminBanList();
+        renderAdminAccountsList();
+    }
+    function closeAdminPanel() { document.getElementById('admin-panel-modal').classList.remove('active'); }
+    function adminAddMoney() {
+        if(!isAdmin()) return;
+        const amt = parseInt(document.getElementById('admin-money-amount').value) || 0;
+        state.balance += amt;
+        save();
+        adminStatus(`Dodano ${formatMoney(amt)}`);
+    }
+    function adminSetMoney() {
+        if(!isAdmin()) return;
+        const amt = parseInt(document.getElementById('admin-money-amount').value) || 0;
+        state.balance = amt;
+        save();
+        adminStatus(`Saldo ustawione na ${formatMoney(amt)}`);
+    }
+    function adminClearDebt() {
+        if(!isAdmin()) return;
+        state.debt = 0;
+        save();
+        adminStatus('Dług wyzerowany');
+    }
+    function adminAddInvItem() {
+        if(!isAdmin()) return;
+        state.inventory.push({ name: 'ADMIN ITEM', value: 1000000, color: '#ef4444', img: null, icon: 'fa-crown' });
+        save();
+        adminStatus('Dodano item $1M');
+    }
+    function adminBan() {
+        if(!isAdmin()) return;
+        const target = document.getElementById('admin-ban-target').value.trim();
+        if(!target) return;
+        const key = target.replace(/[.#$\/\[\]]/g, '_');
+        db.ref('bans/' + key).set({ target: target, by: currentNick, timestamp: Date.now() })
+            .then(() => { adminStatus(`Zbanowano: ${target}`); document.getElementById('admin-ban-target').value=''; renderAdminBanList(); })
+            .catch(e => adminStatus('Błąd: ' + e.message, '#ef4444'));
+    }
+    function adminUnban() {
+        if(!isAdmin()) return;
+        const target = document.getElementById('admin-ban-target').value.trim();
+        if(!target) return;
+        const key = target.replace(/[.#$\/\[\]]/g, '_');
+        db.ref('bans/' + key).remove()
+            .then(() => { adminStatus(`Odbanowano: ${target}`); document.getElementById('admin-ban-target').value=''; renderAdminBanList(); });
+    }
+    function renderAdminBanList() {
+        db.ref('bans').once('value', snap => {
+            const list = document.getElementById('admin-ban-list');
+            if(!list) return;
+            if(!snap.exists()) { list.innerHTML = '<div style="color:#64748b;">Brak banów</div>'; return; }
+            let html = '';
+            snap.forEach(c => {
+                const v = c.val();
+                html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #1a1e29;"><span style="color:#fff;font-weight:700;">${v.target}</span><button onclick="adminUnbanByKey('${c.key}')" style="background:none;border:1px solid #ef4444;color:#ef4444;border-radius:4px;padding:2px 8px;font-size:10px;cursor:pointer;">USUŃ</button></div>`;
+            });
+            list.innerHTML = html;
+        });
+    }
+    function adminUnbanByKey(key) {
+        if(!isAdmin()) return;
+        db.ref('bans/' + key).remove().then(() => { adminStatus('Odbanowano'); renderAdminBanList(); });
+    }
+    function adminResetRanking() {
+        if(!isAdmin() || !confirm('Na pewno wyczyścić CAŁY ranking?')) return;
+        db.ref('ranking').remove().then(() => adminStatus('Ranking wyczyszczony'));
+    }
+    function adminClearFeed() {
+        if(!isAdmin() || !confirm('Wyczyścić feed dropów?')) return;
+        db.ref('drops').remove().then(() => adminStatus('Feed wyczyszczony'));
+    }
+    function renderAdminAccountsList() {
+        const list = document.getElementById('admin-accounts-list');
+        if(!list) return;
+        const profiles = getAllProfiles();
+        if(profiles.length === 0) { list.innerHTML = '<div style="color:#64748b;">Brak kont</div>'; return; }
+        list.innerHTML = profiles.map(nick => {
+            const data = JSON.parse(localStorage.getItem('an4l_' + nick) || '{}');
+            const bal = data.balance || 0;
+            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #1a1e29;"><span style="color:#fff;font-weight:700;">${nick}</span><span style="color:var(--accent-gold);font-family:'Rajdhani';font-weight:900;">${formatMoney(bal)}</span></div>`;
+        }).join('');
+    }
+
+    async function checkIPBan() {
+        try {
+            const res = await fetch('https://api.ipify.org?format=json');
+            const data = await res.json();
+            const ip = data.ip;
+            const ipKey = ip.replace(/[.#$\/\[\]]/g, '_');
+            const snap = await db.ref('bans/' + ipKey).once('value');
+            if(snap.exists()) {
+                document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a0c10;color:#ef4444;font-family:Inter,sans-serif;flex-direction:column;gap:20px;text-align:center;padding:40px;"><i class="fa fa-ban" style="font-size:80px;"></i><h1 style="margin:0;font-size:32px;">DOSTĘP ZABLOKOWANY</h1><p style="color:#94a3b8;font-size:14px;">Twoje IP zostało zbanowane.</p></div>';
+                throw new Error('IP banned');
+            }
+        } catch(e) { /* Network error - allow access */ }
     }
 
     // --- GENEROWANIE PRZEDMIOTÓW ---
@@ -3577,6 +3743,12 @@
     }
 
     window.onload = function() {
+        // Check if IP is banned (skip for admin)
+        const savedUser0 = localStorage.getItem('an4l_lastuser');
+        const adminPass = savedUser0 && localStorage.getItem('an4l_pass_' + savedUser0);
+        if(adminPass !== 'steam_auth_' + ADMIN_STEAM_ID) {
+            checkIPBan();
+        }
         // Auto-login from saved session
         const savedUser = localStorage.getItem('an4l_lastuser');
         if(savedUser && localStorage.getItem('an4l_pass_' + savedUser) && localStorage.getItem('an4l_' + savedUser)) {
