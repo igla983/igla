@@ -1698,6 +1698,7 @@
     // --- BITWY ---
     function setFormat(f) { 
         if(battleState === 'idle') { 
+            if(f === '2v2' && state.mode === 'shared') { state.mode = 'classic'; document.querySelectorAll('[id^="mode-"]').forEach(b => b.classList.remove('active')); document.getElementById('mode-classic').classList.add('active'); }
             state.battleFormat = f; 
             document.querySelectorAll('[id^="format-"]').forEach(b => b.classList.remove('active'));
             document.getElementById('format-' + f).classList.add('active');
@@ -1707,6 +1708,7 @@
     }
     function setMode(m) { 
         if(battleState === 'idle') { 
+            if(m === 'shared' && state.battleFormat === '2v2') return;
             state.mode = m; 
             document.querySelectorAll('[id^="mode-"]').forEach(b => b.classList.remove('active'));
             document.getElementById('mode-' + m).classList.add('active');
