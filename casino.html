@@ -2458,7 +2458,9 @@
                 tr.innerHTML = generateRouletteItems(winnerItem, c.basePrice, c.isJoker, caseItems);
                 tracks.push(tr);
             }
-            if(tracks.length > 0) tracks[0].offsetHeight;
+            // Force reflow on ALL tracks so transition reset takes effect
+            tracks.forEach(tr => tr.offsetHeight);
+            await new Promise(r => setTimeout(r, 50));
             const offset = (68 * 120) - (containerWidth / 2) + 60;
             for(let p=0; p<tracks.length; p++) {
                 tracks[p].style.transition = 'transform 8.5s cubic-bezier(0.1, 0.8, 0.1, 1)';
@@ -3262,7 +3264,9 @@
                 tr.innerHTML = generateRouletteItems(winnerItem, c.basePrice, c.isJoker, caseItems);
                 tracks.push(tr);
             }
-            if(tracks.length > 0) tracks[0].offsetHeight;
+            // Force reflow on ALL tracks so transition reset takes effect
+            tracks.forEach(tr => tr.offsetHeight);
+            await new Promise(r => setTimeout(r, 50));
             const offset = (68 * 120) - (containerWidth / 2) + 60;
             for(let p=0; p<tracks.length; p++) {
                 tracks[p].style.transition = 'transform 8.5s cubic-bezier(0.1, 0.8, 0.1, 1)';
