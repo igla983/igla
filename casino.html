@@ -1978,6 +1978,7 @@
         if(battlePlayersListener) db.ref('battles/' + key + '/players').off('value', battlePlayersListener);
         battlePlayersListener = db.ref('battles/' + key + '/players').on('value', snap => {
             if(!snap.exists()) return;
+            if(battleState === 'running') return; // don't modify state during battle
             battlePlayers = snap.val() || [];
             if(!Array.isArray(battlePlayers)) battlePlayers = Object.values(battlePlayers);
             // Update arena if in waiting state
@@ -2348,18 +2349,20 @@
         }
 
         if(audioCtx.state === 'suspended') audioCtx.resume();
-        await playBattleCountdown();
 
+        // Freeze pCount BEFORE countdown to prevent race conditions
         const pCount = battlePlayers.length + state.selectedBots.length;
+        const frozenCart = JSON.parse(JSON.stringify(state.cart));
         let sc = Array.from({length: pCount}, () => ({total: 0, last: 0, items: []}));
 
         // Pre-generate all roll results
         const allRollResults = [];
-        for(let i=0; i<state.cart.length; i++) {
-            const c = state.cart[i];
+        for(let i=0; i<frozenCart.length; i++) {
+            const c = frozenCart[i];
             const roundResults = [];
             for(let p=0; p<pCount; p++) {
-                const caseItems = c.items || null;
+                const origCase = state.cart[i];
+                const caseItems = (origCase && origCase.items) || null;
                 roundResults.push(rollItem(c.basePrice, c.isJoker, caseItems));
             }
             allRollResults.push(roundResults);
@@ -2377,8 +2380,31 @@
             });
         }
 
+        // Re-render arena with correct pCount to ensure all card-content-N IDs exist
+        const arenaEl = document.getElementById('arena');
+        const is2v2r = state.battleFormat === '2v2';
+        arenaEl.style.gridTemplateColumns = `repeat(${pCount}, 1fr)`;
+        let arenaHtml = '';
+        for(let i = 0; i < pCount; i++) {
+            let teamTag = '', teamColor = '';
+            if(is2v2r) { teamTag = i < 2 ? 'TEAM 1 (BLUE)' : 'TEAM 2 (RED)'; teamColor = i < 2 ? '#3b82f6' : '#ef4444'; }
+            const rp = battlePlayers.find(p => p.slot === i);
+            if(rp) {
+                arenaHtml += createBattleCard(true, i, teamTag, teamColor, rp.nick === currentNick ? 'TY' : rp.nick, rp.avatar);
+            } else {
+                const botIdx = state.botSlots ? state.botSlots[i] : undefined;
+                const bot = botIdx !== undefined ? BOTS.find(x => x.id === state.selectedBots[botIdx]) : null;
+                arenaHtml += createBattleCard(true, i, teamTag, teamColor, bot ? bot.name : 'BOT', bot ? bot.img : null, bot ? bot.steam : null);
+            }
+        }
+        arenaEl.innerHTML = arenaHtml;
+
+        await playBattleCountdown();
+
         for(let p=0; p<pCount; p++) {
-            document.getElementById(`card-content-${p}`).innerHTML = `
+            const cardEl = document.getElementById(`card-content-${p}`);
+            if(!cardEl) continue;
+            cardEl.innerHTML = `
                 <div class="roulette-container" style="width: 100%; border: none; background: transparent;">
                     <div class="roulette-center-line"></div>
                     <div class="roulette-track" id="track-${p}"></div>
@@ -2386,13 +2412,14 @@
                 <div id="res-${p}" style="margin-top: 15px; font-weight: 900; font-size: 18px; color: var(--accent-gold); height: 25px;"></div>
             `;
         }
-        let containerWidth = document.querySelector('.battle-card-content .roulette-container').offsetWidth;
+        let containerWidth = document.querySelector('.battle-card-content .roulette-container')?.offsetWidth || 300;
 
         for(let i=0; i<state.cart.length; i++) {
             const c = state.cart[i];
             
             document.querySelectorAll('.queue-item').forEach(el => el.classList.remove('active'));
-            document.getElementById(`q-item-${i}`).classList.add('active');
+            const qItem = document.getElementById(`q-item-${i}`);
+            if(qItem) qItem.classList.add('active');
             
             let rollValues = allRollResults[i];
             const tracks = [];
@@ -2400,14 +2427,16 @@
                 const caseItems = c.items || null;
                 const winnerItem = rollValues[p];
                 
-                document.getElementById(`res-${p}`).innerText = "";
+                const resEl = document.getElementById(`res-${p}`);
+                if(resEl) resEl.innerText = "";
                 const tr = document.getElementById(`track-${p}`);
+                if(!tr) continue;
                 tr.style.transition = 'none';
                 tr.style.transform = 'translateX(0)';
                 tr.innerHTML = generateRouletteItems(winnerItem, c.basePrice, c.isJoker, caseItems);
                 tracks.push(tr);
             }
-            tracks[0].offsetHeight;
+            if(tracks.length > 0) tracks[0].offsetHeight;
             const offset = (68 * 120) - (containerWidth / 2) + 60;
             for(let p=0; p<pCount; p++) {
                 tracks[p].style.transition = 'transform 8.5s cubic-bezier(0.1, 0.8, 0.1, 1)';
