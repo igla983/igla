@@ -197,6 +197,7 @@
         <button onclick="changeView('inv')" id="n-inv">Ekwipunek</button>
         <button onclick="changeView('market')" id="n-market">Market</button>
         <button onclick="changeView('bank')" id="n-bank">Bank</button>
+        <button onclick="changeView('ranking')" id="n-ranking">Ranking</button>
     </nav>
     <div class="hud-stats">
         <div class="hud-card" style="min-width:auto; padding:8px 10px; display:flex; align-items:center;">
@@ -401,6 +402,19 @@
             </div>
             <button class="btn btn-green" style="margin-top:10px; height:45px;" onclick="payDebt(state.debt)">SPŁAĆ CAŁY DŁUG</button>
             <button class="btn btn-red" style="margin-top: 15px;" onclick="resetSave()">RESET POSTĘPU</button>
+        </div>
+    </section>
+
+    <section id="v-ranking" class="view">
+        <div style="max-width:600px;margin:0 auto;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                <h2 style="margin:0;"><i class="fa fa-trophy" style="margin-right:10px;color:#fbbf24;"></i>RANKING TYGODNIOWY</h2>
+                <div style="font-size:10px;color:#64748b;font-weight:900;" id="ranking-reset-timer"></div>
+            </div>
+            <div style="font-size:11px;color:#64748b;margin-bottom:16px;">Kto wydał najwięcej w tym tygodniu? Resetuje się co poniedziałek o 00:00.</div>
+            <div id="ranking-list" style="display:flex;flex-direction:column;gap:8px;">
+                <div style="text-align:center;padding:40px;color:#64748b;"><i class="fa fa-spinner fa-spin" style="margin-right:8px;"></i>Ładowanie...</div>
+            </div>
         </div>
     </section>
 </main>
@@ -723,12 +737,15 @@
             { name: "Karambit Ruby FN", value: 4000, color: "#fbbf24", img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Q7uCvZaZkNM-SA1iC1Oxvj-xoXSu_kBQ9tjm6lob-KT-JbgMoW8Z5Ee8Isha9k9K1YeLr7wXci4wQzyqsjCxBuytssrkLV6Ek-LqX0V8zRrFpiQ", chance: 0.015 }
         ]},
         { name: "Buzzball zielony", color: "#00ff95", icon: "fa-atom", price: 50, img: "img/bazzball_green_case.png", items: [
-            { name: "ST FN AK-47 Case Hardened #661", value: 1500000, color: "#fbbf24", img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wiNK0P2nZKFpH_yaCW-Ej7sk5bE8Sn-2lEpz4zndzoyvdHuUPwFzWZYiE7EK4Bi4k9TlY-y24FbAy9USGSiZd5Q", chance: 0.0001 },
+            { name: "P250 Sand Dune FT", value: 0.06, color: "#94a3b8", img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLhzMOwwjFU0OGvZqBSLPmUBnPelesn5-RrSXDlwRhx5TjSwtmocCifPwQpDpshReBfsxPrk4DhNu3jshue1dy8VcXxuA", chance: 0.40 },
+            { name: "MP7 Forest DDPAT", value: 0.16, color: "#94a3b8", img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8jsHf9Ttk6_a-abBSLPmUBnPek79w4eNoGnC2xx5x4WvRy43_I3-QOA4iWZJwFu5e5xfpl9HvM-_r5Bue1dxLI7RHCA", chance: 0.25 },
+            { name: "Tec-9 Groundwater", value: 0.30, color: "#3b82f6", img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLlm5W5wjFU0P2iYbJoH_yaCW-Ej7om4eQ6H3zrxEwk4T-HmN78dirCb1MmA8Z3Re8D5hS5x9KzYrvkslPAy9USDDHRuWI", chance: 0.1549 },
             { name: "AWP Dragon Lore FN", value: 5500, color: "#ec4899", img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf_jdk4veqYaF7IfysCnWRxuF4j-B-Xxa_nBovp3Pdwtj9cC_GaAd0DZdwQu9fuhS4kNy0NePntVTbjYpCyyT_3CgY5i9j_a9cBkcCWUKV", chance: 0.02 },
             { name: "Butterfly Sapphire FN", value: 2800, color: "#ec4899", img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Z-ua6bbZrLOmsD2qvxeFmoO1sXRajnRw0tmm6lob-KT-JPVQpA5d3Q7IM4Ra_ltLgN7jn4wKPi41Nyyir3CpK6H1vt7xWAKt0qLqX0V-7tNsN5g", chance: 0.05 },
             { name: "Karambit Ruby FN", value: 2000, color: "#fbbf24", img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Q7uCvZaZkNM-SA1iC1Oxvj-xoXSu_kBQ9tjm6lob-KT-JbgMoW8Z5Ee8Isha9k9K1YeLr7wXci4wQzyqsjCxBuytssrkLV6Ek-LqX0V8zRrFpiQ", chance: 0.08 },
             { name: "Pandora's Box Gloves FN", value: 5000, color: "#fbbf24", img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Tk5UvzWCL2kpn2-DFk_OKherB0H-CGHHecxNF6ueZhW2exk01w4j7cmYn4eHPCbAMhApdwTOIN5BPsx9yyYu605FTeid0Uy3j3kGoXueKyz5wo", chance: 0.03 },
-            { name: "StatTrak M4A4 Howl FN", value: 15000, color: "#fbbf24", img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwiFO0P_6afVSKP-EAm6extF6ueZhW2exwkl2tmTXwt39eCiUPQR2DMN4TOVetUK8xoLgM-K341eM2otDnC6okGoXufBz_TAB", chance: 0.005 }
+            { name: "StatTrak M4A4 Howl FN", value: 15000, color: "#fbbf24", img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwiFO0P_6afVSKP-EAm6extF6ueZhW2exwkl2tmTXwt39eCiUPQR2DMN4TOVetUK8xoLgM-K341eM2otDnC6okGoXufBz_TAB", chance: 0.005 },
+            { name: "ST FN AK-47 Case Hardened #661", value: 1500000, color: "#fbbf24", img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wiNK0P2nZKFpH_yaCW-Ej7sk5bE8Sn-2lEpz4zndzoyvdHuUPwFzWZYiE7EK4Bi4k9TlY-y24FbAy9USGSiZd5Q", chance: 0.0001 }
         ]},
         { name: "CS:GO Weapon Case", color: "#6b7280", icon: "fa-box", price: 4, img: "img/csgo_case.png", items: [
             { name: "SG 553 Ultraviolet FT", value: 1, color: "#94a3b8", img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLimcO1qx1I4M2-fbZ9LPWsAm6Xyfo44bQ-Tn7gwRt-t2uAw96tIn7FOAF1CsckQLUJ4xXskdO2NLzrtAyIi5UFk3tU_MwgmA", chance: 0.35 },
@@ -1641,7 +1658,7 @@
         if(state.balance < totalCost) return;
         
         if(audioCtx.state === 'suspended') audioCtx.resume();
-        state.balance -= totalCost; save();
+        state.balance -= totalCost; trackSpending(totalCost); save();
 
         const caseItems = c.items || null;
         const allWinners = [];
@@ -1945,7 +1962,7 @@
         const cost = state.cart.reduce((a,b)=>a+b.price,0);
         if(state.balance < cost) return alert("Brak kasy na bitwę!");
         
-        state.balance -= cost; 
+        state.balance -= cost; trackSpending(cost);
         battleState = 'waiting';
         state.selectedBots = [];
         state.botSlots = {};
@@ -2414,8 +2431,8 @@
         }
         let containerWidth = document.querySelector('.battle-card-content .roulette-container')?.offsetWidth || 300;
 
-        for(let i=0; i<state.cart.length; i++) {
-            const c = state.cart[i];
+        for(let i=0; i<frozenCart.length; i++) {
+            const c = frozenCart[i];
             
             document.querySelectorAll('.queue-item').forEach(el => el.classList.remove('active'));
             const qItem = document.getElementById(`q-item-${i}`);
@@ -2438,14 +2455,15 @@
             }
             if(tracks.length > 0) tracks[0].offsetHeight;
             const offset = (68 * 120) - (containerWidth / 2) + 60;
-            for(let p=0; p<pCount; p++) {
+            for(let p=0; p<tracks.length; p++) {
                 tracks[p].style.transition = 'transform 8.5s cubic-bezier(0.1, 0.8, 0.1, 1)';
                 tracks[p].style.transform = `translateX(-${offset}px)`;
             }
 
             const stopTickers = [];
             for(let p=0; p<pCount; p++) {
-                stopTickers.push(runTrackTicker(document.getElementById(`track-${p}`), c.isJoker));
+                const trEl = document.getElementById(`track-${p}`);
+                if(trEl) stopTickers.push(runTrackTicker(trEl, c.isJoker));
             }
             await new Promise(r => setTimeout(r, 9000));
             stopTickers.forEach(fn => fn());
@@ -2454,8 +2472,10 @@
                 const val = rollValues[p].value;
                 const item = rollValues[p];
                 sc[p].total += val; sc[p].last = val; sc[p].items.push(item);
-                document.getElementById(`t-${p}`).innerText = formatMoney(sc[p].total);
-                document.getElementById(`res-${p}`).innerHTML = `<span style="color:${item.color}">${item.name}</span>`;
+                const tEl = document.getElementById(`t-${p}`);
+                if(tEl) tEl.innerText = formatMoney(sc[p].total);
+                const resEl2 = document.getElementById(`res-${p}`);
+                if(resEl2) resEl2.innerHTML = `<span style="color:${item.color}">${item.name}</span>`;
                 const histEl = document.getElementById(`battle-history-${p}`);
                 if (histEl) {
                     const imgPart = item.img ? `<img src="${item.img}" style="width:40px;height:40px;object-fit:contain;">` : `<i class="fa ${item.icon || 'fa-gem'}" style="font-size:18px;color:${item.color}"></i>`;
@@ -2467,13 +2487,13 @@
                     histEl.scrollLeft = histEl.scrollWidth;
                 }
                 const progBar = document.getElementById(`battle-progress-bar-${p}`);
-                if(progBar) progBar.style.width = `${((i+1) / state.cart.length) * 100}%`;
+                if(progBar) progBar.style.width = `${((i+1) / frozenCart.length) * 100}%`;
             }
             // Highlight leading player/team with green border
             const isUnderdog = state.mode === 'underdog' || state.mode === 'crazy_terminal';
             const isTerminal = state.mode === 'terminal' || state.mode === 'crazy_terminal';
             const isShared = state.mode === 'shared';
-            const isLastRound = (i === state.cart.length - 1);
+            const isLastRound = (i === frozenCart.length - 1);
             const useLastOnly = isTerminal && isLastRound;
             if (!isShared) {
                 if (is2v2) {
@@ -2720,7 +2740,7 @@
         state.mode = cfg.mode;
         state.battleFormat = cfg.battleFormat;
         state.cart = JSON.parse(JSON.stringify(cfg.cart));
-        state.balance -= cost;
+        state.balance -= cost; trackSpending(cost);
         battleState = 'waiting';
         state.selectedBots = [];
         
@@ -3089,7 +3109,7 @@
             // Deduct cost
             const cost = state.cart.reduce((a,c) => a + (c.price || 0), 0);
             if(state.balance < cost) { state.cart = []; return; }
-            state.balance -= cost;
+            state.balance -= cost; trackSpending(cost);
             battleState = 'waiting';
             isBattleCreator = false;
 
@@ -3190,10 +3210,11 @@
                 <div id="res-${p}" style="margin-top: 15px; font-weight: 900; font-size: 18px; color: var(--accent-gold); height: 25px;"></div>
             `;
         }
-        let containerWidth = document.querySelector('.battle-card-content .roulette-container').offsetWidth;
+        let containerWidth = document.querySelector('.battle-card-content .roulette-container')?.offsetWidth || 300;
+        const frozenCart = JSON.parse(JSON.stringify(state.cart));
 
-        for(let i=0; i<state.cart.length; i++) {
-            const c = state.cart[i];
+        for(let i=0; i<frozenCart.length; i++) {
+            const c = frozenCart[i];
             document.querySelectorAll('.queue-item').forEach(el => el.classList.remove('active'));
             const qItem = document.getElementById(`q-item-${i}`);
             if(qItem) qItem.classList.add('active');
@@ -3203,23 +3224,26 @@
             for(let p=0; p<pCount; p++) {
                 const caseItems = c.items || null;
                 const winnerItem = rollValues[p];
-                document.getElementById(`res-${p}`).innerText = "";
+                const resEl = document.getElementById(`res-${p}`);
+                if(resEl) resEl.innerText = "";
                 const tr = document.getElementById(`track-${p}`);
+                if(!tr) continue;
                 tr.style.transition = 'none';
                 tr.style.transform = 'translateX(0)';
                 tr.innerHTML = generateRouletteItems(winnerItem, c.basePrice, c.isJoker, caseItems);
                 tracks.push(tr);
             }
-            tracks[0].offsetHeight;
+            if(tracks.length > 0) tracks[0].offsetHeight;
             const offset = (68 * 120) - (containerWidth / 2) + 60;
-            for(let p=0; p<pCount; p++) {
+            for(let p=0; p<tracks.length; p++) {
                 tracks[p].style.transition = 'transform 8.5s cubic-bezier(0.1, 0.8, 0.1, 1)';
                 tracks[p].style.transform = `translateX(-${offset}px)`;
             }
 
             const stopTickers = [];
             for(let p=0; p<pCount; p++) {
-                stopTickers.push(runTrackTicker(document.getElementById(`track-${p}`), c.isJoker));
+                const trEl = document.getElementById(`track-${p}`);
+                if(trEl) stopTickers.push(runTrackTicker(trEl, c.isJoker));
             }
             await new Promise(r => setTimeout(r, 9000));
             stopTickers.forEach(fn => fn());
@@ -3228,8 +3252,10 @@
                 const val = rollValues[p].value;
                 const item = rollValues[p];
                 sc[p].total += val; sc[p].last = val; sc[p].items.push(item);
-                document.getElementById(`t-${p}`).innerText = formatMoney(sc[p].total);
-                document.getElementById(`res-${p}`).innerHTML = `<span style="color:${item.color}">${item.name}</span>`;
+                const tEl = document.getElementById(`t-${p}`);
+                if(tEl) tEl.innerText = formatMoney(sc[p].total);
+                const resEl2 = document.getElementById(`res-${p}`);
+                if(resEl2) resEl2.innerHTML = `<span style="color:${item.color}">${item.name}</span>`;
                 const histEl = document.getElementById(`battle-history-${p}`);
                 if (histEl) {
                     const imgPart = item.img ? `<img src="${item.img}" style="width:40px;height:40px;object-fit:contain;">` : `<i class="fa ${item.icon || 'fa-gem'}" style="font-size:18px;color:${item.color}"></i>`;
@@ -3241,13 +3267,13 @@
                     histEl.scrollLeft = histEl.scrollWidth;
                 }
                 const progBar = document.getElementById(`battle-progress-bar-${p}`);
-                if(progBar) progBar.style.width = `${((i+1) / state.cart.length) * 100}%`;
+                if(progBar) progBar.style.width = `${((i+1) / frozenCart.length) * 100}%`;
             }
             // Highlight leading player/team
             const isUnderdog = state.mode === 'underdog' || state.mode === 'crazy_terminal';
             const isTerminal = state.mode === 'terminal' || state.mode === 'crazy_terminal';
             const isShared = state.mode === 'shared';
-            const isLastRound = (i === state.cart.length - 1);
+            const isLastRound = (i === frozenCart.length - 1);
             const useLastOnly = isTerminal && isLastRound;
             if (!isShared) {
                 if (is2v2) {
@@ -3391,6 +3417,7 @@
         if(v==='market') renderMarket();
         if(v==='battle' && battleState === 'idle') { showBattleLobby(); }
         if(v==='shop') renderShop();
+        if(v==='ranking') loadRanking();
     }
     
     function renderUpgradeInv() { document.getElementById('upgrade-inv-list').innerHTML = state.inventory.map((it, i) => { const visual = it.img ? `<img src="${it.img}" style="width:40px;height:30px;object-fit:contain">` : `<i class="fa ${it.icon}" style="color:${it.color}"></i>`; const isSel = upState.selectedIndices.includes(i); return `<div class="bot-item active" style="border:2px solid ${isSel?'var(--accent-gold)':'#333'}; padding:10px; width:100%; opacity:1; ${isSel?'background:rgba(251,191,36,0.1);':''}" onclick="selectForUpgrade(${i})">${visual} <div style="font-size:11px;font-weight:800;color:${it.color};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100px;">${it.name}</div><div>${formatMoney(it.value)}</div></div>`; }).join(''); }
@@ -3399,6 +3426,93 @@
     function renderInventory() { const sorted = state.inventory.map((it, i) => ({it, i})); sorted.sort((a, b) => invSortOrder === 'asc' ? a.it.value - b.it.value : b.it.value - a.it.value); document.getElementById('inv-grid').innerHTML = sorted.map(({it, i}) => { const visual = it.img ? `<img src="${it.img}" style="width:80px;height:60px;object-fit:contain;filter:drop-shadow(0 0 8px ${it.color})">` : `<i class="fa ${it.icon}" style="font-size:30px; color:${it.color}"></i>`; return `<div class="case-card">${visual}<div style="font-weight:900; margin-top:10px; color:${it.color}">${it.name}</div><div style="color:var(--accent-gold)">${formatMoney(it.value)}</div><button class="btn btn-outline" style="margin-top:8px; font-size:9px; padding:6px 10px;" onclick="sellItem(${i})"><i class='fa fa-coins' style='margin-right:4px'></i>SPRZEDAJ</button></div>`; }).join(''); }
     function sellItem(i) { if(i < 0 || i >= state.inventory.length) return; playSellSound(); state.balance += state.inventory[i].value; state.inventory.splice(i, 1); save(); renderInventory(); }
     function sellAll() { if(state.inventory.length === 0) return; playSellSound(); state.balance += state.inventory.reduce((a,b)=>a+b.value,0); state.inventory = []; save(); renderInventory(); }
+
+    // --- RANKING TYGODNIOWY ---
+    function getWeekKey() {
+        const now = new Date();
+        const day = now.getDay(); // 0=Sun
+        const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Monday
+        const monday = new Date(now);
+        monday.setDate(diff);
+        monday.setHours(0,0,0,0);
+        const y = monday.getFullYear();
+        const m = String(monday.getMonth()+1).padStart(2,'0');
+        const d = String(monday.getDate()).padStart(2,'0');
+        return `${y}-${m}-${d}`;
+    }
+
+    function trackSpending(amount) {
+        if(!currentNick || amount <= 0) return;
+        const weekKey = getWeekKey();
+        const ref = db.ref(`ranking/${weekKey}/${currentNick}`);
+        ref.transaction(current => (current || 0) + Math.round(amount));
+    }
+
+    function getNextMondayMs() {
+        const now = new Date();
+        const day = now.getDay();
+        const daysUntilMonday = day === 0 ? 1 : (8 - day);
+        const next = new Date(now);
+        next.setDate(now.getDate() + daysUntilMonday);
+        next.setHours(0,0,0,0);
+        return next.getTime() - now.getTime();
+    }
+
+    function updateRankingTimer() {
+        const el = document.getElementById('ranking-reset-timer');
+        if(!el) return;
+        const ms = getNextMondayMs();
+        const days = Math.floor(ms / 86400000);
+        const hrs = Math.floor((ms % 86400000) / 3600000);
+        const mins = Math.floor((ms % 3600000) / 60000);
+        el.textContent = `Reset za: ${days}d ${hrs}h ${mins}m`;
+    }
+
+    function loadRanking() {
+        updateRankingTimer();
+        const weekKey = getWeekKey();
+        db.ref(`ranking/${weekKey}`).orderByValue().once('value', snap => {
+            const list = document.getElementById('ranking-list');
+            if(!snap.exists()) {
+                list.innerHTML = '<div style="text-align:center;padding:40px;color:#64748b;"><i class="fa fa-ghost" style="font-size:30px;margin-bottom:10px;opacity:0.3;display:block;"></i>Brak danych w tym tygodniu</div>';
+                return;
+            }
+            let entries = [];
+            snap.forEach(c => entries.push({ nick: c.key, spent: c.val() }));
+            entries.reverse(); // highest first
+            const medals = ['🥇','🥈','🥉'];
+            list.innerHTML = entries.map((e, i) => {
+                const medal = i < 3 ? medals[i] : `<span style="color:#64748b;font-weight:900;">#${i+1}</span>`;
+                const isMe = e.nick === currentNick;
+                const pic = getProfilePic(e.nick);
+                const picHtml = pic ? `<img src="${pic}" onerror="this.style.display='none'" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid ${isMe?'#fbbf24':'#333'};flex-shrink:0;">` : `<div style="width:32px;height:32px;border-radius:50%;background:#1a1e29;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid ${isMe?'#fbbf24':'#333'};"><i class="fa fa-user" style="color:#64748b;font-size:12px;"></i></div>`;
+                const barWidth = entries[0].spent > 0 ? Math.max(5, (e.spent / entries[0].spent) * 100) : 5;
+                const bgColor = i === 0 ? 'rgba(251,191,36,0.08)' : i === 1 ? 'rgba(192,192,192,0.06)' : i === 2 ? 'rgba(205,127,50,0.06)' : 'rgba(255,255,255,0.02)';
+                const borderColor = isMe ? '#fbbf24' : 'var(--border-ui)';
+                return `<div style="background:${bgColor};border:1px solid ${borderColor};border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px;transition:0.2s;">
+                    <div style="width:30px;text-align:center;font-size:16px;">${medal}</div>
+                    ${picHtml}
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-weight:900;font-size:13px;color:${isMe?'#fbbf24':'#fff'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.nick}${isMe?' (TY)':''}</div>
+                        <div style="background:#1a1e29;border-radius:4px;height:6px;margin-top:4px;overflow:hidden;"><div style="height:100%;width:${barWidth}%;background:linear-gradient(90deg,#fbbf24,#f59e0b);border-radius:4px;"></div></div>
+                    </div>
+                    <div style="font-weight:900;font-size:15px;color:var(--accent-gold);font-family:'Rajdhani',sans-serif;white-space:nowrap;">${formatMoney(e.spent)}</div>
+                </div>`;
+            }).join('');
+        });
+    }
+    setInterval(updateRankingTimer, 60000);
+
+    // Clean old ranking weeks (keep only current + last)
+    function cleanOldRankings() {
+        const currentWeek = getWeekKey();
+        db.ref('ranking').once('value', snap => {
+            if(!snap.exists()) return;
+            snap.forEach(c => {
+                if(c.key < currentWeek) c.ref.remove();
+            });
+        });
+    }
 
     window.onload = function() {
         // Auto-login from saved session
@@ -3437,6 +3551,7 @@
         initLiveFeed();
         initPresence();
         cleanOldBattles();
+        cleanOldRankings();
         // One-time cleanup: remove drops with broken/missing images
         db.ref('drops').once('value', snap => {
             snap.forEach(child => {
