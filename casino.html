@@ -2251,6 +2251,11 @@
         };
         battleState = 'running';
         const battleKey = currentBattleRef ? currentBattleRef.key : null;
+        // Safety timeout: if battle takes >90s, emergency finish
+        const safetyTimer = setTimeout(() => {
+            if(battleState === 'running') emergencyFinishBattle('Timeout - bitwa trwała za długo');
+        }, 90000);
+        try {
         document.getElementById('battle-action-area').style.display = 'none'; 
         
         const is2v2 = state.battleFormat === '2v2';
@@ -2401,7 +2406,38 @@
             await new Promise(r => setTimeout(r, 1200));
         }
         
+        clearTimeout(safetyTimer);
         await finishBattle(sc, pCount, is2v2);
+        } catch(err) {
+            clearTimeout(safetyTimer);
+            console.error('Battle error:', err);
+            emergencyFinishBattle('Błąd: ' + err.message);
+        }
+    }
+
+    function emergencyFinishBattle(reason) {
+        // Safety net: if battle bugs out, give player their bet back + small bonus
+        console.warn('Emergency battle finish:', reason);
+        const cost = state.cart.reduce((a,b) => a + (b.price||0), 0);
+        state.balance += cost;
+        const banner = document.getElementById('battle-result-banner');
+        if(banner) {
+            banner.style.display = 'block';
+            banner.style.background = 'linear-gradient(135deg, rgba(251,191,36,0.15), rgba(251,191,36,0.05))';
+            banner.style.border = '2px solid #fbbf24';
+            banner.innerHTML = `<div style="font-size:14px;font-weight:900;color:#fbbf24;text-transform:uppercase;margin-bottom:8px;"><i class="fa fa-triangle-exclamation" style="margin-right:8px;"></i>BŁĄD BITWY</div><div style="font-size:20px;font-weight:900;color:var(--accent-gold);font-family:'Rajdhani',sans-serif;">Zwrócono stawkę: ${formatMoney(cost)}</div><div style="font-size:11px;color:#64748b;margin-top:6px;">Bitwa zakończona z powodu błędu</div><button class="btn btn-blue" style="margin-top:12px;width:auto;padding:10px 30px;font-size:12px;" onclick="repeatBattle()"><i class="fa fa-rotate" style="margin-right:6px;"></i>POWTÓRZ BITWĘ</button>`;
+        }
+        battleState = 'idle';
+        stopBattleListeners();
+        if(currentBattleRef) { currentBattleRef.remove(); currentBattleRef = null; }
+        battlePlayers = [];
+        isBattleCreator = false;
+        state.cart = [];
+        state.selectedBots = [];
+        state.botSlots = {};
+        document.getElementById('battle-queue-display').style.display = 'none';
+        renderCart();
+        save();
     }
 
     async function finishBattle(sc, pCount, is2v2) {
@@ -2973,6 +3009,10 @@
     }
 
     async function playBattleFromResults(allRollResults, remotePCount) {
+        const safetyTimer = setTimeout(() => {
+            if(battleState === 'running') emergencyFinishBattle('Timeout - bitwa trwała za długo');
+        }, 90000);
+        try {
         // Joiner plays same animation using pre-computed results from Firebase
         document.getElementById('battle-action-area').style.display = 'none';
         const is2v2 = state.battleFormat === '2v2';
@@ -3071,7 +3111,13 @@
         }
 
         // Use same end-of-battle logic as runBattle
+        clearTimeout(safetyTimer);
         await finishBattle(sc, pCount, is2v2);
+        } catch(err) {
+            clearTimeout(safetyTimer);
+            console.error('Joiner battle error:', err);
+            emergencyFinishBattle('Błąd: ' + err.message);
+        }
     }
     function spectBattle(key) {
         db.ref('battles/' + key).once('value', snap => {
