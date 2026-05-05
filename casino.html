@@ -943,13 +943,13 @@
 
     async function playBattleCountdown() {
         playBeep(400, 0.3); // 3
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 600));
         playBeep(400, 0.3); // 2
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 600));
         playBeep(400, 0.3); // 1
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 600));
         playBeep(800, 0.6); // GO!
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 300));
     }
 
     // --- SOUND ENGINE ---
@@ -2404,7 +2404,7 @@
                 document.getElementById('team-score-1').innerText = formatMoney(t1);
                 document.getElementById('team-score-2').innerText = formatMoney(t2);
             }
-            await new Promise(r => setTimeout(r, 1200));
+            await new Promise(r => setTimeout(r, 800));
         }
         
         clearTimeout(safetyTimer);
@@ -3159,7 +3159,7 @@
                 document.getElementById('team-score-1').innerText = formatMoney(sc[0].total + sc[1].total);
                 document.getElementById('team-score-2').innerText = formatMoney(sc[2].total + sc[3].total);
             }
-            await new Promise(r => setTimeout(r, 1200));
+            await new Promise(r => setTimeout(r, 800));
         }
 
         // Use same end-of-battle logic as runBattle
