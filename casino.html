@@ -1107,6 +1107,7 @@
     }
     function quickLogin(nick) {
         currentNick = nick;
+        localStorage.setItem('an4l_lastuser', nick);
         document.getElementById('login-overlay').style.display = 'none';
         load();
     }
@@ -1127,7 +1128,7 @@
         if (!pass) return showAuthError('login-error', 'Wpisz hasło!');
         if(existingPass !== pass) return showAuthError('login-error', 'Złe hasło!');
         currentNick = nick;
-        document.cookie = 'an4l_user=' + encodeURIComponent(nick) + ';path=/;max-age=31536000;SameSite=Lax';
+        localStorage.setItem('an4l_lastuser', nick);
         document.getElementById('login-overlay').style.display = 'none';
         load();
     }
@@ -1144,7 +1145,7 @@
         localStorage.setItem('an4l_pass_' + nick, pass);
         localStorage.setItem('an4l_' + nick, JSON.stringify({ balance: 5000, debt: 0, inventory: [], cart: [], selectedBots: [], mode: 'classic', battleFormat: '2p', rounds: 0 }));
         currentNick = nick;
-        document.cookie = 'an4l_user=' + encodeURIComponent(nick) + ';path=/;max-age=31536000;SameSite=Lax';
+        localStorage.setItem('an4l_lastuser', nick);
         document.getElementById('login-overlay').style.display = 'none';
         load();
     }
@@ -1954,6 +1955,18 @@
             botCount: state.selectedBots.length
         };
         battleState = 'running';
+        // Push battle to Firebase for lobby
+        const totalVal = state.cart.reduce((s,c) => s + c.price * (c.qty||1), 0);
+        const battleRef = db.ref('battles').push({
+            creator: currentNick,
+            format: state.battleFormat,
+            mode: state.mode,
+            cases: state.cart.map(c => ({name:c.name, img:c.img||null, icon:c.icon||null, color:c.color, qty:c.qty||1})),
+            totalValue: totalVal,
+            status: 'running',
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        });
+        const battleKey = battleRef.key;
         document.getElementById('battle-action-area').style.display = 'none'; 
         
         const is2v2 = state.battleFormat === '2v2';
@@ -2138,6 +2151,7 @@
         }
         
         battleState = 'idle';
+        if(typeof battleKey !== 'undefined' && battleKey) db.ref('battles/' + battleKey).remove();
         state.cart = []; 
         document.getElementById('battle-queue-display').style.display = 'none';
         
@@ -2529,15 +2543,9 @@
     function sellItem(i) { if(i < 0 || i >= state.inventory.length) return; playSellSound(); state.balance += state.inventory[i].value; state.inventory.splice(i, 1); save(); renderInventory(); }
     function sellAll() { if(state.inventory.length === 0) return; playSellSound(); state.balance += state.inventory.reduce((a,b)=>a+b.value,0); state.inventory = []; save(); renderInventory(); }
 
-    // Cookie helpers
-    function getCookie(name) {
-        const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
-        return m ? decodeURIComponent(m.pop()) : null;
-    }
-
     window.onload = function() {
-        // Auto-login from cookie
-        const savedUser = getCookie('an4l_user');
+        // Auto-login from saved session
+        const savedUser = localStorage.getItem('an4l_lastuser');
         if(savedUser && localStorage.getItem('an4l_pass_' + savedUser) && localStorage.getItem('an4l_' + savedUser)) {
             currentNick = savedUser;
             document.getElementById('login-overlay').style.display = 'none';
