@@ -1172,7 +1172,7 @@
     function switchProfile(nick) {
         if (nick === currentNick) { document.getElementById('profile-menu').style.display = 'none'; return; }
         const passKey = localStorage.getItem('an4l_pass_' + nick);
-        if(passKey) {
+        if(passKey && !passKey.startsWith('steam_auth_')) {
             const pass = prompt(`Hasło dla "${nick}":`);
             if(pass !== passKey) { alert('Złe hasło!'); return; }
         }
