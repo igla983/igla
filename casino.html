@@ -226,6 +226,7 @@
     @keyframes tbSpin { 0% { transform: rotateY(0deg); } 100% { transform: rotateY(360deg); } }
     @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
     @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+    @keyframes progressShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     .feed-item { flex-shrink:0; display:flex; align-items:center; gap:6px; background:linear-gradient(135deg, #1a1e2988, #0f121888); border:1px solid #ffffff10; border-radius:8px; padding:8px 12px; min-height:48px; }
     .feed-item img { width:40px; height:36px; object-fit:contain; }
 </style>
@@ -2047,7 +2048,7 @@
                 </div>
                 <div id="battle-history-${pIndex}" style="display:flex; gap:6px; padding:8px; overflow-x:auto; overflow-y:hidden; white-space:nowrap; scroll-behavior:smooth;"></div>
                 <div id="battle-progress-${pIndex}" style="height:4px; margin:0 8px 4px; border-radius:2px; background:#1a1e29; overflow:hidden;">
-                    <div id="battle-progress-bar-${pIndex}" style="height:100%; width:0%; border-radius:2px; transition:width 0.5s ease; background:linear-gradient(90deg, #a855f7, #ec4899, #f97316);"></div>
+                    <div id="battle-progress-bar-${pIndex}" style="height:100%; width:0%; border-radius:2px; transition:width 0.5s ease; background:linear-gradient(90deg, var(--accent-blue), var(--accent-green), var(--accent-gold), var(--accent-blue)); background-size:200% 100%; animation:progressShimmer 2s linear infinite;"></div>
                 </div>
                 <div class="battle-card-footer">
                     <img src="${img}">
