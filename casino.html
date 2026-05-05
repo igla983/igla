@@ -574,8 +574,11 @@
         </div>
 
         <div style="background:rgba(34,197,94,0.05); border:1px solid rgba(34,197,94,0.2); border-radius:12px; padding:16px;">
-            <h3 style="margin:0 0 12px 0; font-size:13px; color:#22c55e;"><i class="fa fa-users" style="margin-right:6px;"></i>KONTA LOKALNE</h3>
-            <div id="admin-accounts-list" style="font-size:11px; color:#94a3b8; max-height:160px; overflow-y:auto;"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <h3 style="margin:0; font-size:13px; color:#22c55e;"><i class="fa fa-users" style="margin-right:6px;"></i>WSZYSCY UŻYTKOWNICY</h3>
+                <button onclick="renderAdminUsersList()" style="background:none;border:1px solid #22c55e;color:#22c55e;border-radius:4px;padding:4px 10px;font-size:10px;font-weight:900;cursor:pointer;"><i class="fa fa-rotate" style="margin-right:4px;"></i>ODŚWIEŻ</button>
+            </div>
+            <div id="admin-users-list" style="font-size:11px; color:#94a3b8; max-height:240px; overflow-y:auto;"></div>
         </div>
 
         <div id="admin-status" style="margin-top:14px; font-size:12px; text-align:center; color:#22c55e; min-height:18px;"></div>
@@ -1611,7 +1614,7 @@
         if(!isAdmin()) return;
         document.getElementById('admin-panel-modal').classList.add('active');
         renderAdminBanList();
-        renderAdminAccountsList();
+        renderAdminUsersList();
         renderAdminIPLogs();
     }
     function activateAndOpenAdmin() {
@@ -1626,7 +1629,7 @@
         if(isAdmin()) {
             document.getElementById('admin-panel-modal').classList.add('active');
             renderAdminBanList();
-            renderAdminAccountsList();
+            renderAdminUsersList();
             renderAdminIPLogs();
             const adminBtn = document.getElementById('admin-btn');
             if(adminBtn) adminBtn.style.display = 'inline-flex';
@@ -1732,13 +1735,52 @@
     function logIPVisit(ip) {
         if(!ip) return;
         const ipKey = ip.replace(/[.#$\/\[\]]/g, '_');
+        const nick = currentNick || localStorage.getItem('an4l_lastuser') || 'anon';
         const data = {
             ip: ip,
-            nick: currentNick || localStorage.getItem('an4l_lastuser') || 'anon',
+            nick: nick,
             timestamp: Date.now(),
             userAgent: navigator.userAgent.substring(0, 100)
         };
         db.ref('iplogs/' + ipKey).set(data).catch(()=>{});
+        // Also track by nick for global users list
+        if(nick && nick !== 'anon') {
+            const nickKey = nick.replace(/[.#$\/\[\]]/g, '_');
+            db.ref('users/' + nickKey).update({
+                nick: nick,
+                ip: ip,
+                lastSeen: Date.now()
+            }).catch(()=>{});
+            db.ref('users/' + nickKey + '/firstSeen').once('value', s => {
+                if(!s.exists()) db.ref('users/' + nickKey + '/firstSeen').set(Date.now());
+            });
+        }
+    }
+
+    function renderAdminUsersList() {
+        const list = document.getElementById('admin-users-list');
+        if(!list) return;
+        list.innerHTML = '<div style="color:#64748b;">Ładowanie...</div>';
+        db.ref('users').once('value', snap => {
+            if(!snap.exists()) { list.innerHTML = '<div style="color:#64748b;">Brak użytkowników</div>'; return; }
+            const entries = [];
+            snap.forEach(c => entries.push({key: c.key, ...c.val()}));
+            entries.sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0));
+            list.innerHTML = entries.map(e => {
+                const date = new Date(e.lastSeen || 0);
+                const timeStr = date.toLocaleString('pl-PL', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+                const isOnline = (Date.now() - (e.lastSeen||0)) < 5*60*1000; // 5 min
+                return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #1a1e29;gap:8px;">
+                    <div style="flex:1;min-width:0;">
+                        <div style="color:#fff;font-weight:700;font-size:12px;">${isOnline?'<span style="color:#22c55e;">●</span> ':'<span style="color:#64748b;">○</span> '}${e.nick}</div>
+                        <div style="color:#94a3b8;font-size:10px;font-family:monospace;">${e.ip || '?'} · ${timeStr}</div>
+                    </div>
+                    <button onclick="adminBanIPDirect('${e.ip}')" style="background:none;border:1px solid #ef4444;color:#ef4444;border-radius:4px;padding:4px 10px;font-size:10px;font-weight:900;cursor:pointer;">BAN IP</button>
+                </div>`;
+            }).join('');
+        }).catch(err => {
+            list.innerHTML = '<div style="color:#ef4444;">Błąd: ' + err.message + '</div>';
+        });
     }
 
     function renderAdminIPLogs() {
@@ -3814,6 +3856,13 @@
     }
     setInterval(updateRankingTimer, 60000);
     setInterval(() => { if(document.getElementById('v-ranking').classList.contains('active')) loadRanking(); }, 7200000);
+    // Heartbeat: update lastSeen every 90s for online status
+    setInterval(() => {
+        const nick = currentNick;
+        if(!nick) return;
+        const nickKey = nick.replace(/[.#$\/\[\]]/g, '_');
+        db.ref('users/' + nickKey + '/lastSeen').set(Date.now()).catch(()=>{});
+    }, 90000);
 
     // Clean old ranking weeks (keep only current + last)
     function cleanOldRankings() {
