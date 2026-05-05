@@ -2333,8 +2333,8 @@
         const teamScoresEl = document.getElementById('team-scores');
         if (is2v2) {
             teamScoresEl.style.display = 'grid';
-            document.getElementById('team-score-1').innerText = '$0';
-            document.getElementById('team-score-2').innerText = '$0';
+            document.getElementById('team-score-1').innerText = formatMoney(0);
+            document.getElementById('team-score-2').innerText = formatMoney(0);
         } else {
             teamScoresEl.style.display = 'none';
         }
@@ -3158,6 +3158,11 @@
     }
 
     async function playBattleFromResults(allRollResults, remotePCount, remoteBotInfo) {
+        // Firebase can convert arrays to objects — normalize
+        if(allRollResults && !Array.isArray(allRollResults)) allRollResults = Object.values(allRollResults);
+        for(let r=0; r<allRollResults.length; r++) {
+            if(allRollResults[r] && !Array.isArray(allRollResults[r])) allRollResults[r] = Object.values(allRollResults[r]);
+        }
         const safetyTimer = setTimeout(() => {
             if(battleState === 'running') emergencyFinishBattle('Timeout - bitwa trwała za długo');
         }, 90000);
