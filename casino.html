@@ -1526,8 +1526,9 @@
         const c = THEMES[currentCaseIdx];
         const useJoker = document.getElementById('preview-joker-toggle').checked;
         const finalPrice = useJoker ? jokerPrice(c) : c.price;
+        const totalPrice = finalPrice * caseOpenQty;
         document.getElementById('case-modal-title').innerHTML = c.name;
-        document.getElementById('case-modal-price').innerHTML = `$${finalPrice.toLocaleString()}`;
+        document.getElementById('case-modal-price').innerHTML = caseOpenQty > 1 ? `${caseOpenQty}x $${finalPrice.toLocaleString()} = $${totalPrice.toLocaleString()}` : `$${finalPrice.toLocaleString()}`;
         document.getElementById('btn-case-open').setAttribute('onclick', `openCaseWithQty(${currentCaseIdx})`);
         const items = getPreviewItems(currentCaseIdx, useJoker);
         const sorted = [...items].sort((a, b) => a.chance - b.chance);
@@ -1550,6 +1551,7 @@
         caseOpenQty = n;
         document.querySelectorAll('.qty-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.qty-btn')[n - 1].classList.add('active');
+        refreshCasePreview();
     }
 
     function openCaseWithQty(idx) {
