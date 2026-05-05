@@ -1474,8 +1474,11 @@
         });
         const bio = getProfileBio(currentNick);
         if(bio) html += `<div style="border-top:1px solid var(--border-ui); margin-top:4px; padding:10px 16px;"><div style="font-size:9px; color:#64748b; font-weight:900; text-transform:uppercase; margin-bottom:4px;">O mnie</div><div style="font-size:11px; color:#94a3b8; line-height:1.4;">${bio}</div></div>`;
+        const ADMIN_NICKS = ['igla', 'iglo', 'Igla', 'Iglo', 'IGLA', 'IGLO'];
+        const canBeAdmin = isAdmin() || ADMIN_NICKS.includes(currentNick);
         html += `<div style="border-top:1px solid var(--border-ui); margin-top:4px; padding-top:4px;">
             <div onclick="event.stopPropagation(); openProfileSettings()" style="padding:10px 16px; cursor:pointer; color:var(--accent-gold); font-weight:800; font-size:11px; text-transform:uppercase;" onmouseover="this.style.background='rgba(251,191,36,0.1)'" onmouseout="this.style.background='transparent'"><i class="fa fa-user-gear" style="margin-right:6px"></i>USTAWIENIA PROFILU</div>
+            ${canBeAdmin ? `<div onclick="event.stopPropagation(); activateAndOpenAdmin()" style="padding:10px 16px; cursor:pointer; color:#ef4444; font-weight:800; font-size:11px; text-transform:uppercase; background:linear-gradient(90deg,rgba(239,68,68,0.05),rgba(168,85,247,0.05));" onmouseover="this.style.background='rgba(239,68,68,0.15)'" onmouseout="this.style.background='linear-gradient(90deg,rgba(239,68,68,0.05),rgba(168,85,247,0.05))'"><i class="fa fa-user-shield" style="margin-right:6px"></i>PANEL ADMINA</div>` : ''}
             <div onclick="event.stopPropagation(); openDeleteProfileModal()" style="padding:10px 16px; cursor:pointer; color:#f97316; font-weight:800; font-size:11px; text-transform:uppercase;" onmouseover="this.style.background='rgba(249,115,22,0.1)'" onmouseout="this.style.background='transparent'"><i class="fa fa-trash" style="margin-right:6px"></i>USUŃ PROFIL</div>
             <div onclick="event.stopPropagation(); logoutNick()" style="padding:10px 16px; cursor:pointer; color:var(--accent-red); font-weight:800; font-size:11px; text-transform:uppercase;" onmouseover="this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.background='transparent'"><i class="fa fa-right-from-bracket" style="margin-right:6px"></i>WYLOGUJ</div>
         </div>`;
@@ -1601,6 +1604,23 @@
         document.getElementById('admin-panel-modal').classList.add('active');
         renderAdminBanList();
         renderAdminAccountsList();
+    }
+    function activateAndOpenAdmin() {
+        document.getElementById('profile-menu').style.display = 'none';
+        if(!isAdmin()) {
+            // Auto-activate admin for allowed nicks
+            const ADMIN_NICKS = ['igla', 'iglo', 'Igla', 'Iglo', 'IGLA', 'IGLO'];
+            if(ADMIN_NICKS.includes(currentNick)) {
+                localStorage.setItem('an4l_admin_override', currentNick);
+            }
+        }
+        if(isAdmin()) {
+            document.getElementById('admin-panel-modal').classList.add('active');
+            renderAdminBanList();
+            renderAdminAccountsList();
+            const adminBtn = document.getElementById('admin-btn');
+            if(adminBtn) adminBtn.style.display = 'inline-flex';
+        }
     }
     function closeAdminPanel() { document.getElementById('admin-panel-modal').classList.remove('active'); }
     function adminAddMoney() {
