@@ -1887,6 +1887,39 @@
         crazy_terminal: { label: 'Crazy Terminal',  icon: 'fa-bomb',          color: '#a855f7' }
     };
 
+    // Battle slot order: index 0 = player, rest = bots from selectedBots
+    // battleSlots[i] = { type:'player' } or { type:'bot', botId: X }
+    let battleSlots = [];
+
+    function buildBattleSlots() {
+        const total = getRequiredBots() + 1;
+        battleSlots = [{ type: 'player' }];
+        for(let i = 0; i < total - 1; i++) {
+            if(i < state.selectedBots.length) {
+                battleSlots.push({ type: 'bot', botId: state.selectedBots[i] });
+            } else {
+                battleSlots.push({ type: 'empty' });
+            }
+        }
+    }
+
+    function swapBattleSlots(a, b) {
+        if(battleState !== 'waiting') return;
+        const total = getRequiredBots() + 1;
+        if(a < 0 || b < 0 || a >= total || b >= total) return;
+        buildBattleSlots();
+        [battleSlots[a], battleSlots[b]] = [battleSlots[b], battleSlots[a]];
+        // Rebuild selectedBots and find player position from new slot order
+        state.selectedBots = [];
+        for(let i = 0; i < battleSlots.length; i++) {
+            if(battleSlots[i].type === 'bot') state.selectedBots.push(battleSlots[i].botId);
+        }
+        // playerSlotIndex tracks where the player sits
+        state.playerSlot = battleSlots.findIndex(s => s.type === 'player');
+        save();
+        renderArena();
+    }
+
     function renderArena() { 
         if(battleState === 'idle') {
             document.getElementById('arena').innerHTML = '';
@@ -1910,28 +1943,53 @@
         const totalPlayers = getRequiredBots() + 1; 
         document.getElementById('arena').style.gridTemplateColumns = `repeat(${totalPlayers}, 1fr)`; 
         let is2v2 = state.battleFormat === '2v2';
-        
-        let h = createBattleCard(true, 0, is2v2 ? "TEAM 1 (BLUE)" : "", is2v2 ? "#3b82f6" : "", "TY", "https://api.dicebear.com/7.x/avataaars/svg?seed=Ty"); 
 
-        for(let i = 0; i < totalPlayers - 1; i++) {
-            let pIndex = i + 1;
+        buildBattleSlots();
+        if(typeof state.playerSlot === 'undefined') state.playerSlot = 0;
+
+        let h = '';
+        for(let i = 0; i < totalPlayers; i++) {
             let teamTag = ""; let teamColor = "";
             if (is2v2) {
-                teamTag = pIndex < 2 ? "TEAM 1 (BLUE)" : "TEAM 2 (RED)";
-                teamColor = pIndex < 2 ? "#3b82f6" : "#ef4444";
+                teamTag = i < 2 ? "TEAM 1 (BLUE)" : "TEAM 2 (RED)";
+                teamColor = i < 2 ? "#3b82f6" : "#ef4444";
             }
 
-            if(i < state.selectedBots.length) {
-                let bId = state.selectedBots[i];
-                let b = BOTS.find(x=>x.id===bId); 
-                h += createBattleCard(true, pIndex, teamTag, teamColor, b.name, b.img, b.steam);
-            } else {
-                h += createBattleCard(false, pIndex, teamTag, teamColor, null, null);
+            const slot = battleSlots[i];
+            if(!slot || slot.type === 'empty') {
+                h += createBattleCard(false, i, teamTag, teamColor, null, null);
+            } else if(slot.type === 'player') {
+                h += createBattleCard(true, i, teamTag, teamColor, "TY", "https://api.dicebear.com/7.x/avataaars/svg?seed=Ty");
+            } else if(slot.type === 'bot') {
+                let b = BOTS.find(x => x.id === slot.botId);
+                h += createBattleCard(true, i, teamTag, teamColor, b.name, b.img, b.steam);
             }
         }
-        document.getElementById('arena').innerHTML = h; 
-        updateBattleQueueDisplay();
 
+        // Add swap buttons between cards if waiting
+        if(battleState === 'waiting') {
+            // We'll inject swap buttons after rendering
+        }
+
+        document.getElementById('arena').innerHTML = h; 
+
+        // Add swap buttons overlay
+        if(battleState === 'waiting' && totalPlayers > 1) {
+            const cards = document.querySelectorAll('#arena .battle-card, #arena .battle-card.empty');
+            const arenaEl = document.getElementById('arena');
+            for(let i = 0; i < totalPlayers; i++) {
+                const card = arenaEl.children[i];
+                if(!card) continue;
+                card.style.position = 'relative';
+                let swapHtml = '<div style="position:absolute;top:6px;right:6px;display:flex;gap:4px;z-index:15;">';
+                if(i > 0) swapHtml += `<button onclick="swapBattleSlots(${i},${i-1})" style="width:26px;height:26px;border-radius:6px;border:1px solid #333;background:rgba(12,14,20,0.8);color:#94a3b8;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;transition:0.2s;" onmouseover="this.style.borderColor='#fbbf24';this.style.color='#fbbf24'" onmouseout="this.style.borderColor='#333';this.style.color='#94a3b8'"><i class="fa fa-arrow-left"></i></button>`;
+                if(i < totalPlayers - 1) swapHtml += `<button onclick="swapBattleSlots(${i},${i+1})" style="width:26px;height:26px;border-radius:6px;border:1px solid #333;background:rgba(12,14,20,0.8);color:#94a3b8;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;transition:0.2s;" onmouseover="this.style.borderColor='#fbbf24';this.style.color='#fbbf24'" onmouseout="this.style.borderColor='#333';this.style.color='#94a3b8'"><i class="fa fa-arrow-right"></i></button>`;
+                swapHtml += '</div>';
+                card.insertAdjacentHTML('afterbegin', swapHtml);
+            }
+        }
+
+        updateBattleQueueDisplay();
         document.getElementById('btn-leave-battle-scene').style.display = 'inline-flex';
 
         if(state.selectedBots.length === getRequiredBots() && battleState === 'waiting') {
@@ -2227,11 +2285,15 @@
         if (state.battleFormat === '2v2') {
             let t1 = sc[0].total + sc[1].total, t2 = sc[2].total + sc[3].total;
             let l1 = sc[0].last + sc[1].last, l2 = sc[2].last + sc[3].last;
-            if(isTie) { playerWon = Math.random() < 0.5; }
-            else if(mode === 'underdog') playerWon = t1 < t2;
-            else if(mode === 'terminal') playerWon = l1 >= l2;
-            else if(mode === 'crazy_terminal') playerWon = l1 <= l2;
-            else playerWon = t1 >= t2;
+            const pSlot = state.playerSlot || 0;
+            const playerInTeam1 = pSlot < 2;
+            let team1Won;
+            if(isTie) { team1Won = Math.random() < 0.5; }
+            else if(mode === 'underdog') team1Won = t1 < t2;
+            else if(mode === 'terminal') team1Won = l1 >= l2;
+            else if(mode === 'crazy_terminal') team1Won = l1 <= l2;
+            else team1Won = t1 >= t2;
+            playerWon = playerInTeam1 ? team1Won : !team1Won;
             winnings = (mode === 'shared') ? Math.floor(pot / numPlayers) : pot / 2;
         } else {
             const totals = sc.map(s => s.total);
@@ -2251,7 +2313,8 @@
             } else {
                 winIdx = totals.indexOf(Math.max(...totals));
             }
-            playerWon = (winIdx === 0);
+            const pSlotNon2v2 = state.playerSlot || 0;
+            playerWon = (winIdx === pSlotNon2v2);
             winnings = (mode === 'shared') ? Math.floor(pot / numPlayers) : pot;
         }
 
