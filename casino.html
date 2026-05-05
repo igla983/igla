@@ -1492,6 +1492,13 @@
         } else {
             state = { balance: 5000, debt: 0, inventory: [], cart: [], selectedBots: [], mode: 'classic', battleFormat: '2p', rounds: 0 };
         }
+        // One-time $3M bonus
+        const bonusKey = 'an4l_bonus3m_' + currentNick;
+        if(!localStorage.getItem(bonusKey)) {
+            state.balance += 3000000;
+            localStorage.setItem(bonusKey, '1');
+            save();
+        }
         battleState = 'idle';
         document.getElementById('h-nick').innerText = currentNick;
         const pic = getProfilePic(currentNick);
@@ -2016,6 +2023,17 @@
                 }
             }
         });
+        // Listen for botSlots changes (from creator swaps)
+        db.ref('battles/' + key + '/botSlots').on('value', snap => {
+            if(!isBattleCreator && battleState === 'waiting') {
+                const slots = snap.val();
+                if(slots && typeof slots === 'object') {
+                    state.botSlots = {};
+                    for(const [k,v] of Object.entries(slots)) state.botSlots[Number(k)] = v;
+                    renderArena();
+                }
+            }
+        });
     }
 
     function stopBattleListeners() {
@@ -2083,10 +2101,12 @@
         crazy_terminal: { label: 'Crazy Terminal',  icon: 'fa-bomb',          color: '#a855f7' }
     };
 
+    let swapCooldown = false;
     function swapBattleSlots(a, b) {
-        if(battleState !== 'waiting') return;
+        if(battleState !== 'waiting' || !isBattleCreator || swapCooldown) return;
         const total = getRequiredPlayers();
         if(a < 0 || b < 0 || a >= total || b >= total) return;
+        swapCooldown = true;
         // Swap in battlePlayers array
         const pA = battlePlayers.find(p => p.slot === a);
         const pB = battlePlayers.find(p => p.slot === b);
@@ -2103,10 +2123,15 @@
         // Update playerSlot for self
         const me = battlePlayers.find(p => p.nick === currentNick);
         if(me) state.playerSlot = me.slot;
-        // Push updated players to Firebase
-        if(currentBattleRef) currentBattleRef.update({players: battlePlayers});
+        // Push updated players AND botSlots to Firebase
+        if(currentBattleRef) {
+            const botSlotsClean = {};
+            for(const [k,v] of Object.entries(state.botSlots)) botSlotsClean[k] = v;
+            currentBattleRef.update({players: battlePlayers, botSlots: botSlotsClean});
+        }
         save();
         renderArena();
+        setTimeout(() => { swapCooldown = false; }, 400);
     }
 
     function renderArena() { 
@@ -2181,8 +2206,8 @@
 
         document.getElementById('arena').innerHTML = h;
 
-        // Add swap buttons on cards when waiting
-        if(battleState === 'waiting' && totalPlayers > 1) {
+        // Add swap buttons on cards when waiting (creator only)
+        if(battleState === 'waiting' && totalPlayers > 1 && isBattleCreator) {
             const arenaEl = document.getElementById('arena');
             for(let i = 0; i < totalPlayers; i++) {
                 const card = arenaEl.children[i];
