@@ -2537,7 +2537,13 @@
         }
 
         const banner = document.getElementById('battle-result-banner');
-        if(playerWon) {
+        if(isSpectating) {
+            // Spectator: no winnings, just show who won
+            banner.style.display = 'block';
+            banner.style.background = 'linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.05))';
+            banner.style.border = '2px solid #3b82f6';
+            banner.innerHTML = `<div style="font-size:14px;font-weight:900;color:#3b82f6;text-transform:uppercase;margin-bottom:8px;"><i class="fa fa-eye" style="margin-right:8px;"></i>TRYB WIDZA</div><div style="font-size:18px;font-weight:900;color:#94a3b8;font-family:'Rajdhani',sans-serif;">Pula: ${formatMoney(pot)}</div><div style="font-size:11px;color:#64748b;margin-top:6px;">Oglądałeś tę bitwę</div>`;
+        } else if(playerWon) {
             if(is2v2) { state.balance += winnings; }
             else { sc.flatMap(s => s.items).forEach(it => state.inventory.push({name:it.name,value:it.value,color:it.color,icon:it.icon,img:it.img})); }
             launchConfetti();
@@ -2554,18 +2560,20 @@
             banner.innerHTML = `<div style="font-size:14px;font-weight:900;color:#ef4444;text-transform:uppercase;margin-bottom:8px;"><i class="fa fa-skull" style="margin-right:8px;"></i>PRZEGRANA</div><div style="font-size:20px;font-weight:900;color:#ef4444;font-family:'Rajdhani',sans-serif;">Straciłeś tę bitwę</div><button class="btn btn-blue" style="margin-top:12px;width:auto;padding:10px 30px;font-size:12px;" onclick="repeatBattle()"><i class="fa fa-rotate" style="margin-right:6px;"></i>POWTÓRZ BITWĘ</button>`;
         }
 
-        state.rounds += state.cart.length;
-        if(state.rounds % 10 === 0 && state.debt > 0) { let tax = state.balance * 0.15; state.balance -= tax; state.debt -= tax; }
+        if(!isSpectating) {
+            state.rounds += state.cart.length;
+            if(state.rounds % 10 === 0 && state.debt > 0) { let tax = state.balance * 0.15; state.balance -= tax; state.debt -= tax; }
+        }
 
         battleState = 'idle';
         stopBattleListeners();
-        if(currentBattleRef) { currentBattleRef.remove(); currentBattleRef = null; }
+        if(!isSpectating && currentBattleRef) { currentBattleRef.remove(); currentBattleRef = null; }
         battlePlayers = [];
         isBattleCreator = false;
         state.cart = [];
         document.getElementById('battle-queue-display').style.display = 'none';
         renderCart();
-        save();
+        if(!isSpectating) save();
 
         for(let p=0; p<pCount; p++) {
             const h = document.getElementById(`battle-history-${p}`);
@@ -3119,11 +3127,45 @@
             emergencyFinishBattle('Błąd: ' + err.message);
         }
     }
+    let isSpectating = false;
     function spectBattle(key) {
-        db.ref('battles/' + key).once('value', snap => {
+        db.ref('battles/' + key).once('value', async snap => {
             if(!snap.exists()) return;
             const b = snap.val();
-            // Build a read-only view
+
+            // If battle is running and has results, spectate live
+            if(b.status === 'running' && b.results) {
+                if(battleState === 'running') return; // already in a battle
+                isSpectating = true;
+                // Load config without paying
+                state.cart = (b.cases || []).map(c => {
+                    const theme = THEMES.find(t => t.name === c.name.replace(' (JOKER)', ''));
+                    const base = theme ? {...theme} : {name: c.name, img: c.img || null, icon: c.icon || null, color: c.color, price: c.price || 0, items: []};
+                    base.qty = c.qty || 1;
+                    base.basePrice = c.basePrice || base.price || 0;
+                    base.isJoker = c.isJoker || false;
+                    if(base.isJoker) base.price = c.price;
+                    return base;
+                });
+                state.mode = b.mode || 'classic';
+                state.battleFormat = b.format || '2p';
+                state.selectedBots = [];
+                battleState = 'running';
+                isBattleCreator = false;
+                const players = b.players ? (Array.isArray(b.players) ? b.players : Object.values(b.players)) : [];
+                battlePlayers = players;
+                state.playerSlot = -1; // spectator has no slot
+                changeView('battle');
+                try {
+                    await playBattleFromResults(b.results, b.pCount || null);
+                } catch(err) {
+                    console.error('Spectate error:', err);
+                }
+                isSpectating = false;
+                return;
+            }
+
+            // Static preview for waiting battles
             const cases = (b.cases || []).slice(0, 8);
             const modeLabels = {classic:'Standardowy',shared:'Shared',underdog:'Underdog',terminal:'Terminal',crazy_terminal:'Crazy Terminal'};
             const formatLabels = {'2p':'1v1','3p':'3 Graczy','4p':'4 Graczy','2v2':'2v2'};
@@ -3145,12 +3187,12 @@
                     <span style="font-size:11px;font-weight:900;color:var(--accent-blue);background:rgba(59,130,246,0.1);padding:4px 10px;border-radius:6px;">${formatLabels[b.format]||b.format}</span>
                     <span style="font-size:11px;font-weight:900;color:#a855f7;background:rgba(168,85,247,0.1);padding:4px 10px;border-radius:6px;">${modeLabels[b.mode]||b.mode}</span>
                     <span style="font-size:11px;font-weight:900;color:var(--accent-gold);background:rgba(251,191,36,0.1);padding:4px 10px;border-radius:6px;">${formatMoney(b.totalValue||0)}</span>
-                    <span style="font-size:11px;font-weight:900;color:${b.status==='running'?'#f97316':'#22c55e'};background:${b.status==='running'?'rgba(249,115,22,0.1)':'rgba(34,197,94,0.1)'};padding:4px 10px;border-radius:6px;">${b.status==='running'?'W TRAKCIE':'OCZEKUJĄCA'}</span>
+                    <span style="font-size:11px;font-weight:900;color:#22c55e;background:rgba(34,197,94,0.1);padding:4px 10px;border-radius:6px;">OCZEKUJĄCA</span>
                 </div>
                 <div style="font-size:11px;color:#64748b;margin-bottom:8px;font-weight:900;">TWÓRCA: <span style="color:#fff;">${b.creator}</span></div>
                 <div style="font-size:11px;color:#64748b;margin-bottom:8px;font-weight:900;">SKRZYNKI:</div>
                 <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:15px;">${caseList}${moreText}</div>
-                ${b.status !== 'running' && b.creator !== currentNick ? `<button class="btn btn-green" style="width:100%;height:42px;font-size:12px;" onclick="this.closest('#spect-modal').remove();joinBattle('${key}')"><i class="fa fa-sword" style="margin-right:6px;"></i>DOŁĄCZ DO BITWY</button>` : ''}
+                ${b.creator !== currentNick ? `<button class="btn btn-green" style="width:100%;height:42px;font-size:12px;" onclick="this.closest('#spect-modal').remove();joinBattle('${key}')"><i class="fa fa-sword" style="margin-right:6px;"></i>DOŁĄCZ DO BITWY</button>` : ''}
             </div>`;
             document.body.appendChild(modal);
         });
