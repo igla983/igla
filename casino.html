@@ -2055,23 +2055,32 @@
                 const progBar = document.getElementById(`battle-progress-bar-${p}`);
                 if(progBar) progBar.style.width = `${((i+1) / state.cart.length) * 100}%`;
             }
-            // Highlight leading player with green border
+            // Highlight leading player/team with green border
             const isUnderdog = state.mode === 'underdog' || state.mode === 'crazy_terminal';
-            let leadIdx = 0;
-            for(let p=1; p<pCount; p++) {
-                if(isUnderdog ? sc[p].total < sc[leadIdx].total : sc[p].total > sc[leadIdx].total) leadIdx = p;
-            }
-            document.querySelectorAll('.battle-card').forEach((card, ci) => {
-                if(ci < pCount) {
-                    card.style.borderColor = ci === leadIdx ? '#22c55e' : 'rgba(255,255,255,0.05)';
-                    card.style.boxShadow = ci === leadIdx ? '0 0 15px rgba(34,197,94,0.2)' : 'none';
-                }
-            });
             if (is2v2) {
                 const t1 = sc[0].total + sc[1].total;
                 const t2 = sc[2].total + sc[3].total;
                 document.getElementById('team-score-1').innerText = formatMoney(t1);
                 document.getElementById('team-score-2').innerText = formatMoney(t2);
+                const team1Leads = isUnderdog ? t1 <= t2 : t1 >= t2;
+                document.querySelectorAll('.battle-card').forEach((card, ci) => {
+                    if(ci < pCount) {
+                        const isLeadTeam = (ci < 2) ? team1Leads : !team1Leads;
+                        card.style.borderColor = isLeadTeam ? '#22c55e' : 'rgba(255,255,255,0.05)';
+                        card.style.boxShadow = isLeadTeam ? '0 0 15px rgba(34,197,94,0.2)' : 'none';
+                    }
+                });
+            } else {
+                let leadIdx = 0;
+                for(let p=1; p<pCount; p++) {
+                    if(isUnderdog ? sc[p].total < sc[leadIdx].total : sc[p].total > sc[leadIdx].total) leadIdx = p;
+                }
+                document.querySelectorAll('.battle-card').forEach((card, ci) => {
+                    if(ci < pCount) {
+                        card.style.borderColor = ci === leadIdx ? '#22c55e' : 'rgba(255,255,255,0.05)';
+                        card.style.boxShadow = ci === leadIdx ? '0 0 15px rgba(34,197,94,0.2)' : 'none';
+                    }
+                });
             }
             await new Promise(r => setTimeout(r, 1200));
         }
