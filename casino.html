@@ -1695,11 +1695,20 @@
             const cost = state.cart.reduce((a,b)=>a+b.price,0);
             state.balance += cost;
         }
-        // Remove battle from Firebase
-        if(currentBattleRef) { currentBattleRef.remove(); currentBattleRef = null; }
+        stopBattleListeners();
+        if(isBattleCreator && currentBattleRef) { currentBattleRef.remove(); }
+        else if(currentBattleRef) {
+            // Remove self from players list
+            const updated = battlePlayers.filter(p => p.nick !== currentNick);
+            currentBattleRef.update({players: updated});
+        }
+        currentBattleRef = null;
         battleState = 'idle';
+        battlePlayers = [];
+        isBattleCreator = false;
         state.selectedBots = [];
         state.cart = [];
+        state.playerSlot = 0;
         document.getElementById('battle-queue-display').style.display = 'none';
         document.getElementById('battle-setup-panel').style.display = 'block';
         renderCart();
@@ -1809,6 +1818,23 @@
     }
 
     let currentBattleRef = null;
+    let battlePlayersListener = null;
+    let battleResultsListener = null;
+    let isBattleCreator = false;
+    let battlePlayers = []; // [{nick, avatar, slot}]
+
+    function getPlayerAvatar(nick) {
+        const meta = localStorage.getItem('an4l_meta_' + nick);
+        if(meta) { try { const m = JSON.parse(meta); if(m.pic) return m.pic; } catch(e){} }
+        return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(nick)}`;
+    }
+
+    function getRequiredPlayers() {
+        if(state.battleFormat === '3p') return 3;
+        if(state.battleFormat === '4p' || state.battleFormat === '2v2') return 4;
+        return 2;
+    }
+
     function createBattle() {
         if(battleState !== 'idle' || state.cart.length === 0) return;
         const cost = state.cart.reduce((a,b)=>a+b.price,0);
@@ -1817,23 +1843,59 @@
         state.balance -= cost; 
         battleState = 'waiting';
         state.selectedBots = []; 
+        state.playerSlot = 0;
+        isBattleCreator = true;
         save();
 
-        // Push battle to Firebase immediately so others can see it
         const totalVal = state.cart.reduce((s,c) => s + c.price * (c.qty||1), 0);
+        battlePlayers = [{nick: currentNick, avatar: getPlayerAvatar(currentNick), slot: 0}];
         currentBattleRef = db.ref('battles').push({
             creator: currentNick,
             format: state.battleFormat,
             mode: state.mode,
-            cases: state.cart.map(c => ({name:c.name, img:c.img||null, icon:c.icon||null, color:c.color, qty:c.qty||1})),
+            cases: state.cart.map(c => ({name:c.name, img:c.img||null, icon:c.icon||null, color:c.color, price:c.price||0, qty:c.qty||1})),
             totalValue: totalVal,
+            players: battlePlayers,
             status: 'waiting',
             timestamp: firebase.database.ServerValue.TIMESTAMP
         });
+
+        // Listen for other players joining
+        listenForBattlePlayers(currentBattleRef.key);
         
         document.getElementById('battle-setup-panel').style.display = 'none';
         renderCart(); 
         renderArena();
+    }
+
+    function listenForBattlePlayers(key) {
+        if(battlePlayersListener) db.ref('battles/' + key + '/players').off('value', battlePlayersListener);
+        battlePlayersListener = db.ref('battles/' + key + '/players').on('value', snap => {
+            if(!snap.exists()) return;
+            battlePlayers = snap.val() || [];
+            if(!Array.isArray(battlePlayers)) battlePlayers = Object.values(battlePlayers);
+            // Update arena if in waiting state
+            if(battleState === 'waiting') renderArena();
+            // Auto-fill bots for remaining slots and auto-ready if all real players joined
+            const needed = getRequiredPlayers();
+            const realCount = battlePlayers.length;
+            if(realCount >= needed && battleState === 'waiting') {
+                // All players are real humans — show start button
+                state.selectedBots = [];
+                renderArena();
+            }
+        });
+    }
+
+    function stopBattleListeners() {
+        if(battlePlayersListener && currentBattleRef) {
+            db.ref('battles/' + currentBattleRef.key + '/players').off('value', battlePlayersListener);
+            battlePlayersListener = null;
+        }
+        if(battleResultsListener && currentBattleRef) {
+            db.ref('battles/' + currentBattleRef.key + '/results').off('value', battleResultsListener);
+            battleResultsListener = null;
+        }
     }
 
     function createBattleCard(isReady, pIndex, teamTag, teamColor, name, img, steamUrl) {
@@ -1887,35 +1949,20 @@
         crazy_terminal: { label: 'Crazy Terminal',  icon: 'fa-bomb',          color: '#a855f7' }
     };
 
-    // Battle slot order: index 0 = player, rest = bots from selectedBots
-    // battleSlots[i] = { type:'player' } or { type:'bot', botId: X }
-    let battleSlots = [];
-
-    function buildBattleSlots() {
-        const total = getRequiredBots() + 1;
-        battleSlots = [{ type: 'player' }];
-        for(let i = 0; i < total - 1; i++) {
-            if(i < state.selectedBots.length) {
-                battleSlots.push({ type: 'bot', botId: state.selectedBots[i] });
-            } else {
-                battleSlots.push({ type: 'empty' });
-            }
-        }
-    }
-
     function swapBattleSlots(a, b) {
         if(battleState !== 'waiting') return;
         const total = getRequiredBots() + 1;
         if(a < 0 || b < 0 || a >= total || b >= total) return;
-        buildBattleSlots();
-        [battleSlots[a], battleSlots[b]] = [battleSlots[b], battleSlots[a]];
-        // Rebuild selectedBots and find player position from new slot order
-        state.selectedBots = [];
-        for(let i = 0; i < battleSlots.length; i++) {
-            if(battleSlots[i].type === 'bot') state.selectedBots.push(battleSlots[i].botId);
-        }
-        // playerSlotIndex tracks where the player sits
-        state.playerSlot = battleSlots.findIndex(s => s.type === 'player');
+        // Swap in battlePlayers array if both are real players
+        const pA = battlePlayers.find(p => p.slot === a);
+        const pB = battlePlayers.find(p => p.slot === b);
+        if(pA) pA.slot = b;
+        if(pB) pB.slot = a;
+        // Update playerSlot for self
+        const me = battlePlayers.find(p => p.nick === currentNick);
+        if(me) state.playerSlot = me.slot;
+        // Push updated players to Firebase
+        if(currentBattleRef) currentBattleRef.update({players: battlePlayers});
         save();
         renderArena();
     }
@@ -1944,9 +1991,9 @@
         document.getElementById('arena').style.gridTemplateColumns = `repeat(${totalPlayers}, 1fr)`; 
         let is2v2 = state.battleFormat === '2v2';
 
-        buildBattleSlots();
         if(typeof state.playerSlot === 'undefined') state.playerSlot = 0;
 
+        // Build slot list: real players from Firebase + bots + empty
         let h = '';
         for(let i = 0; i < totalPlayers; i++) {
             let teamTag = ""; let teamColor = "";
@@ -1955,27 +2002,32 @@
                 teamColor = i < 2 ? "#3b82f6" : "#ef4444";
             }
 
-            const slot = battleSlots[i];
-            if(!slot || slot.type === 'empty') {
-                h += createBattleCard(false, i, teamTag, teamColor, null, null);
-            } else if(slot.type === 'player') {
-                h += createBattleCard(true, i, teamTag, teamColor, "TY", "https://api.dicebear.com/7.x/avataaars/svg?seed=Ty");
-            } else if(slot.type === 'bot') {
-                let b = BOTS.find(x => x.id === slot.botId);
-                h += createBattleCard(true, i, teamTag, teamColor, b.name, b.img, b.steam);
+            // Check if a real player occupies this slot
+            const realPlayer = battlePlayers.find(p => p.slot === i);
+            if(realPlayer) {
+                const isMe = realPlayer.nick === currentNick;
+                const displayName = isMe ? 'TY' : realPlayer.nick;
+                h += createBattleCard(true, i, teamTag, teamColor, displayName, realPlayer.avatar);
+            } else {
+                // Check for bot in this slot
+                const botIdx = i - battlePlayers.length;
+                if(botIdx >= 0 && botIdx < state.selectedBots.length) {
+                    let b = BOTS.find(x => x.id === state.selectedBots[botIdx]);
+                    if(b) {
+                        h += createBattleCard(true, i, teamTag, teamColor, b.name, b.img, b.steam);
+                    } else {
+                        h += createBattleCard(false, i, teamTag, teamColor, null, null);
+                    }
+                } else {
+                    h += createBattleCard(false, i, teamTag, teamColor, null, null);
+                }
             }
         }
 
-        // Add swap buttons between cards if waiting
-        if(battleState === 'waiting') {
-            // We'll inject swap buttons after rendering
-        }
+        document.getElementById('arena').innerHTML = h;
 
-        document.getElementById('arena').innerHTML = h; 
-
-        // Add swap buttons overlay
+        // Add swap buttons on cards when waiting
         if(battleState === 'waiting' && totalPlayers > 1) {
-            const cards = document.querySelectorAll('#arena .battle-card, #arena .battle-card.empty');
             const arenaEl = document.getElementById('arena');
             for(let i = 0; i < totalPlayers; i++) {
                 const card = arenaEl.children[i];
@@ -1992,7 +2044,8 @@
         updateBattleQueueDisplay();
         document.getElementById('btn-leave-battle-scene').style.display = 'inline-flex';
 
-        if(state.selectedBots.length === getRequiredBots() && battleState === 'waiting') {
+        const allSlotsFilled = (battlePlayers.length + state.selectedBots.length) >= totalPlayers;
+        if(allSlotsFilled && battleState === 'waiting') {
             document.getElementById('battle-action-area').style.display = 'flex';
         } else {
             document.getElementById('battle-action-area').style.display = 'none';
@@ -2025,6 +2078,8 @@
     }
 
     function addBot(id) {
+        const maxBots = getRequiredBots() + 1 - battlePlayers.length;
+        if(state.selectedBots.length >= maxBots) { closeBotModal(); return; }
         if(id === 'random') {
             const available = BOTS.filter(b => !state.selectedBots.includes(b.id));
             if(available.length > 0) {
@@ -2146,8 +2201,31 @@
         if(audioCtx.state === 'suspended') audioCtx.resume();
         await playBattleCountdown();
 
-        const pCount = state.selectedBots.length + 1;
+        const pCount = battlePlayers.length + state.selectedBots.length;
         let sc = Array.from({length: pCount}, () => ({total: 0, last: 0, items: []}));
+
+        // Pre-generate all roll results
+        const allRollResults = [];
+        for(let i=0; i<state.cart.length; i++) {
+            const c = state.cart[i];
+            const roundResults = [];
+            for(let p=0; p<pCount; p++) {
+                const caseItems = c.items || null;
+                roundResults.push(rollItem(c.basePrice, c.isJoker, caseItems));
+            }
+            allRollResults.push(roundResults);
+        }
+
+        // Push results to Firebase so joiner can replay
+        if(currentBattleRef) {
+            currentBattleRef.update({
+                results: allRollResults.map(round => round.map(item => ({
+                    name: item.name, value: item.value, color: item.color, 
+                    icon: item.icon || null, img: item.img || null
+                }))),
+                status: 'running'
+            });
+        }
 
         for(let p=0; p<pCount; p++) {
             document.getElementById(`card-content-${p}`).innerHTML = `
@@ -2166,12 +2244,11 @@
             document.querySelectorAll('.queue-item').forEach(el => el.classList.remove('active'));
             document.getElementById(`q-item-${i}`).classList.add('active');
             
-            let rollValues = [];
+            let rollValues = allRollResults[i];
             const tracks = [];
             for(let p=0; p<pCount; p++) {
                 const caseItems = c.items || null;
-                const winnerItem = rollItem(c.basePrice, c.isJoker, caseItems); 
-                rollValues.push(winnerItem);
+                const winnerItem = rollValues[p];
                 
                 document.getElementById(`res-${p}`).innerText = "";
                 const tr = document.getElementById(`track-${p}`);
@@ -2258,15 +2335,18 @@
             await new Promise(r => setTimeout(r, 1200));
         }
         
+        await finishBattle(sc, pCount, is2v2);
+    }
+
+    async function finishBattle(sc, pCount, is2v2) {
         let pot = sc.reduce((a,b)=>a+b.total,0);
         let playerWon = false;
         let winnings = 0;
         const mode = state.mode;
         const numPlayers = sc.length;
 
-        // Detect tie
         let isTie = false;
-        if (state.battleFormat === '2v2') {
+        if (is2v2) {
             let t1 = sc[0].total + sc[1].total, t2 = sc[2].total + sc[3].total;
             let l1 = sc[0].last + sc[1].last, l2 = sc[2].last + sc[3].last;
             if(mode === 'terminal' || mode === 'crazy_terminal') isTie = (l1 === l2);
@@ -2276,19 +2356,15 @@
             const best = (mode === 'underdog' || mode === 'crazy_terminal') ? Math.min(...vals) : Math.max(...vals);
             isTie = vals.filter(v => v === best).length > 1;
         }
+        if(isTie) await showTiebreakerAnimation(sc, pCount, state.battleFormat);
 
-        if(isTie) {
-            await showTiebreakerAnimation(sc, pCount, state.battleFormat);
-        }
-
-        // Determine winner (if tie, random)
-        if (state.battleFormat === '2v2') {
+        if (is2v2) {
             let t1 = sc[0].total + sc[1].total, t2 = sc[2].total + sc[3].total;
             let l1 = sc[0].last + sc[1].last, l2 = sc[2].last + sc[3].last;
             const pSlot = state.playerSlot || 0;
             const playerInTeam1 = pSlot < 2;
             let team1Won;
-            if(isTie) { team1Won = Math.random() < 0.5; }
+            if(isTie) team1Won = Math.random() < 0.5;
             else if(mode === 'underdog') team1Won = t1 < t2;
             else if(mode === 'terminal') team1Won = l1 >= l2;
             else if(mode === 'crazy_terminal') team1Won = l1 <= l2;
@@ -2304,149 +2380,91 @@
                 const best = (mode === 'underdog' || mode === 'crazy_terminal') ? Math.min(...vals) : Math.max(...vals);
                 const tiedIdxs = vals.map((v,i) => v === best ? i : -1).filter(i => i >= 0);
                 winIdx = tiedIdxs[Math.floor(Math.random() * tiedIdxs.length)];
-            } else if(mode === 'underdog') {
-                winIdx = totals.indexOf(Math.min(...totals));
-            } else if(mode === 'terminal') {
-                winIdx = lasts.indexOf(Math.max(...lasts));
-            } else if(mode === 'crazy_terminal') {
-                winIdx = lasts.indexOf(Math.min(...lasts));
-            } else {
-                winIdx = totals.indexOf(Math.max(...totals));
-            }
-            const pSlotNon2v2 = state.playerSlot || 0;
-            playerWon = (winIdx === pSlotNon2v2);
+            } else if(mode === 'underdog') winIdx = totals.indexOf(Math.min(...totals));
+            else if(mode === 'terminal') winIdx = lasts.indexOf(Math.max(...lasts));
+            else if(mode === 'crazy_terminal') winIdx = lasts.indexOf(Math.min(...lasts));
+            else winIdx = totals.indexOf(Math.max(...totals));
+            const pSlot = state.playerSlot || 0;
+            playerWon = (winIdx === pSlot);
             winnings = (mode === 'shared') ? Math.floor(pot / numPlayers) : pot;
         }
 
-        // WIN/LOSE overlay on each battle card
         const battleCards = document.querySelectorAll('.battle-card');
-        let winnerIdx = -1;
-        if(state.battleFormat === '2v2') {
-            // Team-based, highlight teams
-            const t1 = sc[0].total + sc[1].total;
-            const t2 = sc[2].total + sc[3].total;
-            const l1 = sc[0].last + sc[1].last;
-            const l2 = sc[2].last + sc[3].last;
+        if(is2v2) {
+            const t1 = sc[0].total + sc[1].total, t2 = sc[2].total + sc[3].total;
+            const l1 = sc[0].last + sc[1].last, l2 = sc[2].last + sc[3].last;
             let team1Won;
             if(mode === 'underdog') team1Won = t1 < t2;
             else if(mode === 'terminal') team1Won = l1 >= l2;
             else if(mode === 'crazy_terminal') team1Won = l1 <= l2;
             else team1Won = t1 >= t2;
-            const winTeamPot = t1 + t2;
-            const perPlayer = Math.floor(winTeamPot / 2);
+            const perPlayer = Math.floor((t1 + t2) / 2);
             for(let p=0; p<pCount; p++) {
-                const card = battleCards[p];
-                if(!card) continue;
+                const card = battleCards[p]; if(!card) continue;
                 const isWinTeam = (p < 2) ? team1Won : !team1Won;
                 const overlay = document.createElement('div');
                 overlay.style.cssText = `position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;z-index:20;border-radius:14px;animation:resultPulse 0.5s ease;pointer-events:none;`;
                 overlay.style.background = isWinTeam ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.08)';
-                if(isWinTeam) {
-                    overlay.innerHTML = `
-                        <div style="width:60px;height:60px;border-radius:50%;border:3px solid #22c55e;display:flex;align-items:center;justify-content:center;background:rgba(34,197,94,0.1);">
-                            <i class="fa fa-trophy" style="font-size:24px;color:#22c55e;"></i>
-                        </div>
-                        <div style="font-size:22px;font-weight:900;color:#22c55e;font-family:'Rajdhani',sans-serif;text-shadow:0 0 20px rgba(34,197,94,0.4);">+${formatMoney(perPlayer)}</div>
-                        <div style="font-size:11px;font-weight:800;color:#22c55e;text-transform:uppercase;letter-spacing:1px;">Zwycięzca</div>`;
-                } else {
-                    overlay.innerHTML = `
-                        <div style="width:60px;height:60px;border-radius:50%;border:3px solid #ef4444;display:flex;align-items:center;justify-content:center;background:rgba(239,68,68,0.1);">
-                            <i class="fa fa-xmark" style="font-size:24px;color:#ef4444;"></i>
-                        </div>
-                        <div style="font-size:11px;font-weight:800;color:#ef4444;text-transform:uppercase;letter-spacing:1px;opacity:0.8;">Przegrana</div>`;
-                }
-                card.style.position = 'relative';
-                card.appendChild(overlay);
+                overlay.innerHTML = isWinTeam
+                    ? `<div style="width:60px;height:60px;border-radius:50%;border:3px solid #22c55e;display:flex;align-items:center;justify-content:center;background:rgba(34,197,94,0.1);"><i class="fa fa-trophy" style="font-size:24px;color:#22c55e;"></i></div><div style="font-size:22px;font-weight:900;color:#22c55e;font-family:'Rajdhani',sans-serif;text-shadow:0 0 20px rgba(34,197,94,0.4);">+${formatMoney(perPlayer)}</div><div style="font-size:11px;font-weight:800;color:#22c55e;text-transform:uppercase;letter-spacing:1px;">Zwycięzca</div>`
+                    : `<div style="width:60px;height:60px;border-radius:50%;border:3px solid #ef4444;display:flex;align-items:center;justify-content:center;background:rgba(239,68,68,0.1);"><i class="fa fa-xmark" style="font-size:24px;color:#ef4444;"></i></div><div style="font-size:11px;font-weight:800;color:#ef4444;text-transform:uppercase;letter-spacing:1px;opacity:0.8;">Przegrana</div>`;
+                card.style.position = 'relative'; card.appendChild(overlay);
                 card.style.borderColor = isWinTeam ? '#22c55e' : '#ef4444';
                 card.style.boxShadow = isWinTeam ? '0 0 20px rgba(34,197,94,0.3)' : 'none';
             }
         } else {
-            const totals = sc.map(s => s.total);
-            const lasts = sc.map(s => s.last);
+            const totals = sc.map(s => s.total), lasts = sc.map(s => s.last);
+            let winnerIdx;
             if(mode === 'underdog') winnerIdx = totals.indexOf(Math.min(...totals));
             else if(mode === 'terminal') winnerIdx = lasts.indexOf(Math.max(...lasts));
             else if(mode === 'crazy_terminal') winnerIdx = lasts.indexOf(Math.min(...lasts));
             else winnerIdx = totals.indexOf(Math.max(...totals));
             for(let p=0; p<pCount; p++) {
-                const card = battleCards[p];
-                if(!card) continue;
+                const card = battleCards[p]; if(!card) continue;
                 const isW = p === winnerIdx;
                 const overlay = document.createElement('div');
                 overlay.style.cssText = `position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:20;border-radius:14px;animation:resultPulse 0.5s ease;pointer-events:none;`;
                 overlay.style.background = isW ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.1)';
-                overlay.innerHTML = isW 
+                overlay.innerHTML = isW
                     ? `<span style="font-size:48px;font-weight:900;color:#22c55e;text-shadow:0 0 30px rgba(34,197,94,0.5),0 0 60px rgba(34,197,94,0.2);font-family:'Rajdhani',sans-serif;">WIN</span>`
                     : `<span style="font-size:36px;font-weight:900;color:#ef4444;opacity:0.7;font-family:'Rajdhani',sans-serif;">LOSE</span>`;
-                card.style.position = 'relative';
-                card.appendChild(overlay);
+                card.style.position = 'relative'; card.appendChild(overlay);
                 card.style.borderColor = isW ? '#22c55e' : '#ef4444';
                 card.style.boxShadow = isW ? '0 0 20px rgba(34,197,94,0.3)' : 'none';
             }
         }
 
         const banner = document.getElementById('battle-result-banner');
-        if(playerWon) { 
-            if (is2v2) {
-                state.balance += winnings;
-            } else {
-                const allWonItems = sc.flatMap(s => s.items);
-                allWonItems.forEach(it => state.inventory.push({name: it.name, value: it.value, color: it.color, icon: it.icon, img: it.img}));
-            }
+        if(playerWon) {
+            if(is2v2) { state.balance += winnings; }
+            else { sc.flatMap(s => s.items).forEach(it => state.inventory.push({name:it.name,value:it.value,color:it.color,icon:it.icon,img:it.img})); }
             launchConfetti();
             banner.style.display = 'block';
             banner.style.background = 'linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,197,94,0.05))';
             banner.style.border = '2px solid #22c55e';
-            if (is2v2) {
-                banner.innerHTML = `
-                    <div style="font-size:14px; font-weight:900; color:#22c55e; text-transform:uppercase; margin-bottom:8px;">
-                        <i class="fa fa-trophy" style="margin-right:8px;"></i>WYGRANA!
-                    </div>
-                    <div style="font-size:32px; font-weight:900; color:var(--accent-gold); font-family:'Rajdhani',sans-serif;">
-                        +${formatMoney(winnings)}
-                    </div>
-                    <div style="font-size:11px; color:#64748b; margin-top:6px;">Dodano do salda</div>
-                    <button class="btn btn-blue" style="margin-top:12px; width:auto; padding:10px 30px; font-size:12px;" onclick="repeatBattle()"><i class="fa fa-rotate" style="margin-right:6px;"></i>POWTÓRZ BITWĘ</button>`;
-            } else {
-                const allWonItems = sc.flatMap(s => s.items);
-                banner.innerHTML = `
-                    <div style="font-size:14px; font-weight:900; color:#22c55e; text-transform:uppercase; margin-bottom:8px;">
-                        <i class="fa fa-trophy" style="margin-right:8px;"></i>WYGRANA!
-                    </div>
-                    <div style="font-size:24px; font-weight:900; color:var(--accent-gold); font-family:'Rajdhani',sans-serif;">
-                        +${allWonItems.length} itemów (${formatMoney(winnings)})
-                    </div>
-                    <div style="font-size:11px; color:#64748b; margin-top:6px;">Itemy dodane do ekwipunku</div>
-                    <button class="btn btn-blue" style="margin-top:12px; width:auto; padding:10px 30px; font-size:12px;" onclick="repeatBattle()"><i class="fa fa-rotate" style="margin-right:6px;"></i>POWTÓRZ BITWĘ</button>`;
-            }
-        } else { 
+            const itemsText = is2v2 ? `+${formatMoney(winnings)}` : `+${sc.flatMap(s=>s.items).length} itemów (${formatMoney(winnings)})`;
+            const subText = is2v2 ? 'Dodano do salda' : 'Itemy dodane do ekwipunku';
+            banner.innerHTML = `<div style="font-size:14px;font-weight:900;color:#22c55e;text-transform:uppercase;margin-bottom:8px;"><i class="fa fa-trophy" style="margin-right:8px;"></i>WYGRANA!</div><div style="font-size:28px;font-weight:900;color:var(--accent-gold);font-family:'Rajdhani',sans-serif;">${itemsText}</div><div style="font-size:11px;color:#64748b;margin-top:6px;">${subText}</div><button class="btn btn-blue" style="margin-top:12px;width:auto;padding:10px 30px;font-size:12px;" onclick="repeatBattle()"><i class="fa fa-rotate" style="margin-right:6px;"></i>POWTÓRZ BITWĘ</button>`;
+        } else {
             banner.style.display = 'block';
             banner.style.background = 'linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05))';
             banner.style.border = '2px solid #ef4444';
-            banner.innerHTML = `
-                <div style="font-size:14px; font-weight:900; color:#ef4444; text-transform:uppercase; margin-bottom:8px;">
-                    <i class="fa fa-skull" style="margin-right:8px;"></i>PRZEGRANA
-                </div>
-                <div style="font-size:20px; font-weight:900; color:#ef4444; font-family:'Rajdhani',sans-serif;">
-                    Straciłeś tę bitwę
-                </div>
-                <button class="btn btn-blue" style="margin-top:12px; width:auto; padding:10px 30px; font-size:12px;" onclick="repeatBattle()"><i class="fa fa-rotate" style="margin-right:6px;"></i>POWTÓRZ BITWĘ</button>`;
+            banner.innerHTML = `<div style="font-size:14px;font-weight:900;color:#ef4444;text-transform:uppercase;margin-bottom:8px;"><i class="fa fa-skull" style="margin-right:8px;"></i>PRZEGRANA</div><div style="font-size:20px;font-weight:900;color:#ef4444;font-family:'Rajdhani',sans-serif;">Straciłeś tę bitwę</div><button class="btn btn-blue" style="margin-top:12px;width:auto;padding:10px 30px;font-size:12px;" onclick="repeatBattle()"><i class="fa fa-rotate" style="margin-right:6px;"></i>POWTÓRZ BITWĘ</button>`;
         }
-        
+
         state.rounds += state.cart.length;
-        if(state.rounds % 10 === 0 && state.debt > 0) { 
-            let tax = state.balance * 0.15; state.balance -= tax; state.debt -= tax;
-        }
-        
+        if(state.rounds % 10 === 0 && state.debt > 0) { let tax = state.balance * 0.15; state.balance -= tax; state.debt -= tax; }
+
         battleState = 'idle';
+        stopBattleListeners();
         if(currentBattleRef) { currentBattleRef.remove(); currentBattleRef = null; }
-        else if(typeof battleKey !== 'undefined' && battleKey) db.ref('battles/' + battleKey).remove();
-        state.cart = []; 
+        battlePlayers = [];
+        isBattleCreator = false;
+        state.cart = [];
         document.getElementById('battle-queue-display').style.display = 'none';
-        
-        renderCart(); 
+        renderCart();
         save();
 
-        // Auto-scroll battle history strips
         for(let p=0; p<pCount; p++) {
             const h = document.getElementById(`battle-history-${p}`);
             if(h && h.scrollWidth > h.clientWidth) {
@@ -2459,14 +2477,13 @@
                 }, 30);
             }
         }
-        
         setTimeout(() => {
             if(banner.style.display !== 'none') {
                 banner.style.display = 'none';
                 document.getElementById('battle-setup-panel').style.display = 'block';
                 renderArena();
             }
-        }, 8000); 
+        }, 8000);
     }
 
     function repeatBattle() {
@@ -2785,8 +2802,10 @@
                 const modeLabels = {classic:'Standardowy',shared:'Shared',underdog:'Underdog',terminal:'Terminal',crazy_terminal:'Crazy Terminal'};
                 const formatLabels = {'2p':'1v1','3p':'3 Graczy','4p':'4 Graczy','2v2':'2v2'};
                 const isMine = b.creator === currentNick;
+                const bPlayers = b.players ? (Array.isArray(b.players) ? b.players : Object.values(b.players)) : [];
+                const neededP = b.format === '3p' ? 3 : (b.format === '4p' || b.format === '2v2') ? 4 : 2;
                 const statusColor = b.status === 'running' ? '#f97316' : '#22c55e';
-                const statusText = b.status === 'running' ? 'W TRAKCIE' : 'OCZEKUJĄCA';
+                const statusText = b.status === 'running' ? 'W TRAKCIE' : `${bPlayers.length}/${neededP} GRACZY`;
                 return `<div style="background:var(--bg-card);border:1px solid var(--border-ui);border-radius:14px;padding:16px 20px;display:grid;grid-template-columns:1fr auto;gap:15px;align-items:center;">
                     <div>
                         <div style="display:flex;gap:6px;margin-bottom:8px;align-items:center;">
@@ -2801,7 +2820,7 @@
                         <div style="font-size:10px;color:#64748b;font-weight:900;">WARTOŚĆ BITWY</div>
                         <div style="font-size:16px;font-weight:900;color:var(--accent-gold);">${formatMoney(b.totalValue||0)}</div>
                         <div style="display:flex;gap:6px;">
-                            ${isMine ? '' : `<button class="btn btn-green" style="width:auto;padding:6px 16px;font-size:10px;" onclick="joinBattle('${b.key}')"><i class="fa fa-sword" style="margin-right:4px;"></i>DOŁĄCZ</button>`}
+                            ${isMine || bPlayers.length >= neededP || b.status === 'running' ? '' : `<button class="btn btn-green" style="width:auto;padding:6px 16px;font-size:10px;" onclick="joinBattle('${b.key}')"><i class="fa fa-sword" style="margin-right:4px;"></i>DOŁĄCZ</button>`}
                             <button class="btn btn-outline" style="width:auto;padding:6px 12px;font-size:10px;" onclick="spectBattle('${b.key}')"><i class="fa fa-eye"></i></button>
                         </div>
                     </div>
@@ -2814,35 +2833,148 @@
             if(!snap.exists()) return;
             const b = snap.val();
             if(b.status === 'running') return;
+            if(b.creator === currentNick) return;
+            const existingPlayers = b.players ? (Array.isArray(b.players) ? b.players : Object.values(b.players)) : [];
+            if(existingPlayers.find(p => p.nick === currentNick)) return;
+            const needed = b.format === '3p' ? 3 : (b.format === '4p' || b.format === '2v2') ? 4 : 2;
+            if(existingPlayers.length >= needed) return;
+
             // Load battle config
             state.cart = (b.cases || []).map(c => {
                 const theme = THEMES.find(t => t.name === c.name);
-                return theme ? {...theme, qty: c.qty || 1} : {name: c.name, img: c.img || null, icon: c.icon || null, color: c.color, price: 0, qty: c.qty || 1, items: []};
+                return theme ? {...theme, qty: c.qty || 1} : {name: c.name, img: c.img || null, icon: c.icon || null, color: c.color, price: c.price || 0, qty: c.qty || 1, items: []};
             });
             state.mode = b.mode || 'classic';
             state.battleFormat = b.format || '2p';
             state.selectedBots = [];
-            state.playerSlot = undefined;
+
             // Deduct cost
             const cost = state.cart.reduce((a,c) => a + (c.price || 0), 0);
             if(state.balance < cost) { state.cart = []; return; }
             state.balance -= cost;
             battleState = 'waiting';
-            // Set Firebase ref to this battle
+            isBattleCreator = false;
+
+            // Set Firebase ref
             currentBattleRef = db.ref('battles/' + key);
-            currentBattleRef.update({ joined: currentNick });
-            // Fill bots to remaining slots
-            const needed = getRequiredBots();
-            while(state.selectedBots.length < needed) {
-                const available = BOTS.filter(bot => !state.selectedBots.includes(bot.id));
-                if(available.length === 0) break;
-                state.selectedBots.push(available[Math.floor(Math.random() * available.length)].id);
-            }
+
+            // Add self to players in Firebase
+            const mySlot = existingPlayers.length;
+            state.playerSlot = mySlot;
+            const updatedPlayers = [...existingPlayers, {nick: currentNick, avatar: getPlayerAvatar(currentNick), slot: mySlot}];
+            currentBattleRef.update({ players: updatedPlayers });
+            battlePlayers = updatedPlayers;
+
+            // Listen for player changes & results
+            listenForBattlePlayers(key);
+            listenForBattleResults(key);
+
             save();
             renderCart();
             changeView('battle');
             renderArena();
         });
+    }
+
+    function listenForBattleResults(key) {
+        if(battleResultsListener) db.ref('battles/' + key + '/status').off('value', battleResultsListener);
+        battleResultsListener = db.ref('battles/' + key + '/status').on('value', async snap => {
+            const st = snap.val();
+            if(st === 'running' && !isBattleCreator && battleState === 'waiting') {
+                battleState = 'running';
+                const resultsSnap = await db.ref('battles/' + key + '/results').once('value');
+                const results = resultsSnap.val();
+                if(results) {
+                    await playBattleFromResults(results);
+                }
+            }
+        });
+    }
+
+    async function playBattleFromResults(allRollResults) {
+        // Joiner plays same animation using pre-computed results from Firebase
+        document.getElementById('battle-action-area').style.display = 'none';
+        const is2v2 = state.battleFormat === '2v2';
+        const teamScoresEl = document.getElementById('team-scores');
+        if (is2v2) {
+            teamScoresEl.style.display = 'grid';
+            document.getElementById('team-score-1').innerText = '$0';
+            document.getElementById('team-score-2').innerText = '$0';
+        } else { teamScoresEl.style.display = 'none'; }
+
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        await playBattleCountdown();
+
+        const pCount = battlePlayers.length + state.selectedBots.length;
+        let sc = Array.from({length: pCount}, () => ({total: 0, last: 0, items: []}));
+
+        for(let p=0; p<pCount; p++) {
+            document.getElementById(`card-content-${p}`).innerHTML = `
+                <div class="roulette-container" style="width: 100%; border: none; background: transparent;">
+                    <div class="roulette-center-line"></div>
+                    <div class="roulette-track" id="track-${p}"></div>
+                </div>
+                <div id="res-${p}" style="margin-top: 15px; font-weight: 900; font-size: 18px; color: var(--accent-gold); height: 25px;"></div>
+            `;
+        }
+        let containerWidth = document.querySelector('.battle-card-content .roulette-container').offsetWidth;
+
+        for(let i=0; i<state.cart.length; i++) {
+            const c = state.cart[i];
+            document.querySelectorAll('.queue-item').forEach(el => el.classList.remove('active'));
+            const qItem = document.getElementById(`q-item-${i}`);
+            if(qItem) qItem.classList.add('active');
+
+            let rollValues = allRollResults[i];
+            const tracks = [];
+            for(let p=0; p<pCount; p++) {
+                const caseItems = c.items || null;
+                const winnerItem = rollValues[p];
+                document.getElementById(`res-${p}`).innerText = "";
+                const tr = document.getElementById(`track-${p}`);
+                tr.style.transition = 'none';
+                tr.style.transform = 'translateX(0)';
+                tr.innerHTML = generateRouletteItems(winnerItem, c.basePrice, c.isJoker, caseItems);
+                tracks.push(tr);
+            }
+            tracks[0].offsetHeight;
+            const offset = (68 * 120) - (containerWidth / 2) + 60;
+            const spinPromises = [];
+            const stopTickers = [];
+            for(let p=0; p<pCount; p++) {
+                const tr = tracks[p];
+                const tickFn = startTickSound();
+                stopTickers.push(tickFn);
+                const duration = 4 + Math.random() * 0.8;
+                tr.style.transition = `transform ${duration}s cubic-bezier(0.15, 0.85, 0.25, 1)`;
+                tr.style.transform = `translateX(-${offset}px)`;
+                spinPromises.push(new Promise(r => setTimeout(r, duration * 1000)));
+            }
+            await Promise.all(spinPromises);
+            stopTickers.forEach(fn => fn());
+
+            for(let p=0; p<pCount; p++) {
+                const val = rollValues[p].value;
+                const item = rollValues[p];
+                sc[p].total += val; sc[p].last = val; sc[p].items.push(item);
+                document.getElementById(`t-${p}`).innerText = formatMoney(sc[p].total);
+                document.getElementById(`res-${p}`).innerHTML = `<span style="color:${item.color}">${item.name}</span>`;
+                const histEl = document.getElementById(`battle-history-${p}`);
+                if (histEl) {
+                    const imgPart = item.img ? `<img src="${item.img}" style="width:40px;height:40px;object-fit:contain;">` : `<i class="fa ${item.icon || 'fa-gem'}" style="font-size:18px;color:${item.color}"></i>`;
+                    histEl.innerHTML += `<div style="flex-shrink:0; width:70px; background:linear-gradient(180deg,#1a1e2988,#0f121888); border:1px solid ${item.color}33; border-radius:6px; padding:4px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:2px;">${imgPart}<div style="font-size:8px; font-weight:800; color:${item.color}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;">${item.name}</div><div style="font-size:9px; font-weight:900; color:var(--accent-gold); font-family:'Rajdhani',sans-serif;">${formatMoney(val)}</div></div>`;
+                    histEl.scrollLeft = histEl.scrollWidth;
+                }
+            }
+            if(is2v2) {
+                document.getElementById('team-score-1').innerText = formatMoney(sc[0].total + sc[1].total);
+                document.getElementById('team-score-2').innerText = formatMoney(sc[2].total + sc[3].total);
+            }
+            await new Promise(r => setTimeout(r, 1200));
+        }
+
+        // Use same end-of-battle logic as runBattle
+        await finishBattle(sc, pCount, is2v2);
     }
     function spectBattle(key) {
         db.ref('battles/' + key).once('value', snap => {
