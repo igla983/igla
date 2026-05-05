@@ -2595,8 +2595,7 @@
 
     // Auto-clean old battles (older than 10 minutes)
     function cleanOldBattles() {
-        const cutoff = Date.now() - 10 * 60 * 1000;
-        db.ref('battles').orderByChild('timestamp').endAt(cutoff).once('value', snap => {
+        db.ref('battles').once('value', snap => {
             snap.forEach(child => child.ref.remove());
         });
     }
