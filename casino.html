@@ -2675,7 +2675,12 @@
 
         battleState = 'idle';
         stopBattleListeners();
-        if(!isSpectating && currentBattleRef) { currentBattleRef.remove(); currentBattleRef = null; }
+        if(!isSpectating && currentBattleRef) {
+            currentBattleRef.update({ status: 'finished', finishedAt: firebase.database.ServerValue.TIMESTAMP });
+            const refToRemove = currentBattleRef;
+            setTimeout(() => refToRemove.remove(), 5000);
+            currentBattleRef = null;
+        }
         battlePlayers = [];
         isBattleCreator = false;
         state.cart = [];
@@ -3008,7 +3013,17 @@
             const msg = document.getElementById('no-battles-msg');
             if(!snap.exists()) { list.innerHTML = ''; msg.style.display = 'block'; return; }
             let battles = [];
-            snap.forEach(c => battles.push({...c.val(), key: c.key}));
+            snap.forEach(c => {
+                const b = c.val();
+                // Skip finished battles
+                if(b.status === 'finished') return;
+                // Auto-clean stale running battles older than 5 minutes
+                if(b.status === 'running' && b.timestamp && (Date.now() - b.timestamp > 5 * 60 * 1000)) {
+                    c.ref.remove();
+                    return;
+                }
+                battles.push({...b, key: c.key});
+            });
             battles.reverse();
             if(battles.length === 0) { list.innerHTML = ''; msg.style.display = 'block'; return; }
             msg.style.display = 'none';
@@ -3349,10 +3364,14 @@
         });
     }
 
-    // Auto-clean old battles (older than 30 minutes)
+    // Auto-clean old battles (older than 5 minutes) and finished battles
     function cleanOldBattles() {
-        const cutoff = Date.now() - 30 * 60 * 1000;
+        const cutoff = Date.now() - 5 * 60 * 1000;
         db.ref('battles').orderByChild('timestamp').endAt(cutoff).once('value', snap => {
+            snap.forEach(child => child.ref.remove());
+        });
+        // Also remove all finished battles
+        db.ref('battles').orderByChild('status').equalTo('finished').once('value', snap => {
             snap.forEach(child => child.ref.remove());
         });
     }
@@ -3370,7 +3389,7 @@
         if(v==='upgrade') { upState.selectedIndices = []; upState.targetItem = null; updateUpgradePreview(); renderUpgradeInv(); } 
         if(v==='inv') renderInventory(); 
         if(v==='market') renderMarket();
-        if(v==='battle') { showBattleLobby(); }
+        if(v==='battle' && battleState === 'idle') { showBattleLobby(); }
         if(v==='shop') renderShop();
     }
     
