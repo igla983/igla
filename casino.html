@@ -440,6 +440,17 @@
         <input type="text" id="steam-nick-input" placeholder="Twój nick..." style="width:100%; background:var(--bg-main); border:2px solid #66c0f4; border-radius:10px; padding:14px 18px; color:#fff; font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:900; text-align:center; outline:none; margin-bottom:15px;">
         <button class="btn btn-blue" style="height:50px; font-size:14px; width:100%;" onclick="confirmSteamNick()">POTWIERDŹ</button>
     </div>
+    <!-- PASSWORD MODAL for profile switching -->
+    <div id="switch-pass-modal" style="display:none; text-align:center;">
+        <i class="fa fa-lock" style="font-size:40px; color:var(--accent-gold); margin-bottom:15px;"></i>
+        <h2 style="font-weight:900; margin-bottom:15px;" id="switch-pass-title">Hasło</h2>
+        <input type="password" id="switch-pass-input" placeholder="Wpisz hasło..." style="width:100%; background:var(--bg-main); border:2px solid var(--accent-gold); border-radius:10px; padding:14px 18px; color:#fff; font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:900; text-align:center; outline:none; margin-bottom:10px;">
+        <div id="switch-pass-error" style="color:#ef4444; font-size:12px; font-weight:900; margin-bottom:10px; min-height:18px;"></div>
+        <div style="display:flex; gap:10px;">
+            <button class="btn btn-outline" style="flex:1; height:50px; font-size:14px;" onclick="closeSwitchPass()">ANULUJ</button>
+            <button class="btn btn-gold" style="flex:1; height:50px; font-size:14px;" onclick="confirmSwitchPass()">ZALOGUJ</button>
+        </div>
+    </div>
 </div>
 
 <div class="full-overlay" id="profile-settings-modal">
@@ -1178,17 +1189,44 @@
         menu.innerHTML = html;
         menu.style.display = 'block';
     }
+    let pendingSwitchNick = null;
     function switchProfile(nick) {
         if (nick === currentNick) { document.getElementById('profile-menu').style.display = 'none'; return; }
         const passKey = localStorage.getItem('an4l_pass_' + nick);
         if(passKey && !passKey.startsWith('steam_auth_')) {
-            const pass = prompt(`Hasło dla "${nick}":`);
-            if(pass !== passKey) { showAuthError('login-error', 'Złe hasło!'); return; }
+            pendingSwitchNick = nick;
+            document.getElementById('profile-menu').style.display = 'none';
+            document.getElementById('switch-pass-title').innerText = `Hasło dla "${nick}"`;
+            document.getElementById('switch-pass-input').value = '';
+            document.getElementById('switch-pass-error').innerText = '';
+            const overlay = document.getElementById('login-overlay');
+            overlay.style.display = 'flex';
+            overlay.querySelector('.modal-content').style.display = 'none';
+            document.getElementById('steam-nick-form').style.display = 'none';
+            document.getElementById('switch-pass-modal').style.display = 'block';
+            setTimeout(() => document.getElementById('switch-pass-input').focus(), 100);
+            return;
         }
         save();
         currentNick = nick;
         document.getElementById('profile-menu').style.display = 'none';
         load();
+    }
+    function confirmSwitchPass() {
+        const pass = document.getElementById('switch-pass-input').value.trim();
+        const passKey = localStorage.getItem('an4l_pass_' + pendingSwitchNick);
+        if(pass !== passKey) { document.getElementById('switch-pass-error').innerText = 'Złe hasło!'; return; }
+        save();
+        currentNick = pendingSwitchNick;
+        closeSwitchPass();
+        load();
+    }
+    function closeSwitchPass() {
+        document.getElementById('switch-pass-modal').style.display = 'none';
+        const overlay = document.getElementById('login-overlay');
+        overlay.style.display = 'none';
+        overlay.querySelector('.modal-content').style.display = '';
+        pendingSwitchNick = null;
     }
     document.addEventListener('click', e => { if (!e.target.closest('#profile-menu') && !e.target.closest('[onclick*="toggleProfileMenu"]')) document.getElementById('profile-menu').style.display = 'none'; });
     document.getElementById('login-nick').addEventListener('keydown', e => { if(e.key === 'Enter') document.getElementById('login-pass').focus(); });
@@ -1197,6 +1235,7 @@
     document.getElementById('reg-pass').addEventListener('keydown', e => { if(e.key === 'Enter') document.getElementById('reg-pass2').focus(); });
     document.getElementById('reg-pass2').addEventListener('keydown', e => { if(e.key === 'Enter') registerAccount(); });
     document.getElementById('steam-nick-input').addEventListener('keydown', e => { if(e.key === 'Enter') confirmSteamNick(); });
+    document.getElementById('switch-pass-input').addEventListener('keydown', e => { if(e.key === 'Enter') confirmSwitchPass(); });
 
     // --- ZAPIS ---
     function getSaveKey() { return 'an4l_' + currentNick; }
