@@ -2998,17 +2998,22 @@
             const st = snap.val();
             if(st === 'running' && !isBattleCreator && battleState === 'waiting') {
                 battleState = 'running';
-                // Wait for results to be available (retry up to 10 times)
+                // Fetch results (pushed atomically with status, should be instant)
                 let results = null, pCount = null;
-                for(let attempt = 0; attempt < 10; attempt++) {
-                    const battleSnap = await db.ref('battles/' + key).once('value');
-                    const bData = battleSnap.val();
-                    if(bData && bData.results) {
-                        results = bData.results;
-                        pCount = bData.pCount || null;
-                        break;
+                const battleSnap = await db.ref('battles/' + key).once('value');
+                const bData = battleSnap.val();
+                if(bData && bData.results) {
+                    results = bData.results;
+                    pCount = bData.pCount || null;
+                }
+                // Fallback: if not yet available, retry up to 3 times with short delay
+                if(!results) {
+                    for(let attempt = 0; attempt < 3; attempt++) {
+                        await new Promise(r => setTimeout(r, 150));
+                        const retry = await db.ref('battles/' + key).once('value');
+                        const rd = retry.val();
+                        if(rd && rd.results) { results = rd.results; pCount = rd.pCount || null; break; }
                     }
-                    await new Promise(r => setTimeout(r, 500));
                 }
                 if(results) {
                     await playBattleFromResults(results, pCount);
