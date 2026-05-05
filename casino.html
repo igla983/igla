@@ -1537,8 +1537,16 @@
     function isAdmin() {
         if(!currentNick) return false;
         const pass = localStorage.getItem('an4l_pass_' + currentNick);
-        return pass === 'steam_auth_' + ADMIN_STEAM_ID;
+        if(pass === 'steam_auth_' + ADMIN_STEAM_ID) return true;
+        // Also check if current nick is linked to admin Steam ID
+        const linkedNick = localStorage.getItem('an4l_steam_link_' + ADMIN_STEAM_ID);
+        if(linkedNick && linkedNick === currentNick) return true;
+        // Manual admin override
+        if(localStorage.getItem('an4l_admin_override') === currentNick) return true;
+        return false;
     }
+    // Console helper: localStorage.setItem('an4l_admin_override', 'TwojNick') aby wymusić admina
+    window.makeAdmin = function(nick) { localStorage.setItem('an4l_admin_override', nick || currentNick); location.reload(); };
 
     function load() { 
         const s = localStorage.getItem(getSaveKey()); 
