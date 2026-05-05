@@ -1881,7 +1881,7 @@
             creator: currentNick,
             format: state.battleFormat,
             mode: state.mode,
-            cases: state.cart.map(c => ({name:c.name, img:c.img||null, icon:c.icon||null, color:c.color, price:c.price||0, qty:c.qty||1})),
+            cases: state.cart.map(c => ({name:c.name, img:c.img||null, icon:c.icon||null, color:c.color, price:c.price||0, qty:c.qty||1, basePrice:c.basePrice||c.price||0, isJoker:c.isJoker||false})),
             totalValue: totalVal,
             players: battlePlayers,
             status: 'waiting',
@@ -2232,8 +2232,6 @@
             botCount: state.selectedBots.length
         };
         battleState = 'running';
-        // Update battle status to running in Firebase
-        if(currentBattleRef) currentBattleRef.update({status: 'running'});
         const battleKey = currentBattleRef ? currentBattleRef.key : null;
         document.getElementById('battle-action-area').style.display = 'none'; 
         
@@ -2265,13 +2263,14 @@
             allRollResults.push(roundResults);
         }
 
-        // Push results to Firebase so joiner can replay
+        // Push results to Firebase so joiner can replay (status set HERE so results are always available)
         if(currentBattleRef) {
             currentBattleRef.update({
                 results: allRollResults.map(round => round.map(item => ({
                     name: item.name, value: item.value, color: item.color, 
                     icon: item.icon || null, img: item.img || null
                 }))),
+                pCount: pCount,
                 status: 'running'
             });
         }
@@ -2890,8 +2889,13 @@
 
             // Load battle config
             state.cart = (b.cases || []).map(c => {
-                const theme = THEMES.find(t => t.name === c.name);
-                return theme ? {...theme, qty: c.qty || 1} : {name: c.name, img: c.img || null, icon: c.icon || null, color: c.color, price: c.price || 0, qty: c.qty || 1, items: []};
+                const theme = THEMES.find(t => t.name === c.name.replace(' (JOKER)', ''));
+                const base = theme ? {...theme} : {name: c.name, img: c.img || null, icon: c.icon || null, color: c.color, price: c.price || 0, items: []};
+                base.qty = c.qty || 1;
+                base.basePrice = c.basePrice || base.price || 0;
+                base.isJoker = c.isJoker || false;
+                if(base.isJoker) base.price = c.price;
+                return base;
             });
             state.mode = b.mode || 'classic';
             state.battleFormat = b.format || '2p';
@@ -2931,16 +2935,26 @@
             const st = snap.val();
             if(st === 'running' && !isBattleCreator && battleState === 'waiting') {
                 battleState = 'running';
-                const resultsSnap = await db.ref('battles/' + key + '/results').once('value');
-                const results = resultsSnap.val();
+                // Wait for results to be available (retry up to 10 times)
+                let results = null, pCount = null;
+                for(let attempt = 0; attempt < 10; attempt++) {
+                    const battleSnap = await db.ref('battles/' + key).once('value');
+                    const bData = battleSnap.val();
+                    if(bData && bData.results) {
+                        results = bData.results;
+                        pCount = bData.pCount || null;
+                        break;
+                    }
+                    await new Promise(r => setTimeout(r, 500));
+                }
                 if(results) {
-                    await playBattleFromResults(results);
+                    await playBattleFromResults(results, pCount);
                 }
             }
         });
     }
 
-    async function playBattleFromResults(allRollResults) {
+    async function playBattleFromResults(allRollResults, remotePCount) {
         // Joiner plays same animation using pre-computed results from Firebase
         document.getElementById('battle-action-area').style.display = 'none';
         const is2v2 = state.battleFormat === '2v2';
@@ -2952,9 +2966,25 @@
         } else { teamScoresEl.style.display = 'none'; }
 
         if(audioCtx.state === 'suspended') audioCtx.resume();
-        await playBattleCountdown();
 
-        const pCount = battlePlayers.length + state.selectedBots.length;
+        // Use pCount from Firebase (includes bots), fallback to results shape
+        const pCount = remotePCount || (allRollResults[0] ? allRollResults[0].length : battlePlayers.length);
+
+        // Re-render arena with correct number of cards for joiner
+        const totalPlayers = pCount;
+        document.getElementById('arena').style.gridTemplateColumns = `repeat(${totalPlayers}, 1fr)`;
+        let h = '';
+        for(let i = 0; i < totalPlayers; i++) {
+            let teamTag = "", teamColor = "";
+            if(is2v2) { teamTag = i < 2 ? "TEAM 1 (BLUE)" : "TEAM 2 (RED)"; teamColor = i < 2 ? "#3b82f6" : "#ef4444"; }
+            const rp = battlePlayers.find(p => p.slot === i);
+            const name = rp ? (rp.nick === currentNick ? 'TY' : rp.nick) : 'BOT';
+            const img = rp ? rp.avatar : null;
+            h += createBattleCard(true, i, teamTag, teamColor, name, img);
+        }
+        document.getElementById('arena').innerHTML = h;
+
+        await playBattleCountdown();
         let sc = Array.from({length: pCount}, () => ({total: 0, last: 0, items: []}));
 
         for(let p=0; p<pCount; p++) {
