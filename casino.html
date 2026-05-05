@@ -1687,6 +1687,8 @@
             const cost = state.cart.reduce((a,b)=>a+b.price,0);
             state.balance += cost;
         }
+        // Remove battle from Firebase
+        if(currentBattleRef) { currentBattleRef.remove(); currentBattleRef = null; }
         battleState = 'idle';
         state.selectedBots = [];
         state.cart = [];
@@ -1798,6 +1800,7 @@
         return 1;
     }
 
+    let currentBattleRef = null;
     function createBattle() {
         if(battleState !== 'idle' || state.cart.length === 0) return;
         const cost = state.cart.reduce((a,b)=>a+b.price,0);
@@ -1807,6 +1810,18 @@
         battleState = 'waiting';
         state.selectedBots = []; 
         save();
+
+        // Push battle to Firebase immediately so others can see it
+        const totalVal = state.cart.reduce((s,c) => s + c.price * (c.qty||1), 0);
+        currentBattleRef = db.ref('battles').push({
+            creator: currentNick,
+            format: state.battleFormat,
+            mode: state.mode,
+            cases: state.cart.map(c => ({name:c.name, img:c.img||null, icon:c.icon||null, color:c.color, qty:c.qty||1})),
+            totalValue: totalVal,
+            status: 'waiting',
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        });
         
         document.getElementById('battle-setup-panel').style.display = 'none';
         renderCart(); 
@@ -1965,18 +1980,9 @@
             botCount: state.selectedBots.length
         };
         battleState = 'running';
-        // Push battle to Firebase for lobby
-        const totalVal = state.cart.reduce((s,c) => s + c.price * (c.qty||1), 0);
-        const battleRef = db.ref('battles').push({
-            creator: currentNick,
-            format: state.battleFormat,
-            mode: state.mode,
-            cases: state.cart.map(c => ({name:c.name, img:c.img||null, icon:c.icon||null, color:c.color, qty:c.qty||1})),
-            totalValue: totalVal,
-            status: 'running',
-            timestamp: firebase.database.ServerValue.TIMESTAMP
-        });
-        const battleKey = battleRef.key;
+        // Update battle status to running in Firebase
+        if(currentBattleRef) currentBattleRef.update({status: 'running'});
+        const battleKey = currentBattleRef ? currentBattleRef.key : null;
         document.getElementById('battle-action-area').style.display = 'none'; 
         
         const is2v2 = state.battleFormat === '2v2';
@@ -2244,7 +2250,8 @@
         }
         
         battleState = 'idle';
-        if(typeof battleKey !== 'undefined' && battleKey) db.ref('battles/' + battleKey).remove();
+        if(currentBattleRef) { currentBattleRef.remove(); currentBattleRef = null; }
+        else if(typeof battleKey !== 'undefined' && battleKey) db.ref('battles/' + battleKey).remove();
         state.cart = []; 
         document.getElementById('battle-queue-display').style.display = 'none';
         
@@ -2621,9 +2628,10 @@
         // TODO: spectate battle
     }
 
-    // Auto-clean old battles (older than 10 minutes)
+    // Auto-clean old battles (older than 30 minutes)
     function cleanOldBattles() {
-        db.ref('battles').once('value', snap => {
+        const cutoff = Date.now() - 30 * 60 * 1000;
+        db.ref('battles').orderByChild('timestamp').endAt(cutoff).once('value', snap => {
             snap.forEach(child => child.ref.remove());
         });
     }
