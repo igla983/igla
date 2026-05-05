@@ -613,7 +613,7 @@
     function rebuildFeedTrack() {
         const track = document.getElementById('live-feed-track');
         const html = feedItems.map(d => {
-            const imgPart = d.img ? `<img src="${d.img}">` : `<i class="fa fa-gem" style="font-size:16px;color:${d.color}"></i>`;
+            const imgPart = d.img ? `<img src="${d.img}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><i class="fa fa-gem" style="font-size:16px;color:${d.color};display:none;align-items:center;justify-content:center;width:40px;height:36px;"></i>` : `<i class="fa fa-gem" style="font-size:16px;color:${d.color}"></i>`;
             return `<div class="feed-item">${imgPart}<div style="display:flex;flex-direction:column;gap:1px;"><span style="font-size:9px;color:${d.color};font-weight:800;max-width:120px;overflow:hidden;text-overflow:ellipsis;">${d.name}</span><span style="font-size:8px;color:#64748b;">${d.player}</span></div></div>`;
         }).join('');
         // Duplicate content for seamless loop
@@ -2950,6 +2950,17 @@
         initLiveFeed();
         initPresence();
         cleanOldBattles();
+        // One-time cleanup: remove drops with broken old Steam CDN URLs
+        db.ref('drops').once('value', snap => {
+            snap.forEach(child => {
+                const d = child.val();
+                if(d.img && d.img.includes('community.akamai.steamstatic.com/economy/image/i0')) return; // valid skin imgs
+                if(d.img && d.img.includes('community.akamai.steamstatic.com/economy/image/-')) {
+                    // Old broken sticker URL - remove img field
+                    child.ref.update({img: null});
+                }
+            });
+        });
     };
 </script>
 </body>
