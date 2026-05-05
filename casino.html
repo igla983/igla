@@ -3531,15 +3531,16 @@
     function loadRanking() {
         updateRankingTimer();
         const weekKey = getWeekKey();
-        db.ref(`ranking/${weekKey}`).orderByValue().once('value', snap => {
-            const list = document.getElementById('ranking-list');
+        const list = document.getElementById('ranking-list');
+        list.innerHTML = '<div style="text-align:center;padding:40px;color:#64748b;"><i class="fa fa-spinner fa-spin" style="margin-right:8px;"></i>Ładowanie...</div>';
+        db.ref(`ranking/${weekKey}`).once('value', snap => {
             if(!snap.exists()) {
                 list.innerHTML = '<div style="text-align:center;padding:40px;color:#64748b;"><i class="fa fa-ghost" style="font-size:30px;margin-bottom:10px;opacity:0.3;display:block;"></i>Brak danych w tym tygodniu</div>';
                 return;
             }
             let entries = [];
-            snap.forEach(c => entries.push({ nick: c.key, spent: c.val() }));
-            entries.reverse(); // highest first
+            snap.forEach(c => entries.push({ nick: c.key, spent: c.val() || 0 }));
+            entries.sort((a, b) => b.spent - a.spent);
             const medals = ['🥇','🥈','🥉'];
             list.innerHTML = entries.map((e, i) => {
                 const medal = i < 3 ? medals[i] : `<span style="color:#64748b;font-weight:900;">#${i+1}</span>`;
@@ -3559,6 +3560,9 @@
                     <div style="font-weight:900;font-size:15px;color:var(--accent-gold);font-family:'Rajdhani',sans-serif;white-space:nowrap;">${formatMoney(e.spent)}</div>
                 </div>`;
             }).join('');
+        }).catch(err => {
+            console.error('Ranking load error:', err);
+            list.innerHTML = '<div style="text-align:center;padding:40px;color:#ef4444;"><i class="fa fa-triangle-exclamation" style="margin-right:8px;"></i>Błąd ładowania rankingu</div>';
         });
     }
     setInterval(updateRankingTimer, 60000);
