@@ -1745,6 +1745,7 @@
     function setBattleSortOrder(order) { battleSortOrder = order; openBattleCaseSelector(); }
     function openBattleCaseSelector() {
         if(battleState !== 'idle') return;
+        battleCaseQty = {};
         document.getElementById('cases-modal').classList.add('active');
         document.getElementById('battle-sort-asc').classList.toggle('active', battleSortOrder === 'asc');
         document.getElementById('battle-sort-desc').classList.toggle('active', battleSortOrder === 'desc');
@@ -1758,8 +1759,11 @@
             <div class="case-card">
                 <div class="case-visual" style="background:${c.color}22; color:${c.color}">${c.img ? `<img src="${c.img}" style="width:80px;height:80px;object-fit:contain;filter:drop-shadow(0 0 6px ${c.color})">` : `<i class="fa ${c.icon}"></i>`}</div>
                 <div class="case-title">${c.name} ${isBattleJokerMode ? '<span style="color:#a855f7;">(JOKER)</span>' : ''}</div>
-                <div class="case-price">${formatMoney(finalPrice)}</div>
-                <button class="btn btn-blue" onclick="addToBattle(${i})">+ DODAJ</button>
+                <div class="case-price" id="battle-case-price-${i}">${formatMoney(finalPrice)}</div>
+                <div style="display:flex; border:1px solid #334155; border-radius:6px; overflow:hidden; margin-bottom:8px; justify-content:center;">
+                    ${[1,2,3,4,5].map(n => `<button class="qty-btn${n===1?' active':''}" data-case="${i}" onclick="setBattleCaseQty(${i},${n},this)" style="padding:4px 8px; font-size:10px;">${n}</button>`).join('')}
+                </div>
+                <button class="btn btn-blue" onclick="addToBattleWithQty(${i})">+ DODAJ</button>
             </div>`;
         }).join('');
     }
@@ -1785,6 +1789,26 @@
                 <i class="fa fa-times" onclick="removeFromCart(${i})" style="cursor:pointer; opacity:0.3"></i>
             </div>`).join('');
         document.getElementById('b-cost').innerText = formatMoney(state.cart.reduce((a,b)=>a+b.price,0));
+    }
+
+    let battleCaseQty = {};
+    function setBattleCaseQty(idx, n, btn) {
+        battleCaseQty[idx] = n;
+        const siblings = btn.parentElement.querySelectorAll('.qty-btn');
+        siblings.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const c = THEMES[idx];
+        const unitPrice = isBattleJokerMode ? jokerPrice(c) : c.price;
+        const totalPrice = unitPrice * n;
+        const priceEl = document.getElementById('battle-case-price-' + idx);
+        if(priceEl) priceEl.innerHTML = n > 1 ? `${n}x ${formatMoney(unitPrice)} = ${formatMoney(totalPrice)}` : formatMoney(unitPrice);
+    }
+
+    function addToBattleWithQty(idx) {
+        const qty = battleCaseQty[idx] || 1;
+        for(let q = 0; q < qty; q++) {
+            addToBattle(idx);
+        }
     }
 
     function addToBattle(idx) { 
