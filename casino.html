@@ -1704,18 +1704,6 @@
         if(!isAdmin() || !confirm('Wyczyścić feed dropów?')) return;
         db.ref('drops').remove().then(() => adminStatus('Feed wyczyszczony'));
     }
-    function renderAdminAccountsList() {
-        const list = document.getElementById('admin-accounts-list');
-        if(!list) return;
-        const profiles = getAllProfiles();
-        if(profiles.length === 0) { list.innerHTML = '<div style="color:#64748b;">Brak kont</div>'; return; }
-        list.innerHTML = profiles.map(nick => {
-            const data = JSON.parse(localStorage.getItem('an4l_' + nick) || '{}');
-            const bal = data.balance || 0;
-            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #1a1e29;"><span style="color:#fff;font-weight:700;">${nick}</span><span style="color:var(--accent-gold);font-family:'Rajdhani';font-weight:900;">${formatMoney(bal)}</span></div>`;
-        }).join('');
-    }
-
     async function checkIPBan() {
         try {
             const res = await fetch('https://api.ipify.org?format=json');
