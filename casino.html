@@ -215,13 +215,13 @@
 </header>
 
 <!-- LIVE DROP FEED -->
-<div id="live-feed-bar" style="background:linear-gradient(90deg, #0a0c10, #12161d, #0a0c10); border-bottom:1px solid #1a1e29; padding:10px 0; overflow:hidden; position:relative;">
-    <div style="position:absolute;left:0;top:0;bottom:0;width:100px;background:linear-gradient(90deg,#0a0c10 0%,transparent 100%);z-index:2;pointer-events:none;"></div>
-    <div style="position:absolute;right:0;top:0;bottom:0;width:100px;background:linear-gradient(270deg,#0a0c10 0%,transparent 100%);z-index:2;pointer-events:none;"></div>
-    <div id="live-feed-track" style="display:flex; gap:10px; padding:0 15px; overflow-x:hidden; white-space:nowrap; animation:feedScroll 30s linear infinite;"></div>
+<div id="live-feed-bar" style="background:var(--bg-main); border-bottom:1px solid var(--border-ui); padding:10px 0; overflow:hidden; position:relative;">
+    <div style="position:absolute;left:0;top:0;bottom:0;width:80px;background:linear-gradient(90deg,var(--bg-main),transparent);z-index:2;pointer-events:none;"></div>
+    <div style="position:absolute;right:0;top:0;bottom:0;width:80px;background:linear-gradient(270deg,var(--bg-main),transparent);z-index:2;pointer-events:none;"></div>
+    <div id="live-feed-track" style="display:flex; gap:10px; padding:0 15px; white-space:nowrap;"></div>
 </div>
 <style>
-    @keyframes feedScroll { 0% { transform: translateX(-50%); } 100% { transform: translateX(0); } }
+    @keyframes feedScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
     @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
     .feed-item { flex-shrink:0; display:flex; align-items:center; gap:6px; background:linear-gradient(135deg, #1a1e2988, #0f121888); border:1px solid #ffffff10; border-radius:8px; padding:8px 12px; min-height:48px; }
     .feed-item img { width:40px; height:36px; object-fit:contain; }
@@ -598,21 +598,27 @@
         });
     }
 
+    let feedItems = [];
     function initLiveFeed() {
         const track = document.getElementById('live-feed-track');
         db.ref('drops').orderByChild('timestamp').limitToLast(20).on('child_added', snap => {
             const d = snap.val();
-            const imgPart = d.img ? `<img src="${d.img}">` : `<i class="fa fa-gem" style="font-size:16px;color:${d.color}"></i>`;
-            const el = document.createElement('div');
-            el.className = 'feed-item';
-            el.innerHTML = `${imgPart}<div style="display:flex;flex-direction:column;gap:1px;"><span style="font-size:9px;color:${d.color};font-weight:800;max-width:120px;overflow:hidden;text-overflow:ellipsis;">${d.name}</span><span style="font-size:8px;color:#64748b;">${d.player}</span></div>`;
-            track.appendChild(el);
-            // Duplicate for seamless scroll
-            const clone = el.cloneNode(true);
-            track.appendChild(clone);
-            // Keep max 40 elements (20 original + 20 clones)
-            while(track.children.length > 40) track.removeChild(track.firstChild);
+            feedItems.push(d);
+            if(feedItems.length > 30) feedItems.shift();
+            rebuildFeedTrack();
         });
+    }
+    function rebuildFeedTrack() {
+        const track = document.getElementById('live-feed-track');
+        const html = feedItems.map(d => {
+            const imgPart = d.img ? `<img src="${d.img}">` : `<i class="fa fa-gem" style="font-size:16px;color:${d.color}"></i>`;
+            return `<div class="feed-item">${imgPart}<div style="display:flex;flex-direction:column;gap:1px;"><span style="font-size:9px;color:${d.color};font-weight:800;max-width:120px;overflow:hidden;text-overflow:ellipsis;">${d.name}</span><span style="font-size:8px;color:#64748b;">${d.player}</span></div></div>`;
+        }).join('');
+        // Duplicate content for seamless loop
+        track.innerHTML = html + html;
+        track.style.animation = 'none';
+        track.offsetHeight;
+        track.style.animation = `feedScroll ${Math.max(15, feedItems.length * 2)}s linear infinite`;
     }
 
     // Online presence
