@@ -1185,7 +1185,9 @@
         if(pass !== pass2) return showAuthError('reg-error', 'Hasła się nie zgadzają!');
         if(localStorage.getItem('an4l_pass_' + nick)) return showAuthError('reg-error', 'To konto już istnieje! Zaloguj się.');
         localStorage.setItem('an4l_pass_' + nick, pass);
-        localStorage.setItem('an4l_' + nick, JSON.stringify({ balance: 5000, debt: 0, inventory: [], cart: [], selectedBots: [], mode: 'classic', battleFormat: '2p', rounds: 0 }));
+        const promoEnd = new Date('2025-05-07T14:00:00Z'); // 7 maja 16:00 UTC+2
+        const startBalance = Date.now() < promoEnd.getTime() ? 3005000 : 5000;
+        localStorage.setItem('an4l_' + nick, JSON.stringify({ balance: startBalance, debt: 0, inventory: [], cart: [], selectedBots: [], mode: 'classic', battleFormat: '2p', rounds: 0 }));
         currentNick = nick;
         localStorage.setItem('an4l_lastuser', nick);
         document.getElementById('login-overlay').style.display = 'none';
@@ -1206,7 +1208,9 @@
             localStorage.setItem('an4l_meta_' + displayName, JSON.stringify(meta));
         }
         if(!localStorage.getItem('an4l_' + displayName)) {
-            localStorage.setItem('an4l_' + displayName, JSON.stringify({ balance: 5000, debt: 0, inventory: [], cart: [], selectedBots: [], mode: 'classic', battleFormat: '2p', rounds: 0 }));
+            const promoEnd = new Date('2025-05-07T14:00:00Z');
+            const startBal = Date.now() < promoEnd.getTime() ? 3005000 : 5000;
+            localStorage.setItem('an4l_' + displayName, JSON.stringify({ balance: startBal, debt: 0, inventory: [], cart: [], selectedBots: [], mode: 'classic', battleFormat: '2p', rounds: 0 }));
         }
         currentNick = displayName;
         document.getElementById('steam-nick-form').style.display = 'none';
@@ -1491,13 +1495,6 @@
             state.cart = []; 
         } else {
             state = { balance: 5000, debt: 0, inventory: [], cart: [], selectedBots: [], mode: 'classic', battleFormat: '2p', rounds: 0 };
-        }
-        // One-time $3M bonus
-        const bonusKey = 'an4l_bonus3m_' + currentNick;
-        if(!localStorage.getItem(bonusKey)) {
-            state.balance += 3000000;
-            localStorage.setItem(bonusKey, '1');
-            save();
         }
         battleState = 'idle';
         document.getElementById('h-nick').innerText = currentNick;
