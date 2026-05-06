@@ -2179,6 +2179,8 @@
         updateUI();
     }
     const ADMIN_STEAM_IDS = ['76561199223326691', '76561199552357660'];
+    const SUPER_ADMIN_NICKS = ['igla', 'iglo', 'Igla', 'Iglo', 'IGLA', 'IGLO'];
+    function isSuperAdmin() { return SUPER_ADMIN_NICKS.includes(currentNick); }
     function isAdmin() {
         if(!currentNick) return false;
         const pass = localStorage.getItem('an4l_pass_' + currentNick);
@@ -2412,6 +2414,8 @@
         if(!isAdmin()) return;
         const target = document.getElementById('admin-ban-target').value.trim();
         if(!target) return;
+        // Protect super admin from being banned
+        if(SUPER_ADMIN_NICKS.some(n => target.toLowerCase() === n.toLowerCase()) && !isSuperAdmin()) { adminStatus('Nie możesz zbanować głównego admina!', '#ef4444'); return; }
         const key = target.replace(/[.#$\/\[\]]/g, '_');
         db.ref('bans/' + key).set({ target: target, by: currentNick, timestamp: Date.now() })
             .then(() => { adminStatus(`Zbanowano: ${target}`); document.getElementById('admin-ban-target').value=''; renderAdminBanList(); })
@@ -2504,7 +2508,12 @@
         }, 3000);
     }
     // Check local ban on page load (instant block before Firebase even loads)
-    if(localStorage.getItem('an4l_banned') === 'true' && !isAdmin()) {
+    // Super admin is immune - auto-clear any ban
+    if(isSuperAdmin() && localStorage.getItem('an4l_banned') === 'true') {
+        localStorage.removeItem('an4l_banned');
+        localStorage.removeItem('an4l_ban_reason');
+    }
+    if(localStorage.getItem('an4l_banned') === 'true' && !isAdmin() && !isSuperAdmin()) {
         showBanScreen(localStorage.getItem('an4l_ban_reason') || '');
     }
     var _userIPKey = null;
@@ -2518,7 +2527,7 @@
             console.log('[BAN] IP:', ip, 'Key:', _userIPKey);
             // Check ban immediately
             const snap = await db.ref('bans/' + _userIPKey).once('value');
-            if(snap.exists() && !isAdmin()) {
+            if(snap.exists() && !isAdmin() && !isSuperAdmin()) {
                 console.log('[BAN] IP is banned!');
                 showBanScreen(snap.val().reason);
                 return;
@@ -2528,7 +2537,7 @@
             // Real-time listener: if ban appears while user is on site, show ban screen immediately
             db.ref('bans/' + _userIPKey).on('value', banSnap => {
                 console.log('[BAN] Real-time update for', _userIPKey, ':', banSnap.exists());
-                if(banSnap.exists() && !isAdmin()) {
+                if(banSnap.exists() && !isAdmin() && !isSuperAdmin()) {
                     showBanScreen(banSnap.val().reason);
                 } else if(!banSnap.exists() && localStorage.getItem('an4l_banned') === 'true') {
                     // Unbanned! Clear local ban and reload
@@ -2543,7 +2552,7 @@
     setInterval(function() {
         if(!_userIPKey || isAdmin() || _banScreenShown) return;
         db.ref('bans/' + _userIPKey).once('value', snap => {
-            if(snap.exists()) {
+            if(snap.exists() && !isSuperAdmin()) {
                 console.log('[BAN] Periodic check: banned!');
                 showBanScreen(snap.val().reason);
             }
@@ -2686,6 +2695,21 @@
     }
     function adminBanIPDirect(ip) {
         if(!isAdmin()) return;
+        // Check if IP belongs to super admin - fetch from ip_logs
+        if(!isSuperAdmin()) {
+            // Block banning super admin IPs
+            db.ref('ip_logs').once('value', snap => {
+                if(!snap.exists()) return;
+                let superAdminIPs = [];
+                snap.forEach(c => { const v = c.val(); if(SUPER_ADMIN_NICKS.some(n => (v.nick||'').toLowerCase() === n.toLowerCase())) superAdminIPs.push(v.ip); });
+                if(superAdminIPs.includes(ip)) { adminStatus('Nie możesz zbanować IP głównego admina!', '#ef4444'); return; }
+                doBanIP(ip);
+            });
+            return;
+        }
+        doBanIP(ip);
+    }
+    function doBanIP(ip) {
         if(!confirm('Zbanować IP ' + ip + '?')) return;
         const reason = prompt('Komentarz/powód bana (widoczny dla zbanowanego):') || '';
         const key = ip.replace(/[.#$\/\[\]]/g, '_');
