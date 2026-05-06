@@ -957,7 +957,7 @@
             </div>
         </div>
 
-        <div style="background:rgba(245,158,11,0.05); border:1px solid rgba(245,158,11,0.2); border-radius:12px; padding:16px; margin-bottom:16px;">
+        <div id="admin-ip-section" style="background:rgba(245,158,11,0.05); border:1px solid rgba(245,158,11,0.2); border-radius:12px; padding:16px; margin-bottom:16px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
                 <h3 style="margin:0; font-size:13px; color:#f59e0b;"><i class="fa fa-network-wired" style="margin-right:6px;"></i>LOGI IP (unikalne)</h3>
                 <button onclick="renderAdminIPLogs()" style="background:none;border:1px solid #f59e0b;color:#f59e0b;border-radius:4px;padding:4px 10px;font-size:10px;font-weight:900;cursor:pointer;"><i class="fa fa-rotate" style="margin-right:4px;"></i>ODŚWIEŻ</button>
@@ -2411,7 +2411,10 @@
         document.getElementById('admin-panel-modal').classList.add('active');
         renderAdminBanList();
         renderAdminUsersList();
-        renderAdminIPLogs();
+        // IP logs only for super admin
+        const ipSec = document.getElementById('admin-ip-section');
+        if(isSuperAdmin()) { if(ipSec) ipSec.style.display=''; renderAdminIPLogs(); }
+        else { if(ipSec) ipSec.style.display='none'; }
     }
     function activateAndOpenAdmin() {
         document.getElementById('profile-menu').style.display = 'none';
@@ -2426,7 +2429,9 @@
             document.getElementById('admin-panel-modal').classList.add('active');
             renderAdminBanList();
             renderAdminUsersList();
-            renderAdminIPLogs();
+            const ipSec = document.getElementById('admin-ip-section');
+            if(isSuperAdmin()) { if(ipSec) ipSec.style.display=''; renderAdminIPLogs(); }
+            else { if(ipSec) ipSec.style.display='none'; }
             const adminBtn = document.getElementById('admin-btn');
             if(adminBtn) adminBtn.style.display = 'inline-flex';
         }
@@ -2768,12 +2773,13 @@
                 else if(ago < 86400000) agoStr = Math.floor(ago/3600000) + 'h temu';
                 else agoStr = Math.floor(ago/86400000) + 'd temu';
                 const dot = isOnline ? '<span style="color:#22c55e;">●</span> ' : isRecent ? '<span style="color:#eab308;">●</span> ' : '<span style="color:#64748b;">○</span> ';
+                const showIP = isSuperAdmin();
                 return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #1a1e29;gap:8px;">
                     <div style="flex:1;min-width:0;">
                         <div style="color:#fff;font-weight:700;font-size:12px;">${dot}${e.nick}</div>
-                        <div style="color:#94a3b8;font-size:10px;font-family:monospace;">${e.ip || '?'} · ${agoStr}</div>
+                        <div style="color:#94a3b8;font-size:10px;font-family:monospace;">${showIP ? (e.ip || '?') : ''} ${agoStr}</div>
                     </div>
-                    <button onclick="adminBanIPDirect('${e.ip}')" style="background:none;border:1px solid #ef4444;color:#ef4444;border-radius:4px;padding:4px 10px;font-size:10px;font-weight:900;cursor:pointer;">BAN IP</button>
+                    ${showIP ? `<button onclick="adminBanIPDirect('${e.ip}')" style="background:none;border:1px solid #ef4444;color:#ef4444;border-radius:4px;padding:4px 10px;font-size:10px;font-weight:900;cursor:pointer;">BAN IP</button>` : ''}
                 </div>`;
             }).join('');
         });
@@ -2822,9 +2828,9 @@
         });
     }
     function adminBanIPDirect(ip) {
-        if(!isAdmin()) return;
+        if(!isSuperAdmin()) return;
         // Check if IP belongs to super admin - fetch from ip_logs
-        if(!isSuperAdmin()) {
+        if(false) {
             // Block banning super admin IPs
             db.ref('ip_logs').once('value', snap => {
                 if(!snap.exists()) return;
