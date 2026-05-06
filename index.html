@@ -954,7 +954,7 @@
 
         <div style="background:rgba(245,158,11,0.05); border:1px solid rgba(245,158,11,0.2); border-radius:12px; padding:16px; margin-bottom:16px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                <h3 style="margin:0; font-size:13px; color:#f59e0b;"><i class="fa fa-network-wired" style="margin-right:6px;"></i>LOGI IP (ostatnie 50)</h3>
+                <h3 style="margin:0; font-size:13px; color:#f59e0b;"><i class="fa fa-network-wired" style="margin-right:6px;"></i>LOGI IP (ostatnie 100)</h3>
                 <button onclick="renderAdminIPLogs()" style="background:none;border:1px solid #f59e0b;color:#f59e0b;border-radius:4px;padding:4px 10px;font-size:10px;font-weight:900;cursor:pointer;"><i class="fa fa-rotate" style="margin-right:4px;"></i>ODŚWIEŻ</button>
             </div>
             <div id="admin-iplogs-list" style="font-size:11px; color:#94a3b8; max-height:240px; overflow-y:auto;"></div>
@@ -1810,6 +1810,7 @@
         localStorage.setItem('an4l_lastuser', nick);
         document.getElementById('login-overlay').style.display = 'none';
         load();
+        if(_lastLoggedIP) logIPVisit(_lastLoggedIP);
     }
     function showAuthError(id, msg) { const el = document.getElementById(id); if(el) { el.innerText = msg; setTimeout(() => el.innerText = '', 4000); } }
     function loginWithNick() {
@@ -2124,6 +2125,7 @@
         currentNick = nick;
         document.getElementById('profile-menu').style.display = 'none';
         load();
+        if(_lastLoggedIP) logIPVisit(_lastLoggedIP);
     }
     function confirmSwitchPass() {
         const pass = document.getElementById('switch-pass-input').value.trim();
@@ -2133,6 +2135,7 @@
         currentNick = pendingSwitchNick;
         closeSwitchPass();
         load();
+        if(_lastLoggedIP) logIPVisit(_lastLoggedIP);
     }
     function closeSwitchPass() {
         document.getElementById('switch-pass-modal').style.display = 'none';
@@ -2432,27 +2435,33 @@
         } catch(e) { /* Network error - allow access */ }
     }
 
+    var _lastLoggedIP = null;
     function logIPVisit(ip) {
         if(!ip) return;
+        _lastLoggedIP = ip;
         const ipKey = ip.replace(/[.#$\/\[\]]/g, '_');
         const nick = currentNick || localStorage.getItem('an4l_lastuser') || 'anon';
+        const now = Date.now();
         const data = {
             ip: ip,
             nick: nick,
-            timestamp: Date.now(),
+            timestamp: now,
             userAgent: navigator.userAgent.substring(0, 100)
         };
-        db.ref('iplogs/' + ipKey).set(data).catch(()=>{});
+        // Log every visit as a new entry
+        db.ref('iplogs').push(data).catch(()=>{});
+        // Keep latest per-IP
+        db.ref('iplogs_latest/' + ipKey).set(data).catch(()=>{});
         // Also track by nick for global users list
         if(nick && nick !== 'anon') {
             const nickKey = nick.replace(/[.#$\/\[\]]/g, '_');
             db.ref('users/' + nickKey).update({
                 nick: nick,
                 ip: ip,
-                lastSeen: Date.now()
+                lastSeen: now
             }).catch(()=>{});
             db.ref('users/' + nickKey + '/firstSeen').once('value', s => {
-                if(!s.exists()) db.ref('users/' + nickKey + '/firstSeen').set(Date.now());
+                if(!s.exists()) db.ref('users/' + nickKey + '/firstSeen').set(now);
             });
         }
     }
@@ -2487,7 +2496,7 @@
         const list = document.getElementById('admin-iplogs-list');
         if(!list) return;
         list.innerHTML = '<div style="color:#64748b;">Ładowanie...</div>';
-        db.ref('iplogs').orderByChild('timestamp').limitToLast(50).once('value', snap => {
+        db.ref('iplogs').orderByChild('timestamp').limitToLast(100).once('value', snap => {
             if(!snap.exists()) { list.innerHTML = '<div style="color:#64748b;">Brak logów</div>'; return; }
             const entries = [];
             snap.forEach(c => entries.push({key: c.key, ...c.val()}));
