@@ -2422,6 +2422,12 @@
         if(!isAdmin() || !confirm('Wyczyścić feed dropów?')) return;
         db.ref('drops').remove().then(() => adminStatus('Feed wyczyszczony'));
     }
+    var _banScreenShown = false;
+    function showBanScreen() {
+        if(_banScreenShown) return;
+        _banScreenShown = true;
+        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a0c10;color:#ef4444;font-family:Inter,sans-serif;flex-direction:column;gap:20px;text-align:center;padding:40px;"><i class="fa fa-ban" style="font-size:80px;"></i><h1 style="margin:0;font-size:32px;">DOSTĘP ZABLOKOWANY</h1><p style="color:#94a3b8;font-size:14px;">Twoje IP zostało zbanowane.</p></div>';
+    }
     async function checkIPBan() {
         try {
             const res = await fetch('https://api.ipify.org?format=json');
@@ -2429,13 +2435,19 @@
             const ip = data.ip;
             const ipKey = ip.replace(/[.#$\/\[\]]/g, '_');
             const snap = await db.ref('bans/' + ipKey).once('value');
-            if(snap.exists()) {
-                document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a0c10;color:#ef4444;font-family:Inter,sans-serif;flex-direction:column;gap:20px;text-align:center;padding:40px;"><i class="fa fa-ban" style="font-size:80px;"></i><h1 style="margin:0;font-size:32px;">DOSTĘP ZABLOKOWANY</h1><p style="color:#94a3b8;font-size:14px;">Twoje IP zostało zbanowane.</p></div>';
-                throw new Error('IP banned');
+            if(snap.exists() && !isAdmin()) {
+                showBanScreen();
+                return;
             }
             // Log this IP visit
             logIPVisit(ip);
-        } catch(e) { if(e.message !== 'IP banned') console.warn('[IP] checkIPBan error (allowing access):', e.message); }
+            // Real-time listener: if ban appears while user is on site, show ban screen immediately
+            db.ref('bans/' + ipKey).on('value', banSnap => {
+                if(banSnap.exists() && !isAdmin()) {
+                    showBanScreen();
+                }
+            });
+        } catch(e) { console.warn('[IP] checkIPBan error (allowing access):', e.message); }
     }
 
     var _lastLoggedIP = null;
