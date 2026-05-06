@@ -2459,13 +2459,13 @@
         for(let i = 1; i < 99999; i++) { clearInterval(i); clearTimeout(i); }
         const reasonHtml = reason ? '<p style="color:#7c3aed;font-size:14px;font-weight:700;margin-top:10px;border:1px solid rgba(124,58,237,0.3);padding:12px 24px;border-radius:8px;background:rgba(124,58,237,0.05);letter-spacing:1px;">\"' + reason.replace(/</g,'&lt;') + '\"</p>' : '';
         document.body.innerHTML = '';
-        document.head.innerHTML = `<style>
-            *{margin:0;padding:0;cursor:not-allowed!important;user-select:none!important;}
-            body{overflow:hidden;}
+        // Append ban styles WITHOUT replacing head (keeps Firebase alive)
+        const banStyle = document.createElement('style');
+        banStyle.textContent = `*{cursor:not-allowed!important;user-select:none!important;}body{overflow:hidden;margin:0;padding:0;}
             @keyframes cfxPulse{0%,100%{text-shadow:0 0 20px rgba(100,100,255,0.8),0 0 40px rgba(100,100,255,0.4),0 0 80px rgba(80,60,200,0.3);}50%{text-shadow:0 0 30px rgba(140,120,255,1),0 0 60px rgba(100,80,255,0.6),0 0 120px rgba(80,60,200,0.5);}}
             @keyframes banFlicker{0%,100%{opacity:1;}50%{opacity:0.85;}75%{opacity:0.95;}}
-            @keyframes scanline{0%{transform:translateY(-100%);}100%{transform:translateY(100vh);}}
-        </style>`;
+            @keyframes scanline{0%{transform:translateY(-100%);}100%{transform:translateY(100vh);}}`;
+        document.head.appendChild(banStyle);
         document.body.innerHTML = `<div style="position:fixed;top:0;left:0;width:100%;height:100vh;z-index:999999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:24px;text-align:center;padding:40px;font-family:'Inter',sans-serif;background:radial-gradient(ellipse at 60% 50%,#0d1528 0%,#080c18 40%,#030408 100%);overflow:hidden;">
             <div style="position:absolute;top:0;left:0;width:100%;height:100%;background:radial-gradient(circle at 70% 60%,rgba(30,50,120,0.15) 0%,transparent 50%),radial-gradient(circle at 30% 40%,rgba(60,20,100,0.1) 0%,transparent 40%);pointer-events:none;"></div>
             <div style="position:absolute;top:0;left:0;width:100%;height:2px;background:rgba(100,120,255,0.1);animation:scanline 3s linear infinite;pointer-events:none;"></div>
@@ -2485,6 +2485,19 @@
     // Check local ban on page load (instant block before Firebase even loads)
     if(localStorage.getItem('an4l_banned') === 'true' && !isAdmin()) {
         showBanScreen(localStorage.getItem('an4l_ban_reason') || '');
+        // Still verify with Firebase — if ban was removed, unban and reload
+        setTimeout(() => {
+            fetch('https://api.ipify.org?format=json').then(r=>r.json()).then(d=>{
+                const ipKey = d.ip.replace(/[.#$\/\[\]]/g, '_');
+                db.ref('bans/' + ipKey).on('value', snap => {
+                    if(!snap.exists()) {
+                        localStorage.removeItem('an4l_banned');
+                        localStorage.removeItem('an4l_ban_reason');
+                        location.reload();
+                    }
+                });
+            }).catch(()=>{});
+        }, 2000);
     }
     var _userIPKey = null;
     async function checkIPBan() {
