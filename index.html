@@ -908,9 +908,11 @@
 
         <div style="background:rgba(239,68,68,0.05); border:1px solid rgba(239,68,68,0.2); border-radius:12px; padding:16px; margin-bottom:16px;">
             <h3 style="margin:0 0 12px 0; font-size:13px; color:#ef4444;"><i class="fa fa-coins" style="margin-right:6px;"></i>SALDO</h3>
+            <input type="text" id="admin-money-target" placeholder="Nick gracza (puste = Ty)" style="width:100%; background:var(--bg-main); border:2px solid #333; border-radius:8px; padding:10px 14px; color:#fff; font-size:13px; outline:none; margin-bottom:8px; box-sizing:border-box;">
             <div style="display:flex; gap:8px; margin-bottom:8px;">
                 <input type="number" id="admin-money-amount" placeholder="Kwota $" style="flex:1; background:var(--bg-main); border:2px solid #333; border-radius:8px; padding:10px 14px; color:#fff; font-size:13px; outline:none;">
                 <button class="btn btn-green" style="width:auto; padding:10px 20px;" onclick="adminAddMoney()">+ DODAJ</button>
+                <button class="btn btn-red" style="width:auto; padding:10px 20px;" onclick="adminSubMoney()">− ODEJMIJ</button>
                 <button class="btn btn-blue" style="width:auto; padding:10px 20px;" onclick="adminSetMoney()">USTAW</button>
             </div>
             <div style="display:flex; gap:8px;">
@@ -2352,25 +2354,44 @@
         }
     }
     function closeAdminPanel() { document.getElementById('admin-panel-modal').classList.remove('active'); }
+    function getAdminTargetState(nick) {
+        const raw = localStorage.getItem('an4l_' + nick);
+        return raw ? JSON.parse(raw) : null;
+    }
+    function saveAdminTargetState(nick, s) {
+        localStorage.setItem('an4l_' + nick, JSON.stringify(s));
+        if(nick === currentNick) { state = s; updateUI(); }
+    }
     function adminAddMoney() {
         if(!isAdmin()) return;
+        const target = (document.getElementById('admin-money-target').value.trim()) || currentNick;
         const amt = parseInt(document.getElementById('admin-money-amount').value) || 0;
-        state.balance += amt;
-        save();
-        adminStatus(`Dodano ${formatMoney(amt)}`);
+        if(target === currentNick) { state.balance += amt; save(); }
+        else { const s = getAdminTargetState(target); if(!s) { adminStatus('Nie znaleziono: ' + target, '#ef4444'); return; } s.balance += amt; saveAdminTargetState(target, s); }
+        adminStatus(`Dodano ${formatMoney(amt)} dla ${target}`);
+    }
+    function adminSubMoney() {
+        if(!isAdmin()) return;
+        const target = (document.getElementById('admin-money-target').value.trim()) || currentNick;
+        const amt = parseInt(document.getElementById('admin-money-amount').value) || 0;
+        if(target === currentNick) { state.balance -= amt; save(); }
+        else { const s = getAdminTargetState(target); if(!s) { adminStatus('Nie znaleziono: ' + target, '#ef4444'); return; } s.balance -= amt; saveAdminTargetState(target, s); }
+        adminStatus(`Odjęto ${formatMoney(amt)} od ${target}`);
     }
     function adminSetMoney() {
         if(!isAdmin()) return;
+        const target = (document.getElementById('admin-money-target').value.trim()) || currentNick;
         const amt = parseInt(document.getElementById('admin-money-amount').value) || 0;
-        state.balance = amt;
-        save();
-        adminStatus(`Saldo ustawione na ${formatMoney(amt)}`);
+        if(target === currentNick) { state.balance = amt; save(); }
+        else { const s = getAdminTargetState(target); if(!s) { adminStatus('Nie znaleziono: ' + target, '#ef4444'); return; } s.balance = amt; saveAdminTargetState(target, s); }
+        adminStatus(`Saldo ${target} ustawione na ${formatMoney(amt)}`);
     }
     function adminClearDebt() {
         if(!isAdmin()) return;
-        state.debt = 0;
-        save();
-        adminStatus('Dług wyzerowany');
+        const target = (document.getElementById('admin-money-target').value.trim()) || currentNick;
+        if(target === currentNick) { state.debt = 0; save(); }
+        else { const s = getAdminTargetState(target); if(!s) { adminStatus('Nie znaleziono: ' + target, '#ef4444'); return; } s.debt = 0; saveAdminTargetState(target, s); }
+        adminStatus(`Dług ${target} wyzerowany`);
     }
     function adminAddInvItem() {
         if(!isAdmin()) return;
