@@ -1938,6 +1938,28 @@
         document.getElementById('login-pass').value = '';
         document.getElementById('profile-menu').style.display = 'none';
     }
+    // Cleanup: ensure only Steam-linked igla account exists
+    (function cleanupIgla() {
+        const steamId = '76561199223326691';
+        const steamNick = localStorage.getItem('an4l_steam_link_' + steamId);
+        // Remove non-steam igla accounts
+        const iglaVariants = ['igla', 'iglo', 'Igla', 'Iglo', 'IGLA', 'IGLO'];
+        iglaVariants.forEach(nick => {
+            const pass = localStorage.getItem('an4l_pass_' + nick);
+            if(pass && pass !== 'steam_auth_' + steamId) {
+                // This igla was NOT created via Steam — delete it
+                localStorage.removeItem('an4l_' + nick);
+                localStorage.removeItem('an4l_pass_' + nick);
+                localStorage.removeItem('an4l_meta_' + nick);
+                localStorage.removeItem('an4l_reward_' + nick);
+                console.log('[CLEANUP] Removed non-steam account:', nick);
+            }
+        });
+        // Ensure the Steam-linked nick has proper data
+        if(steamNick && !localStorage.getItem('an4l_' + steamNick)) {
+            localStorage.setItem('an4l_' + steamNick, JSON.stringify({ balance: 5000, debt: 0, inventory: [], cart: [], selectedBots: [], mode: 'classic', battleFormat: '2p', rounds: 0 }));
+        }
+    })();
     const SHARED_PROFILES = ['Denis Załęcki', 'Bartek Szachta'];
     const SHARED_PASSWORDS = { 'Denis Załęcki': 'cwel', 'Bartek Szachta': 'konfident' };
     // Initialize shared profiles on startup
@@ -2367,11 +2389,13 @@
         if(nick === currentNick) { state = s; updateUI(); }
     }
     window.adminAddMoney = function() {
-        if(!isAdmin()) return;
+        if(!isAdmin()) { console.log('[ADMIN] Not admin!'); return; }
         const target = (document.getElementById('admin-money-target').value.trim()) || currentNick;
         const amt = parseInt(document.getElementById('admin-money-amount').value) || 0;
+        console.log('[ADMIN] addMoney target:', target, 'amt:', amt, 'currentNick:', currentNick, 'balance before:', state.balance);
         if(target === currentNick) { state.balance += amt; save(); updateUI(); }
         else { const s = getAdminTargetState(target); if(!s) { adminStatus('Nie znaleziono: ' + target, '#ef4444'); return; } s.balance += amt; saveAdminTargetState(target, s); }
+        console.log('[ADMIN] balance after:', state.balance);
         adminStatus(`Dodano ${formatMoney(amt)} dla ${target}`);
     };
     window.adminSubMoney = function() {
