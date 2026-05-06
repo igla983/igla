@@ -1957,9 +1957,9 @@
         const linkedNick = localStorage.getItem('an4l_steam_link_' + steamId);
         // Set steam link if not exists
         if(!linkedNick) {
-            localStorage.setItem('an4l_steam_link_' + steamId, 'An4l');
+            localStorage.setItem('an4l_steam_link_' + steamId, 'an4l');
         }
-        const targetNick = linkedNick || 'An4l';
+        const targetNick = linkedNick || 'an4l';
         // Remove all An4l variants that aren't the steam-linked one
         ['An4l', 'an4l', 'AN4L', 'anal', 'Anal', 'ANAL'].forEach(nick => {
             if(nick !== targetNick) {
