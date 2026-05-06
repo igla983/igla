@@ -1317,6 +1317,24 @@
             sorted[i].chance = parseFloat(((rawChances[i] / rawSum) * totalChanceTarget).toFixed(6));
         }
     }
+    // Scale item values proportionally to case price (keep Buzzball AK Case Hardened)
+    function scaleCaseValues(caseData) {
+        if (!caseData.items || caseData.items.length < 2) return;
+        const P = caseData.price;
+        const isBuzzball = caseData.name.includes('Buzzball');
+        const toScale = caseData.items.filter(it => !(isBuzzball && it.name.includes('Case Hardened')));
+        if (toScale.length < 1) return;
+        toScale.sort((a, b) => a.value - b.value);
+        const N = toScale.length;
+        const minMult = 0.02;
+        const maxMult = 40;
+        for (let i = 0; i < N; i++) {
+            const t = N > 1 ? i / (N - 1) : 0;
+            const mult = minMult * Math.pow(maxMult / minMult, t);
+            toScale[i].value = Math.max(1, Math.round(P * mult));
+        }
+    }
+    THEMES.forEach(t => scaleCaseValues(t));
     THEMES.forEach(t => balanceCaseChances(t));
 
     const ALL_TARGET_ITEMS = [];
