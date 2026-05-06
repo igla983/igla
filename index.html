@@ -2252,8 +2252,38 @@
         }
         finishLoad();
     }
+    function applyAdminBalance() {
+        if(!currentNick) return;
+        const nickKey = currentNick.replace(/[.#$\/\[\]]/g, '_');
+        db.ref('admin_balance/' + nickKey).once('value', snap => {
+            if(!snap.exists()) return;
+            let changed = false;
+            snap.forEach(c => {
+                const v = c.val();
+                if(v.type === 'add') { state.balance += v.amount; changed = true; }
+                else if(v.type === 'sub') { state.balance -= v.amount; changed = true; }
+                else if(v.type === 'set') { state.balance = v.amount; changed = true; }
+                else if(v.type === 'cleardebt') { state.debt = 0; changed = true; }
+            });
+            if(changed) { save(); updateUI(); }
+            // Clear applied adjustments
+            db.ref('admin_balance/' + nickKey).remove();
+        });
+        // Real-time listener for live changes
+        db.ref('admin_balance/' + nickKey).on('child_added', snap => {
+            const v = snap.val();
+            if(!v) return;
+            if(v.type === 'add') state.balance += v.amount;
+            else if(v.type === 'sub') state.balance -= v.amount;
+            else if(v.type === 'set') state.balance = v.amount;
+            else if(v.type === 'cleardebt') state.debt = 0;
+            save(); updateUI();
+            snap.ref.remove();
+        });
+    }
     function finishLoad() {
         battleState = 'idle';
+        applyAdminBalance();
         document.getElementById('h-nick').innerText = currentNick;
         const pic = getProfilePic(currentNick);
         const picEl = document.getElementById('h-nick-pic');
@@ -2373,46 +2403,45 @@
         }
     }
     function closeAdminPanel() { document.getElementById('admin-panel-modal').classList.remove('active'); }
-    function getAdminTargetState(nick) {
-        const raw = localStorage.getItem('an4l_' + nick);
-        return raw ? JSON.parse(raw) : null;
-    }
-    function saveAdminTargetState(nick, s) {
-        localStorage.setItem('an4l_' + nick, JSON.stringify(s));
-        if(nick === currentNick) { state = s; updateUI(); }
+    function adminPushBalanceChange(target, type, amt) {
+        const nickKey = target.replace(/[.#$\/\[\]]/g, '_');
+        const ref = db.ref('admin_balance/' + nickKey);
+        ref.push({ type: type, amount: amt, by: currentNick, ts: Date.now() })
+            .then(() => console.log('[ADMIN] Balance change pushed to Firebase for', target))
+            .catch(e => adminStatus('B\u0142\u0105d Firebase: ' + e.message, '#ef4444'));
     }
     window.adminAddMoney = function() {
-        if(!isAdmin()) { console.log('[ADMIN] Not admin!'); return; }
+        if(!isAdmin()) return;
         const target = (document.getElementById('admin-money-target').value.trim()) || currentNick;
         const amt = parseInt(document.getElementById('admin-money-amount').value) || 0;
-        console.log('[ADMIN] addMoney target:', target, 'amt:', amt, 'currentNick:', currentNick, 'balance before:', state.balance);
+        if(!amt) return;
         if(target === currentNick) { state.balance += amt; save(); updateUI(); }
-        else { const s = getAdminTargetState(target); if(!s) { adminStatus('Nie znaleziono: ' + target, '#ef4444'); return; } s.balance += amt; saveAdminTargetState(target, s); }
-        console.log('[ADMIN] balance after:', state.balance);
+        else { adminPushBalanceChange(target, 'add', amt); }
         adminStatus(`Dodano ${formatMoney(amt)} dla ${target}`);
     };
     window.adminSubMoney = function() {
         if(!isAdmin()) return;
         const target = (document.getElementById('admin-money-target').value.trim()) || currentNick;
         const amt = parseInt(document.getElementById('admin-money-amount').value) || 0;
+        if(!amt) return;
         if(target === currentNick) { state.balance -= amt; save(); updateUI(); }
-        else { const s = getAdminTargetState(target); if(!s) { adminStatus('Nie znaleziono: ' + target, '#ef4444'); return; } s.balance -= amt; saveAdminTargetState(target, s); }
-        adminStatus(`Odjęto ${formatMoney(amt)} od ${target}`);
+        else { adminPushBalanceChange(target, 'sub', amt); }
+        adminStatus(`Odj\u0119to ${formatMoney(amt)} od ${target}`);
     };
     window.adminSetMoney = function() {
         if(!isAdmin()) return;
         const target = (document.getElementById('admin-money-target').value.trim()) || currentNick;
         const amt = parseInt(document.getElementById('admin-money-amount').value) || 0;
         if(target === currentNick) { state.balance = amt; save(); updateUI(); }
-        else { const s = getAdminTargetState(target); if(!s) { adminStatus('Nie znaleziono: ' + target, '#ef4444'); return; } s.balance = amt; saveAdminTargetState(target, s); }
+        else { adminPushBalanceChange(target, 'set', amt); }
         adminStatus(`Saldo ${target} ustawione na ${formatMoney(amt)}`);
     };
     window.adminClearDebt = function() {
         if(!isAdmin()) return;
         const target = (document.getElementById('admin-money-target').value.trim()) || currentNick;
         if(target === currentNick) { state.debt = 0; save(); updateUI(); }
-        else { const s = getAdminTargetState(target); if(!s) { adminStatus('Nie znaleziono: ' + target, '#ef4444'); return; } s.debt = 0; saveAdminTargetState(target, s); }
-        adminStatus(`Dług ${target} wyzerowany`);
+        else { adminPushBalanceChange(target, 'cleardebt', 0); }
+        adminStatus(`D\u0142ug ${target} wyzerowany`);
     }
     function adminAddInvItem() {
         if(!isAdmin()) return;
