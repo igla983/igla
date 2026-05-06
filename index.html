@@ -1938,26 +1938,19 @@
         document.getElementById('login-pass').value = '';
         document.getElementById('profile-menu').style.display = 'none';
     }
-    // Cleanup: ensure only Steam-linked igla account exists
-    (function cleanupIgla() {
+    // Ensure igla account is always linked to Steam (fix password, never delete data)
+    (function fixIgla() {
         const steamId = '76561199223326691';
-        const steamNick = localStorage.getItem('an4l_steam_link_' + steamId);
-        // Remove non-steam igla accounts
-        const iglaVariants = ['igla', 'iglo', 'Igla', 'Iglo', 'IGLA', 'IGLO'];
-        iglaVariants.forEach(nick => {
-            const pass = localStorage.getItem('an4l_pass_' + nick);
-            if(pass && pass !== 'steam_auth_' + steamId) {
-                // This igla was NOT created via Steam — delete it
-                localStorage.removeItem('an4l_' + nick);
-                localStorage.removeItem('an4l_pass_' + nick);
-                localStorage.removeItem('an4l_meta_' + nick);
-                localStorage.removeItem('an4l_reward_' + nick);
-                console.log('[CLEANUP] Removed non-steam account:', nick);
-            }
-        });
-        // Ensure the Steam-linked nick has proper data
-        if(steamNick && !localStorage.getItem('an4l_' + steamNick)) {
-            localStorage.setItem('an4l_' + steamNick, JSON.stringify({ balance: 5000, debt: 0, inventory: [], cart: [], selectedBots: [], mode: 'classic', battleFormat: '2p', rounds: 0 }));
+        const correctPass = 'steam_auth_' + steamId;
+        // Make sure steam link exists
+        if(!localStorage.getItem('an4l_steam_link_' + steamId)) {
+            localStorage.setItem('an4l_steam_link_' + steamId, 'igla');
+        }
+        // Fix password on igla account to be steam-linked (preserves balance/data)
+        const pass = localStorage.getItem('an4l_pass_igla');
+        if(pass !== correctPass) {
+            localStorage.setItem('an4l_pass_igla', correctPass);
+            console.log('[FIX] Set igla password to steam auth');
         }
     })();
     const SHARED_PROFILES = ['Denis Załęcki', 'Bartek Szachta'];
