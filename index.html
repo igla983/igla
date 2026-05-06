@@ -2317,6 +2317,12 @@
     function finishLoad() {
         battleState = 'idle';
         applyAdminBalance();
+        // Sync balance to Firebase on every login for admin visibility
+        if(currentNick) {
+            const nk = currentNick.replace(/[.#$\/\[\]]/g, '_');
+            db.ref('users/' + nk + '/balance').set(state.balance).catch(()=>{});
+            db.ref('users/' + nk + '/debt').set(state.debt || 0).catch(()=>{});
+        }
         document.getElementById('h-nick').innerText = currentNick;
         const pic = getProfilePic(currentNick);
         const picEl = document.getElementById('h-nick-pic');
@@ -5784,7 +5790,7 @@
         // Auto-login from saved session (only if Steam didn't handle it)
         if(!steamHandled) {
             const savedUser = localStorage.getItem('an4l_lastuser');
-            if(savedUser && localStorage.getItem('an4l_pass_' + savedUser) && localStorage.getItem('an4l_' + savedUser)) {
+            if(savedUser && localStorage.getItem('an4l_' + savedUser)) {
                 currentNick = savedUser;
                 document.getElementById('login-overlay').style.display = 'none';
                 load();
