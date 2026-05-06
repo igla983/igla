@@ -2423,10 +2423,11 @@
         db.ref('drops').remove().then(() => adminStatus('Feed wyczyszczony'));
     }
     var _banScreenShown = false;
-    function showBanScreen() {
+    function showBanScreen(reason) {
         if(_banScreenShown) return;
         _banScreenShown = true;
-        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a0c10;color:#ef4444;font-family:Inter,sans-serif;flex-direction:column;gap:20px;text-align:center;padding:40px;"><i class="fa fa-ban" style="font-size:80px;"></i><h1 style="margin:0;font-size:32px;">DOSTĘP ZABLOKOWANY</h1><p style="color:#94a3b8;font-size:14px;">Twoje IP zostało zbanowane.</p></div>';
+        const reasonHtml = reason ? '<p style="color:#f97316;font-size:16px;font-weight:700;margin-top:10px;border:1px solid #f9731644;padding:12px 24px;border-radius:8px;background:rgba(249,115,22,0.05);">\"' + reason.replace(/</g,'&lt;') + '\"</p>' : '';
+        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a0c10;color:#ef4444;font-family:Inter,sans-serif;flex-direction:column;gap:20px;text-align:center;padding:40px;"><i class="fa fa-ban" style="font-size:80px;"></i><h1 style="margin:0;font-size:32px;">DOSTĘP ZABLOKOWANY</h1><p style="color:#94a3b8;font-size:14px;">Twoje IP zostało zbanowane.</p>' + reasonHtml + '</div>';
     }
     async function checkIPBan() {
         try {
@@ -2436,7 +2437,7 @@
             const ipKey = ip.replace(/[.#$\/\[\]]/g, '_');
             const snap = await db.ref('bans/' + ipKey).once('value');
             if(snap.exists() && !isAdmin()) {
-                showBanScreen();
+                showBanScreen(snap.val().reason);
                 return;
             }
             // Log this IP visit
@@ -2444,7 +2445,7 @@
             // Real-time listener: if ban appears while user is on site, show ban screen immediately
             db.ref('bans/' + ipKey).on('value', banSnap => {
                 if(banSnap.exists() && !isAdmin()) {
-                    showBanScreen();
+                    showBanScreen(banSnap.val().reason);
                 }
             });
         } catch(e) { console.warn('[IP] checkIPBan error (allowing access):', e.message); }
@@ -2583,9 +2584,10 @@
     function adminBanIPDirect(ip) {
         if(!isAdmin()) return;
         if(!confirm('Zbanować IP ' + ip + '?')) return;
+        const reason = prompt('Komentarz/powód bana (widoczny dla zbanowanego):') || '';
         const key = ip.replace(/[.#$\/\[\]]/g, '_');
-        db.ref('bans/' + key).set({ target: ip, by: currentNick, timestamp: Date.now() })
-            .then(() => { adminStatus('Zbanowano ' + ip); renderAdminBanList(); });
+        db.ref('bans/' + key).set({ target: ip, by: currentNick, timestamp: Date.now(), reason: reason })
+            .then(() => { adminStatus('Zbanowano ' + ip + (reason ? ' (' + reason + ')' : '')); renderAdminBanList(); });
     }
 
     // --- GENEROWANIE PRZEDMIOTÓW ---
