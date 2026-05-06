@@ -5017,8 +5017,11 @@
                 const isMyAuction = a.seller === currentNick;
                 const isMyBid = a.currentBidder === currentNick;
                 const minBid = a.currentBid + Math.max(1, Math.floor(a.currentBid * 0.05));
+                const cancelBtn = isMyAuction && !a.currentBidder
+                    ? `<button class="btn btn-red" style="width:auto;padding:4px 12px;font-size:10px;margin-top:6px;" onclick="cancelAuction('${a.key}')"><i class="fa fa-xmark" style="margin-right:4px;"></i>ANULUJ</button>`
+                    : '';
                 const bidSection = isMyAuction
-                    ? `<div style="font-size:11px;color:#64748b;">Twoja licytacja</div>`
+                    ? `<div style="font-size:11px;color:#64748b;">Twoja licytacja${a.currentBidder ? ' (jest oferta)' : ''}</div>${cancelBtn}`
                     : isMyBid
                     ? `<div style="font-size:11px;color:#22c55e;font-weight:900;"><i class="fa fa-check" style="margin-right:4px;"></i>Prowadzisz!</div>`
                     : `<div style="display:flex;gap:6px;align-items:center;">
@@ -5044,6 +5047,21 @@
                     </div>
                 </div>`;
             }).join('');
+        });
+    }
+
+    function cancelAuction(aKey) {
+        if(!confirm('Anulować licytację? Item wróci do ekwipunku.')) return;
+        db.ref('auctions/' + aKey).once('value', snap => {
+            if(!snap.exists()) return alert('Licytacja nie istnieje!');
+            const a = snap.val();
+            if(a.seller !== currentNick) return alert('To nie Twoja licytacja!');
+            if(a.currentBidder) return alert('Nie możesz anulować — ktoś już złożył ofertę!');
+            // Return item to seller inventory
+            state.inventory.push({ name:a.item.name, value:a.item.value, color:a.item.color||'#3b82f6', icon:a.item.icon||'fa-gem', img:a.item.img||null });
+            save();
+            snap.ref.remove();
+            showToast('<i class="fa fa-rotate-left" style="margin-right:8px;color:#f59e0b;"></i>Licytacja anulowana — item wrócił do EQ', '', 3000);
         });
     }
 
@@ -5255,7 +5273,7 @@
         });
     }
     setInterval(updateRankingTimer, 60000);
-    setInterval(() => { if(document.getElementById('v-ranking').classList.contains('active')) loadRanking(); }, 7200000);
+    setInterval(() => { if(document.getElementById('v-ranking').classList.contains('active')) loadRanking(); }, 30000);
     // Heartbeat: update lastSeen every 90s for online status
     setInterval(() => {
         const nick = currentNick;
