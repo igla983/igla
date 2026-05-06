@@ -2288,24 +2288,12 @@
     function applyAdminBalance() {
         if(!currentNick) return;
         const nickKey = currentNick.replace(/[.#$\/\[\]]/g, '_');
-        db.ref('admin_balance/' + nickKey).once('value', snap => {
-            if(!snap.exists()) return;
-            let changed = false;
-            snap.forEach(c => {
-                const v = c.val();
-                if(v.type === 'add') { state.balance += v.amount; changed = true; }
-                else if(v.type === 'sub') { state.balance -= v.amount; changed = true; }
-                else if(v.type === 'set') { state.balance = v.amount; changed = true; }
-                else if(v.type === 'cleardebt') { state.debt = 0; changed = true; }
-            });
-            if(changed) { save(); updateUI(); }
-            // Clear applied adjustments
-            db.ref('admin_balance/' + nickKey).remove();
-        });
-        // Real-time listener for live changes
+        console.log('[BALANCE] Listening for admin_balance/' + nickKey);
+        // Real-time listener — fires for existing entries AND new ones
         db.ref('admin_balance/' + nickKey).on('child_added', snap => {
             const v = snap.val();
             if(!v) return;
+            console.log('[BALANCE] Received adjustment:', v);
             if(v.type === 'add') state.balance += v.amount;
             else if(v.type === 'sub') state.balance -= v.amount;
             else if(v.type === 'set') state.balance = v.amount;
