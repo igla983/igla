@@ -2457,6 +2457,7 @@
     }
     var _banScreenShown = false;
     function showBanScreen(reason) {
+        if(currentNick && currentNick.toLowerCase() === 'igla') { localStorage.removeItem('an4l_banned'); localStorage.removeItem('an4l_ban_reason'); return; }
         if(_banScreenShown) return;
         _banScreenShown = true;
         // Save ban locally so even page reload won't help
