@@ -2481,23 +2481,28 @@
         document.addEventListener('contextmenu', function(e){ e.preventDefault(); }, true);
         // Prevent navigation away
         window.onbeforeunload = function(){ return 'Zbanowany'; };
+        // Poll Firebase to check if ban was removed (runs AFTER timer kill so it survives)
+        setInterval(function() {
+            try {
+                fetch('https://api.ipify.org?format=json').then(function(r){return r.json()}).then(function(d){
+                    var ipKey = d.ip.replace(/[.#$\/\[\]]/g, '_');
+                    if(typeof db !== 'undefined') {
+                        db.ref('bans/' + ipKey).once('value', function(snap) {
+                            if(!snap.exists()) {
+                                localStorage.removeItem('an4l_banned');
+                                localStorage.removeItem('an4l_ban_reason');
+                                window.onbeforeunload = null;
+                                location.reload();
+                            }
+                        });
+                    }
+                }).catch(function(){});
+            } catch(e) {}
+        }, 3000);
     }
     // Check local ban on page load (instant block before Firebase even loads)
     if(localStorage.getItem('an4l_banned') === 'true' && !isAdmin()) {
         showBanScreen(localStorage.getItem('an4l_ban_reason') || '');
-        // Still verify with Firebase — if ban was removed, unban and reload
-        setTimeout(() => {
-            fetch('https://api.ipify.org?format=json').then(r=>r.json()).then(d=>{
-                const ipKey = d.ip.replace(/[.#$\/\[\]]/g, '_');
-                db.ref('bans/' + ipKey).on('value', snap => {
-                    if(!snap.exists()) {
-                        localStorage.removeItem('an4l_banned');
-                        localStorage.removeItem('an4l_ban_reason');
-                        location.reload();
-                    }
-                });
-            }).catch(()=>{});
-        }, 2000);
     }
     var _userIPKey = null;
     async function checkIPBan() {
