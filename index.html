@@ -1948,7 +1948,10 @@
         const profiles = [];
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
-            if (key.startsWith('an4l_') && !key.startsWith('an4l_meta_') && !key.startsWith('an4l_pass_') && !key.startsWith('an4l_steam_link_') && !key.startsWith('an4l_bonus3m_') && !key.startsWith('an4l_bid_') && !key.startsWith('an4l_reward_') && key !== 'an4l_currency' && key !== 'an4l_lastuser' && key !== 'an4l_admin_override' && key !== 'an4l_banned' && key !== 'an4l_ban_reason' && key !== 'an4l_shared_origin') profiles.push(key.substring(5));
+            if (!key.startsWith('an4l_')) continue;
+            const nick = key.substring(5);
+            if (!nick || nick.includes('_')) continue;
+            try { const d = JSON.parse(localStorage.getItem(key)); if(d && typeof d.balance === 'number') profiles.push(nick); } catch(e) {}
         }
         return profiles.sort();
     }
