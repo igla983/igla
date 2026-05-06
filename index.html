@@ -511,11 +511,11 @@
         <div class="rank-badge" id="rank-badge" title="Twoja ranga"><i class="fa-solid fa-dice"></i><div style="display:flex;flex-direction:column;"><span id="rank-name">Nowicjusz</span><div class="rank-progress-bar" style="width:100%;"><div class="rank-progress-fill" id="rank-progress" style="width:0%"></div></div></div></div>
         <div class="hud-card"><small>Saldo</small><span id="h-bal">$0</span></div>
         <div class="hud-card"><small>Dług ($600K Max)</small><span id="h-debt" style="color:var(--accent-red)">$0</span></div>
-        <div class="hud-card" style="cursor:pointer; position:relative; display:flex; align-items:center; gap:8px; transition:0.2s; padding:8px 14px; min-width:auto;" onclick="toggleProfileMenu(event)" title="Kliknij aby zmienić profil" onmouseover="this.style.borderColor='rgba(79,143,247,0.4)';this.style.boxShadow='0 0 15px rgba(79,143,247,0.15)'" onmouseout="this.style.borderColor='';this.style.boxShadow=''"><img id="h-nick-pic" src="" onerror="this.style.display='none'" style="width:32px; height:32px; border-radius:50%; object-fit:cover; border:2px solid #22c55e; display:none;"><div><small style="font-size:9px;">PROFIL</small><span id="h-nick" style="color:var(--accent-blue); font-size:13px;">-</span></div><i class="fa fa-chevron-down" id="profile-chevron" style="font-size:9px; color:#64748b; transition:0.3s; margin-left:2px;"></i>
-            <div id="profile-menu" style="display:none; position:absolute; top:100%; right:0; margin-top:8px; background:var(--bg-card); border:1px solid var(--border-ui); border-radius:10px; min-width:240px; z-index:999; box-shadow:0 10px 40px rgba(0,0,0,0.7); padding:8px 0; max-height:400px; overflow-y:auto;"></div>
+        <div class="hud-card" id="profile-card" style="cursor:pointer; position:relative; display:flex; align-items:center; gap:8px; transition:0.2s; padding:8px 14px; min-width:auto;" onclick="toggleProfileMenu(event)" title="Kliknij aby zmienić profil" onmouseover="this.style.borderColor='rgba(79,143,247,0.4)';this.style.boxShadow='0 0 15px rgba(79,143,247,0.15)'" onmouseout="this.style.borderColor='';this.style.boxShadow=''"><img id="h-nick-pic" src="" onerror="this.style.display='none'" style="width:32px; height:32px; border-radius:50%; object-fit:cover; border:2px solid #22c55e; display:none;"><div><small style="font-size:9px;">PROFIL</small><span id="h-nick" style="color:var(--accent-blue); font-size:13px;">-</span></div><i class="fa fa-chevron-down" id="profile-chevron" style="font-size:9px; color:#64748b; transition:0.3s; margin-left:2px;"></i>
         </div>
     </div>
 </header>
+<div id="profile-menu" style="display:none; position:fixed; top:70px; right:12px; background:var(--bg-card); border:1px solid var(--border-ui); border-radius:10px; min-width:240px; z-index:9999; box-shadow:0 10px 40px rgba(0,0,0,0.7); padding:8px 0; max-height:400px; overflow-y:auto;"></div>
 
 <!-- FREE REWARD BUTTON -->
 <button id="free-reward-btn" class="free-reward-btn" onclick="claimFreeReward()" style="display:none;">
@@ -2156,7 +2156,7 @@
         overlay.querySelector('.modal-content').style.display = '';
         pendingSwitchNick = null;
     }
-    document.addEventListener('click', e => { if (!e.target.closest('#profile-menu') && !e.target.closest('[onclick*="toggleProfileMenu"]')) { document.getElementById('profile-menu').style.display = 'none'; const ch = document.getElementById('profile-chevron'); if(ch) ch.style.transform = 'rotate(0deg)'; } });
+    document.addEventListener('click', e => { if (!e.target.closest('#profile-menu') && !e.target.closest('#profile-card')) { document.getElementById('profile-menu').style.display = 'none'; const ch = document.getElementById('profile-chevron'); if(ch) ch.style.transform = 'rotate(0deg)'; } });
     document.getElementById('login-nick').addEventListener('keydown', e => { if(e.key === 'Enter') document.getElementById('login-pass').focus(); });
     document.getElementById('login-pass').addEventListener('keydown', e => { if(e.key === 'Enter') loginWithNick(); });
     document.getElementById('reg-nick').addEventListener('keydown', e => { if(e.key === 'Enter') document.getElementById('reg-pass').focus(); });
