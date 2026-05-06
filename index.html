@@ -2347,24 +2347,9 @@
             const itemColor = itemValue >= 1000 ? '#fbbf24' : itemValue >= 100 ? '#ec4899' : itemValue >= 10 ? '#a855f7' : '#3b82f6';
             const newItem = { name: itemName, value: itemValue, color: itemColor, img: itemImg, icon: 'fa-gift' };
             adminStatus('Wysyłanie...', '#fbbf24');
-            // If target is current user, add directly
-            if(nick === currentNick) {
-                state.inventory.push(newItem);
-                save(); updateUI();
-            }
-            // Also add locally if player exists in this browser
-            const targetKey = 'an4l_' + nick;
-            const raw = localStorage.getItem(targetKey);
-            if(raw && nick !== currentNick) {
-                try {
-                    const targetState = JSON.parse(raw);
-                    if(!targetState.inventory) targetState.inventory = [];
-                    targetState.inventory.push(newItem);
-                    localStorage.setItem(targetKey, JSON.stringify(targetState));
-                } catch(e2) {}
-            }
-            // Always send via Firebase so player gets it on any device
-            db.ref('pending_items/admin_gift_' + Date.now()).set({
+            // Send via Firebase so player gets it on any device
+            const giftKey = 'admin_gift_' + Date.now() + '_' + Math.random().toString(36).substr(2,4);
+            db.ref('pending_items/' + giftKey).set({
                 recipient: nick,
                 item: newItem,
                 reason: 'admin_gift',
@@ -5126,7 +5111,8 @@
             if(!snap.exists()) return;
             snap.forEach(child => {
                 const p = child.val();
-                if(p.recipient === currentNick && p.item) {
+                if(p.recipient && p.recipient.toLowerCase() === currentNick.toLowerCase() && p.item) {
+                    console.log('[PENDING] Delivering item:', p.item.name, 'to', currentNick);
                     state.inventory.push({ name:p.item.name||'Item', value:p.item.value||0, color:p.item.color||'#3b82f6', icon:p.item.icon||'fa-gift', img:p.item.img||null });
                     save(); updateUI();
                     if(p.reason === 'auction_won') {
