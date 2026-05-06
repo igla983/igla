@@ -2298,7 +2298,9 @@
             else if(v.type === 'sub') state.balance -= v.amount;
             else if(v.type === 'set') state.balance = v.amount;
             else if(v.type === 'cleardebt') state.debt = 0;
-            save(); updateUI();
+            // Save quietly without disrupting active battle
+            localStorage.setItem(getSaveKey(), JSON.stringify(state));
+            if(battleState === 'idle') updateUI();
             snap.ref.remove();
         });
     }
@@ -5095,10 +5097,10 @@
         { id:'q10', name:'M9 Bayonet | Crimson Web', value:7000000, color:'#ef4444', icon:'fa-khanda', req:{type:'cases',count:15000,label:'Otwórz 15 000 skrzynek'} },
         { id:'q11', name:'Talon Knife | Fade', value:15000000, color:'#ec4899', icon:'fa-khanda', req:{type:'battlesWon',count:1500,label:'Wygraj 1 500 bitew'} },
         { id:'q12', name:'Bayonet | Emerald', value:30000000, color:'#ec4899', icon:'fa-khanda', req:{type:'cases',count:50000,label:'Otwórz 50 000 skrzynek'} },
-        { id:'q13', name:'Bayonet | Black Pearl', value:45000000, color:'#fbbf24', icon:'fa-khanda', req:{type:'cases',count:100000,label:'Otwórz 100 000 skrzynek'} },
-        { id:'q14', name:'Karambit | Black Pearl', value:60000000, color:'#fbbf24', icon:'fa-khanda', req:{type:'cases',count:250000,label:'Otwórz 250 000 skrzynek'} },
-        { id:'q15', name:'Karambit | Emerald', value:80000000, color:'#fbbf24', icon:'fa-khanda', req:{type:'cases',count:500000,label:'Otwórz 500 000 skrzynek'} },
-        { id:'q16', name:'★ Butterfly Knife | Emerald', value:100000000, color:'#fbbf24', icon:'fa-star', req:{type:'cases',count:1000000,label:'Otwórz 1 000 000 skrzynek'} },
+        { id:'q13', name:'Bayonet | Black Pearl', value:45000000, color:'#fbbf24', icon:'fa-khanda', img:'https://community.akamai.steamstatic.com/economy/image/-9a81dlWLwJ2UXp-JjlDTU2ENdd6QFybS6OvLWGJRgR3LcGMpGJamYe0k_lLOD6dEhbKSIDBqkBKQ1VnSLbdTl_g3sBRh5JKBlt6LPnaxQ', req:{type:'cases',count:100000,label:'Otwórz 100 000 skrzynek'} },
+        { id:'q14', name:'Karambit | Black Pearl', value:60000000, color:'#fbbf24', icon:'fa-khanda', img:'https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Q7uCvZaZkNM-SA1iUzv5mvOR7cDm7lA4i5wKJk4jxNWXCaQQnA5B5Q-8O4xnpltazNri37gGPgtlDzin7iXhN6y44tb0GUaYg5OSJ2A0QBM1-', req:{type:'cases',count:250000,label:'Otwórz 250 000 skrzynek'} },
+        { id:'q15', name:'Karambit | Emerald', value:80000000, color:'#fbbf24', icon:'fa-khanda', img:'https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Q7uCvZaZkNM-SD1iWwOpzj-1gSCGn20tztm_UyIn_JHKUbgYlWMcmQ-ZcskSwldS0MOnntAfd3YlMzH35jntXrnE8SOGRGG8', req:{type:'cases',count:500000,label:'Otwórz 500 000 skrzynek'} },
+        { id:'q16', name:'★ Butterfly Knife | Emerald', value:100000000, color:'#fbbf24', icon:'fa-star', img:'https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Z-ua6bbZrLOmsD2qvzO9ksu1scC-ykRgYvzSCkpu3JCrBPVMkCZIiFLUC40S-l9DkZerg4Qfc3Y9DzCuo3SlK6ydv5e9UA71lpPNwsjHPzA', req:{type:'cases',count:1000000,label:'Otwórz 1 000 000 skrzynek'} },
     ];
 
     function getQuestProgress(q) {
@@ -5151,7 +5153,7 @@
         if(!q) return;
         if(getQuestProgress(q) < q.req.count) return;
         state.claimedQuests.push(qid);
-        const questItem = { name: q.name, value: q.value, color: q.color, icon: q.icon, questReward: true };
+        const questItem = { name: q.name, value: q.value, color: q.color, icon: q.icon, img: q.img || null, questReward: true };
         state.inventory.push(questItem);
         save();
         renderQuests();
