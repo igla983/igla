@@ -28,14 +28,14 @@
         .logo span { color: #fff; text-shadow: none; }
 
         nav { display: flex; gap: 4px; background: var(--bg-deep); padding: 6px; border-radius: 14px; border: 1px solid var(--border-ui); box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
-        nav button { background: transparent; border: none; color: #64748b; padding: 10px 12px; border-radius: 10px; font-weight: 800; cursor: pointer; transition: all 0.3s ease; font-size: 11px; text-transform: uppercase; position: relative; }
+        nav button { background: transparent; border: none; color: #64748b; padding: 12px 18px; border-radius: 10px; font-weight: 800; cursor: pointer; transition: all 0.3s ease; font-size: 12px; text-transform: uppercase; position: relative; }
         nav button:hover { color: #c8d6e5; background: rgba(255,255,255,0.04); }
         nav button.active { background: linear-gradient(135deg, rgba(79,143,247,0.18), rgba(79,143,247,0.06)); color: #fff; border: 1px solid rgba(79,143,247,0.3); box-shadow: 0 0 15px rgba(79,143,247,0.12), inset 0 1px 0 rgba(255,255,255,0.05); }
 
-        .hud-stats { display: flex; gap: 8px; align-items: center; }
-        .hud-card { background: linear-gradient(135deg, #060810, #0a0d14); padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border-ui); min-width: 100px; transition: all 0.25s ease; }
+        .hud-stats { display: flex; gap: 15px; align-items: center; }
+        .hud-card { background: linear-gradient(135deg, #060810, #0a0d14); padding: 15px 20px; border-radius: 12px; border: 1px solid var(--border-ui); min-width: 160px; transition: all 0.25s ease; }
         .hud-card:hover { border-color: rgba(255,255,255,0.1); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-        .hud-stats .hud-card { text-align: right; padding: 10px 14px; }
+        .hud-stats .hud-card { text-align: right; padding: 12px 22px; }
         .hud-card small { display: block; font-size: 10px; color: #64748b; font-weight: 900; text-transform: uppercase; }
         .hud-card span { font-weight: 900; font-size: 22px; font-family: 'Rajdhani', sans-serif; color: var(--accent-green); }
 
@@ -503,7 +503,7 @@
         <div class="hud-card"><small>Saldo</small><span id="h-bal">$0</span></div>
         <div class="hud-card"><small>Dług ($600K Max)</small><span id="h-debt" style="color:var(--accent-red)">$0</span></div>
         <button id="admin-btn" onclick="openAdminPanel()" title="Panel Admina" style="display:none; background:linear-gradient(135deg,#ef4444,#a855f7); border:none; border-radius:10px; width:46px; height:46px; cursor:pointer; color:#fff; font-size:18px; box-shadow:0 0 12px rgba(239,68,68,0.4); transition:0.2s;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'"><i class="fa fa-user-shield"></i></button>
-        <div class="hud-card" style="cursor:pointer; position:relative; display:flex; align-items:center; gap:10px; transition:0.2s;" onclick="toggleProfileMenu()" title="Kliknij aby zmienić profil" onmouseover="this.style.borderColor='rgba(79,143,247,0.4)';this.style.boxShadow='0 0 15px rgba(79,143,247,0.15)'" onmouseout="this.style.borderColor='';this.style.boxShadow=''"><img id="h-nick-pic" src="" onerror="this.style.display='none'" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid #22c55e; display:none;"><div><small>Gracz</small><span id="h-nick" style="color:var(--accent-blue); font-size:14px;">-</span></div><i class="fa fa-chevron-down" id="profile-chevron" style="font-size:10px; color:#64748b; transition:0.3s; margin-left:4px;"></i>
+        <div class="hud-card" style="cursor:pointer; position:relative; display:flex; align-items:center; gap:8px; transition:0.2s; padding:8px 14px; min-width:auto;" onclick="toggleProfileMenu()" title="Kliknij aby zmienić profil" onmouseover="this.style.borderColor='rgba(79,143,247,0.4)';this.style.boxShadow='0 0 15px rgba(79,143,247,0.15)'" onmouseout="this.style.borderColor='';this.style.boxShadow=''"><img id="h-nick-pic" src="" onerror="this.style.display='none'" style="width:32px; height:32px; border-radius:50%; object-fit:cover; border:2px solid #22c55e; display:none;"><div><small style="font-size:9px;">Gracz</small><span id="h-nick" style="color:var(--accent-blue); font-size:13px;">-</span></div><i class="fa fa-chevron-down" id="profile-chevron" style="font-size:9px; color:#64748b; transition:0.3s; margin-left:2px;"></i>
             <div id="profile-menu" style="display:none; position:absolute; top:100%; right:0; margin-top:8px; background:var(--bg-card); border:1px solid var(--border-ui); border-radius:10px; min-width:240px; z-index:999; box-shadow:0 10px 40px rgba(0,0,0,0.7); padding:8px 0; max-height:400px; overflow-y:auto;"></div>
         </div>
     </div>
