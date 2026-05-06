@@ -2328,44 +2328,51 @@
         adminStatus('Dodano item $1M');
     }
     function adminGiveItem() {
-        if(!isAdmin()) return;
-        const nick = document.getElementById('admin-give-nick').value.trim();
-        const itemName = document.getElementById('admin-give-item-name').value.trim();
-        const itemValue = parseInt(document.getElementById('admin-give-item-value').value) || 0;
-        const itemImg = document.getElementById('admin-give-item-img').value.trim() || null;
-        if(!nick) return adminStatus('Wpisz nick gracza!', '#ef4444');
-        if(!itemName) return adminStatus('Wpisz nazwę itemu!', '#ef4444');
-        if(itemValue <= 0) return adminStatus('Wartość musi być > 0!', '#ef4444');
-        const itemColor = itemValue >= 1000 ? '#fbbf24' : itemValue >= 100 ? '#ec4899' : itemValue >= 10 ? '#a855f7' : '#3b82f6';
-        const newItem = { name: itemName, value: itemValue, color: itemColor, img: itemImg, icon: 'fa-gift' };
-        // If target is current user, add directly
-        if(nick === currentNick) {
-            state.inventory.push(newItem);
-            save(); updateUI();
+        try {
+            const ADMIN_NICKS = ['igla', 'iglo', 'Igla', 'Iglo', 'IGLA', 'IGLO'];
+            if(!isAdmin() && !ADMIN_NICKS.includes(currentNick)) { adminStatus('Brak uprawnień admina!', '#ef4444'); return; }
+            const nick = document.getElementById('admin-give-nick').value.trim();
+            const itemName = document.getElementById('admin-give-item-name').value.trim();
+            const itemValue = parseInt(document.getElementById('admin-give-item-value').value) || 0;
+            const itemImg = document.getElementById('admin-give-item-img').value.trim() || null;
+            if(!nick) { adminStatus('Wpisz nick gracza!', '#ef4444'); return; }
+            if(!itemName) { adminStatus('Wpisz nazwę itemu!', '#ef4444'); return; }
+            if(itemValue <= 0) { adminStatus('Wartość musi być > 0!', '#ef4444'); return; }
+            const itemColor = itemValue >= 1000 ? '#fbbf24' : itemValue >= 100 ? '#ec4899' : itemValue >= 10 ? '#a855f7' : '#3b82f6';
+            const newItem = { name: itemName, value: itemValue, color: itemColor, img: itemImg, icon: 'fa-gift' };
+            adminStatus('Wysyłanie...', '#fbbf24');
+            // If target is current user, add directly
+            if(nick === currentNick) {
+                state.inventory.push(newItem);
+                save(); updateUI();
+            }
+            // Also add locally if player exists in this browser
+            const targetKey = 'an4l_' + nick;
+            const raw = localStorage.getItem(targetKey);
+            if(raw && nick !== currentNick) {
+                try {
+                    const targetState = JSON.parse(raw);
+                    if(!targetState.inventory) targetState.inventory = [];
+                    targetState.inventory.push(newItem);
+                    localStorage.setItem(targetKey, JSON.stringify(targetState));
+                } catch(e2) {}
+            }
+            // Always send via Firebase so player gets it on any device
+            db.ref('pending_items/admin_gift_' + Date.now()).set({
+                recipient: nick,
+                item: newItem,
+                reason: 'admin_gift',
+                createdAt: Date.now()
+            }).then(function() {
+                adminStatus('Wysłano "' + itemName + '" ($' + itemValue.toLocaleString() + ') do ' + nick);
+            }).catch(function(e) { adminStatus('Błąd Firebase: ' + e.message, '#ef4444'); });
+            document.getElementById('admin-give-item-name').value = '';
+            document.getElementById('admin-give-item-value').value = '';
+            document.getElementById('admin-give-item-img').value = '';
+        } catch(err) {
+            adminStatus('BŁĄD: ' + err.message, '#ef4444');
+            console.error('adminGiveItem error:', err);
         }
-        // Also add locally if player exists in this browser
-        const targetKey = 'an4l_' + nick;
-        const raw = localStorage.getItem(targetKey);
-        if(raw && nick !== currentNick) {
-            try {
-                const targetState = JSON.parse(raw);
-                if(!targetState.inventory) targetState.inventory = [];
-                targetState.inventory.push(newItem);
-                localStorage.setItem(targetKey, JSON.stringify(targetState));
-            } catch(e) {}
-        }
-        // Always send via Firebase so player gets it on any device
-        db.ref('pending_items/admin_gift_' + Date.now()).set({
-            recipient: nick,
-            item: newItem,
-            reason: 'admin_gift',
-            createdAt: Date.now()
-        }).then(() => {
-            adminStatus(`Wysłano "${itemName}" ($${itemValue.toLocaleString()}) do ${nick}`);
-        }).catch(e => adminStatus('Błąd Firebase: ' + e.message, '#ef4444'));
-        document.getElementById('admin-give-item-name').value = '';
-        document.getElementById('admin-give-item-value').value = '';
-        document.getElementById('admin-give-item-img').value = '';
     }
     function adminBan() {
         if(!isAdmin()) return;
