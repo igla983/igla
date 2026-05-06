@@ -2491,10 +2491,10 @@
         db.ref('users/' + nickKey).once('value', snap => {
             if(!snap.exists()) { infoEl.innerHTML = '<span style="color:#ef4444;"><i class="fa fa-xmark" style="margin-right:6px;"></i>Nie znaleziono: ' + target + '</span>'; return; }
             const u = snap.val();
-            const bal = u.balance !== undefined ? u.balance : '?';
+            const bal = u.balance !== undefined ? u.balance : 0;
             const debt = u.debt || 0;
             const online = u.online ? '<span style="color:#22c55e;">● ONLINE</span>' : '<span style="color:#64748b;">○ offline</span>';
-            infoEl.innerHTML = `<i class="fa fa-user" style="margin-right:6px;"></i>${target} ${online} | Saldo: <span style="color:#fbbf24;">${typeof bal === 'number' ? formatMoney(bal) : bal}</span> | Dług: <span style="color:#ef4444;">${formatMoney(debt)}</span>`;
+            infoEl.innerHTML = `<i class="fa fa-user" style="margin-right:6px;"></i>${target} ${online} | Saldo: <span style="color:#fbbf24;">${formatMoney(bal)}</span> | Dług: <span style="color:#ef4444;">${formatMoney(debt)}</span>`;
         });
     };
     function adminAddInvItem() {
