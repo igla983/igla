@@ -5087,6 +5087,24 @@
         });
     }, 15000);
 
+    // Global auction finalizer - runs regardless of open tab
+    function globalAuctionFinalizer() {
+        if(!currentNick) return;
+        db.ref('auctions').once('value', snap => {
+            if(!snap.exists()) return;
+            const now = Date.now();
+            snap.forEach(child => {
+                const a = { key: child.key, ...child.val() };
+                if(now > a.endsAt) {
+                    finalizeAuction(a);
+                    db.ref('auctions/' + a.key).remove();
+                }
+            });
+        });
+    }
+    globalAuctionFinalizer();
+    setInterval(globalAuctionFinalizer, 10000);
+
     // Check pending items - real-time listener + immediate check
     function checkPendingItems() {
         if(!currentNick) return;
