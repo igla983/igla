@@ -2774,10 +2774,17 @@
                 else agoStr = Math.floor(ago/86400000) + 'd temu';
                 const dot = isOnline ? '<span style="color:#22c55e;">●</span> ' : isRecent ? '<span style="color:#eab308;">●</span> ' : '<span style="color:#64748b;">○</span> ';
                 const showIP = isSuperAdmin();
+                const bal = typeof e.balance === 'number' ? e.balance : 0;
+                const debt = typeof e.debt === 'number' ? e.debt : 0;
+                const balColor = bal >= 0 ? '#22c55e' : '#ef4444';
                 return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #1a1e29;gap:8px;">
                     <div style="flex:1;min-width:0;">
                         <div style="color:#fff;font-weight:700;font-size:12px;">${dot}${e.nick}</div>
-                        <div style="color:#94a3b8;font-size:10px;font-family:monospace;">${showIP ? (e.ip || '?') : ''} ${agoStr}</div>
+                        <div style="color:#94a3b8;font-size:10px;font-family:monospace;">${showIP ? (e.ip || '?') + ' · ' : ''}${agoStr}</div>
+                    </div>
+                    <div style="text-align:right;min-width:90px;">
+                        <div style="color:${balColor};font-weight:900;font-size:11px;font-family:monospace;">$${bal.toLocaleString()}</div>
+                        ${debt > 0 ? `<div style="color:#f59e0b;font-size:9px;font-family:monospace;">dług: $${debt.toLocaleString()}</div>` : ''}
                     </div>
                     ${showIP ? `<button onclick="adminBanIPDirect('${e.ip}')" style="background:none;border:1px solid #ef4444;color:#ef4444;border-radius:4px;padding:4px 10px;font-size:10px;font-weight:900;cursor:pointer;">BAN IP</button>` : ''}
                 </div>`;
