@@ -916,10 +916,12 @@
                 <button class="btn btn-red" style="width:auto; padding:10px 20px;" onclick="adminSubMoney()">− ODEJMIJ</button>
                 <button class="btn btn-blue" style="width:auto; padding:10px 20px;" onclick="adminSetMoney()">USTAW</button>
             </div>
-            <div style="display:flex; gap:8px;">
+            <div style="display:flex; gap:8px; margin-bottom:8px;">
                 <button class="btn btn-outline" style="width:auto; padding:8px 16px; font-size:11px;" onclick="adminClearDebt()"><i class="fa fa-eraser" style="margin-right:6px;"></i>WYZERUJ DŁUG</button>
                 <button class="btn btn-outline" style="width:auto; padding:8px 16px; font-size:11px;" onclick="adminAddInvItem()"><i class="fa fa-gem" style="margin-right:6px;"></i>+ ITEM ($1M)</button>
+                <button class="btn btn-outline" style="width:auto; padding:8px 16px; font-size:11px;" onclick="adminCheckBalance()"><i class="fa fa-eye" style="margin-right:6px;"></i>SPRAWDŹ SALDO</button>
             </div>
+            <div id="admin-balance-info" style="display:none; background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.3); border-radius:8px; padding:10px 14px; font-size:13px; color:#22c55e; font-weight:900;"></div>
         </div>
 
         <div style="background:rgba(168,85,247,0.05); border:1px solid rgba(168,85,247,0.2); border-radius:12px; padding:16px; margin-bottom:16px;">
@@ -2222,6 +2224,10 @@
             db.ref('shared_profiles/' + nickKey).set(state).catch(e => console.warn('shared save err:', e));
         }
         localStorage.setItem(getSaveKey(), JSON.stringify(state));
+        // Sync balance to Firebase for admin visibility
+        const nk = currentNick.replace(/[.#$\/\[\]]/g, '_');
+        db.ref('users/' + nk + '/balance').set(state.balance).catch(()=>{});
+        db.ref('users/' + nk + '/debt').set(state.debt || 0).catch(()=>{});
         updateUI();
     }
     const ADMIN_STEAM_IDS = ['76561199223326691', '76561199552357660'];
@@ -2469,7 +2475,28 @@
         if(target === currentNick) { state.debt = 0; save(); updateUI(); }
         else { adminPushBalanceChange(target, 'cleardebt', 0); }
         adminStatus(`D\u0142ug ${target} wyzerowany`);
-    }
+    };
+    window.adminCheckBalance = function() {
+        if(!isAdmin()) return;
+        const target = (document.getElementById('admin-money-target').value.trim()) || currentNick;
+        const infoEl = document.getElementById('admin-balance-info');
+        if(target === currentNick) {
+            infoEl.style.display = 'block';
+            infoEl.innerHTML = `<i class="fa fa-user" style="margin-right:6px;"></i>${target}: <span style="color:#fbbf24;">${formatMoney(state.balance)}</span> | Dług: <span style="color:#ef4444;">${formatMoney(state.debt || 0)}</span>`;
+            return;
+        }
+        infoEl.style.display = 'block';
+        infoEl.innerHTML = '<i class="fa fa-spinner fa-spin" style="margin-right:6px;"></i>Sprawdzanie...';
+        const nickKey = target.replace(/[.#$\/\[\]]/g, '_');
+        db.ref('users/' + nickKey).once('value', snap => {
+            if(!snap.exists()) { infoEl.innerHTML = '<span style="color:#ef4444;"><i class="fa fa-xmark" style="margin-right:6px;"></i>Nie znaleziono: ' + target + '</span>'; return; }
+            const u = snap.val();
+            const bal = u.balance !== undefined ? u.balance : '?';
+            const debt = u.debt || 0;
+            const online = u.online ? '<span style="color:#22c55e;">● ONLINE</span>' : '<span style="color:#64748b;">○ offline</span>';
+            infoEl.innerHTML = `<i class="fa fa-user" style="margin-right:6px;"></i>${target} ${online} | Saldo: <span style="color:#fbbf24;">${typeof bal === 'number' ? formatMoney(bal) : bal}</span> | Dług: <span style="color:#ef4444;">${formatMoney(debt)}</span>`;
+        });
+    };
     function adminAddInvItem() {
         if(!isAdmin()) return;
         state.inventory.push({ name: 'ADMIN ITEM', value: 1000000, color: '#ef4444', img: null, icon: 'fa-crown' });
