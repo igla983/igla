@@ -511,7 +511,7 @@
         <div class="rank-badge" id="rank-badge" title="Twoja ranga"><i class="fa-solid fa-dice"></i><div style="display:flex;flex-direction:column;"><span id="rank-name">Nowicjusz</span><div class="rank-progress-bar" style="width:100%;"><div class="rank-progress-fill" id="rank-progress" style="width:0%"></div></div></div></div>
         <div class="hud-card"><small>Saldo</small><span id="h-bal">$0</span></div>
         <div class="hud-card"><small>Dług ($600K Max)</small><span id="h-debt" style="color:var(--accent-red)">$0</span></div>
-        <div class="hud-card" id="profile-card" style="cursor:pointer; position:relative; display:flex; align-items:center; gap:8px; transition:0.2s; padding:8px 14px; min-width:auto;" title="Kliknij aby zmienić profil" onmouseover="this.style.borderColor='rgba(79,143,247,0.4)';this.style.boxShadow='0 0 15px rgba(79,143,247,0.15)'" onmouseout="this.style.borderColor='';this.style.boxShadow=''"><img id="h-nick-pic" src="" onerror="this.style.display='none'" style="width:32px; height:32px; border-radius:50%; object-fit:cover; border:2px solid #22c55e; display:none;"><div><small style="font-size:9px;">PROFIL</small><span id="h-nick" style="color:var(--accent-blue); font-size:13px;">-</span></div><i class="fa fa-chevron-down" id="profile-chevron" style="font-size:9px; color:#64748b; transition:0.3s; margin-left:2px;"></i>
+        <div class="hud-card" id="profile-card" style="cursor:pointer; position:relative; display:flex; align-items:center; gap:8px; transition:0.2s; padding:8px 14px; min-width:auto;" onclick="event.stopPropagation(); if(window.toggleProfileMenu) window.toggleProfileMenu();" title="Kliknij aby zmienić profil" onmouseover="this.style.borderColor='rgba(79,143,247,0.4)';this.style.boxShadow='0 0 15px rgba(79,143,247,0.15)'" onmouseout="this.style.borderColor='';this.style.boxShadow=''"><img id="h-nick-pic" src="" onerror="this.style.display='none'" style="width:32px; height:32px; border-radius:50%; object-fit:cover; border:2px solid #22c55e; display:none;"><div><small style="font-size:9px;">PROFIL</small><span id="h-nick" style="color:var(--accent-blue); font-size:13px;">-</span></div><i class="fa fa-chevron-down" id="profile-chevron" style="font-size:9px; color:#64748b; transition:0.3s; margin-left:2px;"></i>
         </div>
     </div>
 </header>
@@ -2077,8 +2077,7 @@
         if(modal) modal.remove();
     }
 
-    document.getElementById('profile-card').addEventListener('click', function(e) { e.stopPropagation(); toggleProfileMenu(); });
-    function toggleProfileMenu() {
+    window.toggleProfileMenu = function() {
         console.log('[PROFILE] toggleProfileMenu called');
         const menu = document.getElementById('profile-menu');
         const chevron = document.getElementById('profile-chevron');
@@ -2102,7 +2101,7 @@
             const picHtml = pic ? `<img src="${pic}" onerror="this.style.display='none'" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:2px solid ${isActive ? '#22c55e' : '#333'}; flex-shrink:0;">` : `<div style="width:36px;height:36px;border-radius:50%;background:#1a1e29;border:2px solid ${isActive ? '#22c55e' : '#333'};display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fa fa-user" style="color:#475569;font-size:14px;"></i></div>`;
             html += `<div onclick="event.stopPropagation(); ${isActive ? "document.getElementById('profile-menu').style.display='none'" : "switchProfile('" + nick.replace(/'/g, "\\'") + "')"}" style="padding:10px 16px; cursor:pointer; display:flex; align-items:center; gap:12px; transition:0.15s; ${isActive ? 'background:rgba(34,197,94,0.06);' : ''}" onmouseover="this.style.background='${isActive ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.04)'}'" onmouseout="this.style.background='${isActive ? 'rgba(34,197,94,0.06)' : 'transparent'}'">
                 ${picHtml}
-                <span style="font-weight:900; font-size:14px; flex:1; color:${isActive ? '#22c55e' : '#fff'};">${nick}</span>
+                <span style="font-weight:900; font-size:14px; flex:1; color:${isActive ? '#22c55e' : '#fff'};">${nick === 'Denis Załęcki' ? 'Denis' : nick === 'Bartek Szachta' ? 'Bartek' : nick}</span>
                 ${isActive ? '<i class="fa fa-check" style="color:#22c55e;font-size:13px;"></i>' : ''}
             </div>`;
         });
