@@ -293,6 +293,13 @@
         #live-feed-bar { position: relative; }
         #live-feed-bar::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 1px; background: linear-gradient(90deg, transparent, rgba(245,183,49,0.15), rgba(79,143,247,0.1), transparent); }
         #live-feed-bar::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 1px; background: linear-gradient(90deg, transparent, rgba(79,143,247,0.1), rgba(168,85,247,0.08), transparent); }
+        #live-feed-track { will-change: transform; }
+        .feed-item { display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:6px 12px; flex-shrink:0; min-width:140px; }
+        .feed-item:hover { background:rgba(255,255,255,0.06); }
+        @keyframes feedScroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
 
         /* --- SECTION TITLES WITH ACCENT --- */
         .view h2, .view h3 { position: relative; display: inline-block; }
