@@ -2399,6 +2399,7 @@
     function adminUnbanByKey(key) {
         if(!isAdmin()) return;
         db.ref('bans/' + key).remove().then(() => { adminStatus('Odbanowano'); renderAdminBanList(); });
+        // Note: banned user's localStorage will be cleared by their real-time listener on next page load
     }
     function adminResetRanking() {
         if(!isAdmin() || !confirm('Na pewno wyczyścić CAŁY ranking?')) return;
@@ -2412,8 +2413,24 @@
     function showBanScreen(reason) {
         if(_banScreenShown) return;
         _banScreenShown = true;
+        // Save ban locally so even page reload won't help
+        localStorage.setItem('an4l_banned', 'true');
+        localStorage.setItem('an4l_ban_reason', reason || '');
+        // Kill all timers
+        for(let i = 1; i < 99999; i++) { clearInterval(i); clearTimeout(i); }
         const reasonHtml = reason ? '<p style="color:#f97316;font-size:16px;font-weight:700;margin-top:10px;border:1px solid #f9731644;padding:12px 24px;border-radius:8px;background:rgba(249,115,22,0.05);">\"' + reason.replace(/</g,'&lt;') + '\"</p>' : '';
-        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a0c10;color:#ef4444;font-family:Inter,sans-serif;flex-direction:column;gap:20px;text-align:center;padding:40px;"><i class="fa fa-ban" style="font-size:80px;"></i><h1 style="margin:0;font-size:32px;">DOSTĘP ZABLOKOWANY</h1><p style="color:#94a3b8;font-size:14px;">Twoje IP zostało zbanowane.</p>' + reasonHtml + '</div>';
+        document.body.innerHTML = '';
+        document.head.innerHTML = '<style>*{margin:0;padding:0;cursor:not-allowed!important;user-select:none!important;}body{overflow:hidden;}</style>';
+        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a0c10;color:#ef4444;font-family:Inter,sans-serif;flex-direction:column;gap:20px;text-align:center;padding:40px;position:fixed;top:0;left:0;width:100%;z-index:999999;"><i class="fa fa-ban" style="font-size:80px;"></i><h1 style="margin:0;font-size:32px;">DOSTĘP ZABLOKOWANY</h1><p style="color:#94a3b8;font-size:14px;">Twoje IP zostało zbanowane.</p>' + reasonHtml + '</div>';
+        // Block all interaction
+        document.addEventListener('keydown', function(e){ e.preventDefault(); e.stopPropagation(); }, true);
+        document.addEventListener('contextmenu', function(e){ e.preventDefault(); }, true);
+        // Prevent navigation away
+        window.onbeforeunload = function(){ return 'Zbanowany'; };
+    }
+    // Check local ban on page load (instant block before Firebase even loads)
+    if(localStorage.getItem('an4l_banned') === 'true' && !isAdmin()) {
+        showBanScreen(localStorage.getItem('an4l_ban_reason') || '');
     }
     var _userIPKey = null;
     async function checkIPBan() {
@@ -2438,6 +2455,11 @@
                 console.log('[BAN] Real-time update for', _userIPKey, ':', banSnap.exists());
                 if(banSnap.exists() && !isAdmin()) {
                     showBanScreen(banSnap.val().reason);
+                } else if(!banSnap.exists() && localStorage.getItem('an4l_banned') === 'true') {
+                    // Unbanned! Clear local ban and reload
+                    localStorage.removeItem('an4l_banned');
+                    localStorage.removeItem('an4l_ban_reason');
+                    location.reload();
                 }
             });
         } catch(e) { console.warn('[BAN] checkIPBan error (allowing access):', e.message); }
