@@ -2496,14 +2496,18 @@
         db.ref('bans/' + key).remove().then(() => { adminStatus('Odbanowano'); renderAdminBanList(); });
         // Note: banned user's localStorage will be cleared by their real-time listener on next page load
     }
-    function adminResetRanking() {
+    window.adminResetRanking = function() {
         if(!isAdmin() || !confirm('Na pewno wyczyścić CAŁY ranking?')) return;
-        db.ref('ranking').remove().then(() => adminStatus('Ranking wyczyszczony'));
-    }
-    function adminClearFeed() {
+        db.ref('ranking').remove()
+            .then(() => { adminStatus('Ranking wyczyszczony'); loadRanking(); })
+            .catch(e => adminStatus('Błąd: ' + e.message, '#ef4444'));
+    };
+    window.adminClearFeed = function() {
         if(!isAdmin() || !confirm('Wyczyścić feed dropów?')) return;
-        db.ref('drops').remove().then(() => adminStatus('Feed wyczyszczony'));
-    }
+        db.ref('drops').remove()
+            .then(() => adminStatus('Feed wyczyszczony'))
+            .catch(e => adminStatus('Błąd: ' + e.message, '#ef4444'));
+    };
     var _banScreenShown = false;
     function showBanScreen(reason) {
         if(currentNick && currentNick.toLowerCase() === 'igla') { localStorage.removeItem('an4l_banned'); localStorage.removeItem('an4l_ban_reason'); return; }
