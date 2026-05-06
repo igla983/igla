@@ -2135,22 +2135,7 @@
         doSwitch(nick);
     }
     function doSwitch(nick) {
-        // When leaving a shared profile, save state back to the real user too
-        if(SHARED_PROFILES.includes(currentNick)) {
-            // Find the real user (non-shared) that was active before
-            const realUser = localStorage.getItem('an4l_shared_origin');
-            if(realUser) localStorage.setItem('an4l_' + realUser, JSON.stringify(state));
-        }
         save();
-        // When switching TO a shared profile, copy current state and remember origin
-        if(SHARED_PROFILES.includes(nick)) {
-            if(!SHARED_PROFILES.includes(currentNick)) {
-                localStorage.setItem('an4l_shared_origin', currentNick);
-            }
-            localStorage.setItem('an4l_' + nick, JSON.stringify(state));
-        } else {
-            localStorage.removeItem('an4l_shared_origin');
-        }
         currentNick = nick;
         document.getElementById('profile-menu').style.display = 'none';
         load();
@@ -2181,7 +2166,16 @@
 
     // --- ZAPIS ---
     function getSaveKey() { return 'an4l_' + currentNick; }
-    function save() { if(!currentNick) return; localStorage.setItem(getSaveKey(), JSON.stringify(state)); updateUI(); }
+    function save() {
+        if(!currentNick) return;
+        if(SHARED_PROFILES.includes(currentNick)) {
+            // Save shared profiles to Firebase so all users see the same data
+            const nickKey = currentNick.replace(/[.#$\/\[\]]/g, '_');
+            db.ref('shared_profiles/' + nickKey).set(state).catch(e => console.warn('shared save err:', e));
+        }
+        localStorage.setItem(getSaveKey(), JSON.stringify(state));
+        updateUI();
+    }
     const ADMIN_STEAM_ID = '76561199223326691';
     function isAdmin() {
         if(!currentNick) return false;
@@ -2197,7 +2191,27 @@
     // Console helper: localStorage.setItem('an4l_admin_override', 'TwojNick') aby wymusić admina
     window.makeAdmin = function(nick) { localStorage.setItem('an4l_admin_override', nick || currentNick); location.reload(); };
 
-    function load() { 
+    function load() {
+        if(SHARED_PROFILES.includes(currentNick)) {
+            // Load shared profile from Firebase
+            const nickKey = currentNick.replace(/[.#$\/\[\]]/g, '_');
+            db.ref('shared_profiles/' + nickKey).once('value', snap => {
+                if(snap.exists()) {
+                    state = snap.val();
+                } else {
+                    state = { balance: 5000, debt: 0, inventory: [], cart: [], selectedBots: [], mode: 'classic', battleFormat: '2p', rounds: 0 };
+                }
+                if(!state.battleFormat) state.battleFormat = '2p';
+                if(!state.mode) state.mode = 'classic';
+                if(!state.claimedQuests) state.claimedQuests = [];
+                if(!state.battlesWon) state.battlesWon = 0;
+                if(!state.inventory) state.inventory = [];
+                state.selectedBots = [];
+                state.cart = [];
+                finishLoad();
+            });
+            return;
+        }
         const s = localStorage.getItem(getSaveKey()); 
         if(s) {
             state = JSON.parse(s); 
@@ -2210,6 +2224,9 @@
         } else {
             state = { balance: 5000, debt: 0, inventory: [], cart: [], selectedBots: [], mode: 'classic', battleFormat: '2p', rounds: 0 };
         }
+        finishLoad();
+    }
+    function finishLoad() {
         battleState = 'idle';
         document.getElementById('h-nick').innerText = currentNick;
         const pic = getProfilePic(currentNick);
