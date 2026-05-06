@@ -28,14 +28,14 @@
         .logo span { color: #fff; text-shadow: none; }
 
         nav { display: flex; gap: 4px; background: var(--bg-deep); padding: 6px; border-radius: 14px; border: 1px solid var(--border-ui); box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
-        nav button { background: transparent; border: none; color: #64748b; padding: 12px 18px; border-radius: 10px; font-weight: 800; cursor: pointer; transition: all 0.3s ease; font-size: 12px; text-transform: uppercase; position: relative; }
+        nav button { background: transparent; border: none; color: #64748b; padding: 10px 12px; border-radius: 10px; font-weight: 800; cursor: pointer; transition: all 0.3s ease; font-size: 11px; text-transform: uppercase; position: relative; }
         nav button:hover { color: #c8d6e5; background: rgba(255,255,255,0.04); }
         nav button.active { background: linear-gradient(135deg, rgba(79,143,247,0.18), rgba(79,143,247,0.06)); color: #fff; border: 1px solid rgba(79,143,247,0.3); box-shadow: 0 0 15px rgba(79,143,247,0.12), inset 0 1px 0 rgba(255,255,255,0.05); }
 
-        .hud-stats { display: flex; gap: 15px; align-items: center; }
-        .hud-card { background: linear-gradient(135deg, #060810, #0a0d14); padding: 15px 20px; border-radius: 12px; border: 1px solid var(--border-ui); min-width: 160px; transition: all 0.25s ease; }
+        .hud-stats { display: flex; gap: 8px; align-items: center; }
+        .hud-card { background: linear-gradient(135deg, #060810, #0a0d14); padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border-ui); min-width: 100px; transition: all 0.25s ease; }
         .hud-card:hover { border-color: rgba(255,255,255,0.1); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-        .hud-stats .hud-card { text-align: right; padding: 12px 22px; }
+        .hud-stats .hud-card { text-align: right; padding: 10px 14px; }
         .hud-card small { display: block; font-size: 10px; color: #64748b; font-weight: 900; text-transform: uppercase; }
         .hud-card span { font-weight: 900; font-size: 22px; font-family: 'Rajdhani', sans-serif; color: var(--accent-green); }
 
@@ -1141,13 +1141,13 @@
             { name: "AWP Dragon Lore FN", value: 11000, color: "#fbbf24", img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf_jdk4veqYaF7IfysCnWRxuF4j-B-Xxa_nBovp3Pdwtj9cC_GaAd0DZdwQu9fuhS4kNy0NePntVTbjYpCyyT_3CgY5i9j_a9cBkcCWUKV", chance: 0.01 }
         ]},
         { name: "Titan Holo Case", color: "#2563eb", icon: "fa-diamond", price: 2000, img: "https://community.akamai.steamstatic.com/economy/image/-9a81dlWLwJ2UXp-JjlDTU2ENdd6QFybS6OvLWGJRgR3LcGMpGJamYe0k_lLOD6dEhbKSIDBqkBKQ1VnSLbdTl_g3sBRh5JKBlt6LPnaxYw", items: [
-            { name: "Titan Holo Katowice 2014", value: 160000, color: "#fbbf24", img: "../img/titan_holo.png", chance: 0.001 },
+            { name: "Titan Holo Katowice 2014", value: 160000, color: "#fbbf24", img: "img/titan_holo.png", chance: 0.001 },
             { name: "AWP Dragon Lore FN", value: 11000, color: "#fbbf24", img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf_jdk4veqYaF7IfysCnWRxuF4j-B-Xxa_nBovp3Pdwtj9cC_GaAd0DZdwQu9fuhS4kNy0NePntVTbjYpCyyT_3CgY5i9j_a9cBkcCWUKV", chance: 0.02 },
             { name: "AWP Gungnir FN", value: 20000, color: "#a855f7", img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf-jFk7uW-V6N4LvedB3WvzedxuPUnHnjnzUl0sWrdztitI3rDZgJzAsZ1QOFY4UPqldDgMO_l41HXit9AmTK-0H227dAsvQ", chance: 0.01 },
             { name: "Butterfly Marble Fade FN", value: 3000, color: "#ec4899", img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Z-ua6bbZrLOmsD2qvzO9ksu1scC-ykRgYvzSCkpu3JCrBPVMkCZIiFLUC40S-l9DkZerg4Qfc3Y9DzCuo3SlK6ydv5e9UA71lpPNwsjHPzA", chance: 0.08 },
             { name: "Karambit Fade FN", value: 2400, color: "#ec4899", img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Q7uCvZaZkNM-SD1iWwOpzj-1gSCGn20tztm_UyIn_JHKUbgYlWMcmQ-ZcskSwldS0MOnntAfd3YlMzH35jntXrnE8SOGRGG8", chance: 0.10 },
             { name: "AK-47 Fire Serpent FT", value: 1300, color: "#f97316", img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wiFO0PSneqF-JeKDC2mE_u995LZWTTuygxIYvzSCkpu3cnvFPQB2DpUkROFY4Rntw93lP7i241DbiI1BxSuviHlKunk_6-sHU71lpPMTRLyP4Q", chance: 0.30 },
-            { name: "Szeliga Sticker", value: 2, color: "#3b82f6", img: "../img/szeliga_sticker.png", chance: 0.479 }
+            { name: "Szeliga Sticker", value: 2, color: "#3b82f6", img: "img/szeliga_sticker.png", chance: 0.479 }
         ]},
         { name: "Anubis Case", color: "#d97706", icon: "fa-ankh", price: 300, img: "https://community.akamai.steamstatic.com/economy/image/-9a81dlWLwJ2UXp-JjlDTU2ENdd6QFybS6OvLWGJRgR3LcGMpGJamYe0k_lLOD6dEhbKSIDBqkBKQ1VnSLbdTl_g3sBRh5JKBlt6LPnaxVw", items: [
             { name: "AK-47 Gold Arabesque FN", value: 800, color: "#3b82f6", img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wiVI0POlPPNSJ_-fCliR0-90tfJ4WiyMmRQguynLntmvICieOARzCpMhF-BYsRe-xoHvYu_g5lSNj4NDyy2viCwY6Hlu5_FCD_Q1jEqYuQ", chance: 0.30 },
@@ -2551,23 +2551,23 @@
 
     // --- CASE IMAGES (local) ---
     const CASE_IMGS = {
-        "Clutch Case": "../img/clutch_case.png",
-        "Chroma Case": "../img/chrome_case.png",
-        "Prisma Case": "../img/prisma_case.png",
-        "Danger Zone Case": "../img/danger_zone_case.png",
-        "Spectrum Case": "../img/spectrum2_case.png",
-        "Operation Bravo": "../img/bravo_case.png",
-        "Titan Holo Case": "../img/titan_holo_case.png",
-        "Anubis Case": "../img/anubis_case.png",
-        "Revolution Case": "../img/revolution.png",
-        "Buzzball zielony": "../img/bazzball_green_case.png",
-        "CS:GO Weapon Case": "../img/csgo_case.png",
-        "Breakout Case": "../img/breakout_case.png",
-        "Glove Case": "../img/glove_case.png",
-        "Operation Hydra Case": "../img/hydra_case.png",
-        "Riptide Case": "../img/riptide_case.png",
-        "Dreams & Nightmares Case": "../img/dreams_and_nightmares_case.png",
-        "EMS One Katowice 2014": "../img/ems_one_katowice2014.png"
+        "Clutch Case": "img/clutch_case.png",
+        "Chroma Case": "img/chrome_case.png",
+        "Prisma Case": "img/prisma_case.png",
+        "Danger Zone Case": "img/danger_zone_case.png",
+        "Spectrum Case": "img/spectrum2_case.png",
+        "Operation Bravo": "img/bravo_case.png",
+        "Titan Holo Case": "img/titan_holo_case.png",
+        "Anubis Case": "img/anubis_case.png",
+        "Revolution Case": "img/revolution.png",
+        "Buzzball zielony": "img/bazzball_green_case.png",
+        "CS:GO Weapon Case": "img/csgo_case.png",
+        "Breakout Case": "img/breakout_case.png",
+        "Glove Case": "img/glove_case.png",
+        "Operation Hydra Case": "img/hydra_case.png",
+        "Riptide Case": "img/riptide_case.png",
+        "Dreams & Nightmares Case": "img/dreams_and_nightmares_case.png",
+        "EMS One Katowice 2014": "img/ems_one_katowice2014.png"
     };
 
     // --- SKLEP ---
