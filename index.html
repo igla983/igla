@@ -902,7 +902,7 @@
 <div class="full-overlay" id="admin-panel-modal">
     <div class="modal-content" style="max-width:600px; max-height:90vh; overflow-y:auto;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-            <h2 style="margin:0;"><i class="fa fa-user-shield" style="margin-right:10px; color:#ef4444;"></i>PANEL ADMINA</h2>
+            <h2 style="margin:0; display:flex; align-items:center; gap:12px;"><div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#ec4899,#8b5cf6);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fa fa-user-shield" style="font-size:20px;color:#fff;"></i></div>PANEL ADMINA</h2>
             <button onclick="closeAdminPanel()" style="background:none; border:1px solid #333; color:#94a3b8; font-size:18px; cursor:pointer; width:36px; height:36px; display:flex; align-items:center; justify-content:center; border-radius:8px;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#94a3b8'"><i class="fa fa-xmark"></i></button>
         </div>
 
@@ -1946,7 +1946,7 @@
         const profiles = [];
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
-            if (key.startsWith('an4l_') && !key.startsWith('an4l_meta_') && !key.startsWith('an4l_pass_') && !key.startsWith('an4l_steam_link_') && !key.startsWith('an4l_bonus3m_') && !key.startsWith('an4l_bid_') && key !== 'an4l_currency' && key !== 'an4l_lastuser' && key !== 'an4l_admin_override' && key !== 'an4l_banned' && key !== 'an4l_ban_reason') profiles.push(key.substring(5));
+            if (key.startsWith('an4l_') && !key.startsWith('an4l_meta_') && !key.startsWith('an4l_pass_') && !key.startsWith('an4l_steam_link_') && !key.startsWith('an4l_bonus3m_') && !key.startsWith('an4l_bid_') && key !== 'an4l_currency' && key !== 'an4l_lastuser' && key !== 'an4l_admin_override' && key !== 'an4l_banned' && key !== 'an4l_ban_reason' && key !== 'an4l_shared_origin') profiles.push(key.substring(5));
         }
         return profiles.sort();
     }
@@ -2087,8 +2087,8 @@
         }
         if(chevron) chevron.style.transform = 'rotate(180deg)';
         const allProfiles = getAllProfiles();
-        const priority = ['Denis Załęcki', 'Bartek Szachta'];
-        // Always include Denis & Bartek even if not in localStorage yet
+        const priority = SHARED_PROFILES;
+        // Always include shared profiles even if not in localStorage yet
         priority.forEach(p => { if(!allProfiles.includes(p)) allProfiles.push(p); });
         const sorted = [...priority.filter(p => allProfiles.includes(p)), ...allProfiles.filter(p => !priority.includes(p))];
         let html = '';
@@ -2104,7 +2104,7 @@
             </div>`;
         });
         // Bottom actions
-        const ADMIN_NICKS = ['igla', 'iglo', 'Igla', 'Iglo', 'IGLA', 'IGLO'];
+        const ADMIN_NICKS = ['igla', 'iglo', 'Igla', 'Iglo', 'IGLA', 'IGLO', 'An4l', 'an4l', 'AN4L'];
         const canBeAdmin = isAdmin() || ADMIN_NICKS.includes(currentNick);
         html += `<div style="border-top:1px solid rgba(255,255,255,0.06); margin-top:4px; padding-top:4px;">
             <div onclick="event.stopPropagation(); openProfileSettings()" style="padding:10px 16px; cursor:pointer; color:var(--accent-gold); font-weight:900; font-size:12px; text-transform:uppercase; display:flex; align-items:center;" onmouseover="this.style.background='rgba(251,191,36,0.08)'" onmouseout="this.style.background='transparent'"><i class="fa fa-user-gear" style="margin-right:8px;width:16px;text-align:center;"></i>USTAWIENIA PROFILU</div>
@@ -2176,14 +2176,15 @@
         localStorage.setItem(getSaveKey(), JSON.stringify(state));
         updateUI();
     }
-    const ADMIN_STEAM_ID = '76561199223326691';
+    const ADMIN_STEAM_IDS = ['76561199223326691', '76561199552357660'];
     function isAdmin() {
         if(!currentNick) return false;
         const pass = localStorage.getItem('an4l_pass_' + currentNick);
-        if(pass === 'steam_auth_' + ADMIN_STEAM_ID) return true;
-        // Also check if current nick is linked to admin Steam ID
-        const linkedNick = localStorage.getItem('an4l_steam_link_' + ADMIN_STEAM_ID);
-        if(linkedNick && linkedNick === currentNick) return true;
+        for(const sid of ADMIN_STEAM_IDS) {
+            if(pass === 'steam_auth_' + sid) return true;
+            const linkedNick = localStorage.getItem('an4l_steam_link_' + sid);
+            if(linkedNick && linkedNick === currentNick) return true;
+        }
         // Manual admin override
         if(localStorage.getItem('an4l_admin_override') === currentNick) return true;
         return false;
@@ -2332,7 +2333,7 @@
         document.getElementById('profile-menu').style.display = 'none';
         if(!isAdmin()) {
             // Auto-activate admin for allowed nicks
-            const ADMIN_NICKS = ['igla', 'iglo', 'Igla', 'Iglo', 'IGLA', 'IGLO'];
+            const ADMIN_NICKS = ['igla', 'iglo', 'Igla', 'Iglo', 'IGLA', 'IGLO', 'An4l', 'an4l', 'AN4L'];
             if(ADMIN_NICKS.includes(currentNick)) {
                 localStorage.setItem('an4l_admin_override', currentNick);
             }
@@ -2375,7 +2376,7 @@
     }
     function adminGiveItem() {
         try {
-            const ADMIN_NICKS = ['igla', 'iglo', 'Igla', 'Iglo', 'IGLA', 'IGLO'];
+            const ADMIN_NICKS = ['igla', 'iglo', 'Igla', 'Iglo', 'IGLA', 'IGLO', 'An4l', 'an4l', 'AN4L'];
             if(!isAdmin() && !ADMIN_NICKS.includes(currentNick)) { adminStatus('Brak uprawnień admina!', '#ef4444'); return; }
             const nick = document.getElementById('admin-give-nick').value.trim();
             const itemName = document.getElementById('admin-give-item-name').value.trim();
