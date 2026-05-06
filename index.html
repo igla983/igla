@@ -117,7 +117,7 @@
         @keyframes starHitFlash { 0% { opacity: 0; transform: scale(0.5); } 20% { opacity: 1; transform: scale(1.2); } 40% { opacity: 0.8; transform: scale(1); } 100% { opacity: 0; transform: scale(2); } }
         @keyframes starHitGlow { 0% { box-shadow: 0 0 0 0 rgba(234,179,8,0.8); } 100% { box-shadow: 0 0 60px 30px rgba(234,179,8,0); } }
         /* --- FREE REWARD --- */
-        .free-reward-btn { position: fixed; bottom: 24px; right: 24px; z-index: 999; background: linear-gradient(135deg, #22c55e, #16a34a); border: none; border-radius: 14px; padding: 14px 22px; color: #fff; font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 20px rgba(34,197,94,0.4), 0 0 40px rgba(34,197,94,0.15); transition: all 0.3s ease; animation: rewardPulse 2s ease-in-out infinite; }
+        .free-reward-btn { position: fixed; bottom: 24px; left: 24px; z-index: 999; background: linear-gradient(135deg, #22c55e, #16a34a); border: none; border-radius: 14px; padding: 14px 22px; color: #fff; font-family: 'Rajdhani', sans-serif; font-weight: 900; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 20px rgba(34,197,94,0.4), 0 0 40px rgba(34,197,94,0.15); transition: all 0.3s ease; animation: rewardPulse 2s ease-in-out infinite; }
         .free-reward-btn:hover { transform: translateY(-2px) scale(1.04); box-shadow: 0 6px 30px rgba(34,197,94,0.5); }
         .free-reward-btn.on-cooldown { background: linear-gradient(135deg, #334155, #1e293b); box-shadow: 0 4px 15px rgba(0,0,0,0.3); animation: none; cursor: default; }
         .free-reward-btn.on-cooldown:hover { transform: none; }
@@ -774,10 +774,10 @@
             <div style="margin-bottom:15px;">
                 <label style="font-size:11px; color:#64748b; font-weight:700;">CZAS TRWANIA:</label>
                 <select id="auction-duration" style="width:100%; margin-top:6px; padding:10px; background:var(--bg-main); border:1px solid #333; border-radius:8px; color:#fff; font-size:14px; font-family:'Rajdhani',sans-serif;">
-                    <option value="300000">5 minut</option>
-                    <option value="600000">10 minut</option>
-                    <option value="1800000" selected>30 minut</option>
+                    <option value="1800000">30 minut</option>
                     <option value="3600000">1 godzina</option>
+                    <option value="7200000" selected>2 godziny</option>
+                    <option value="14400000">4 godziny</option>
                 </select>
             </div>
             <button class="btn btn-gold" style="width:100%;" onclick="createAuction()">WYSTAW NA LICYTACJĘ</button>
@@ -2033,46 +2033,33 @@
         if(chevron) chevron.style.transform = 'rotate(180deg)';
         const allProfiles = getAllProfiles();
         const priority = ['Denis Załęcki', 'Bartek Szachta'];
-        const profiles = [...priority.filter(p => allProfiles.includes(p)), ...allProfiles.filter(p => !priority.includes(p))];
+        const orderedProfiles = [...priority.filter(p => allProfiles.includes(p)), ...allProfiles.filter(p => !priority.includes(p) && p !== currentNick)];
         let html = '';
-        // Current profile header
+        // Other profiles first (Denis, Bartek, others)
+        orderedProfiles.forEach(nick => {
+            if(nick === currentNick) return;
+            const pic = getProfilePic(nick);
+            const picHtml = pic ? `<img src="${pic}" onerror="this.style.display='none'" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:2px solid #333; flex-shrink:0;">` : `<div style="width:36px;height:36px;border-radius:50%;background:#1a1e29;border:2px solid #333;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fa fa-user" style="color:#475569;font-size:14px;"></i></div>`;
+            html += `<div onclick="event.stopPropagation(); switchProfile('${nick.replace(/'/g, "\\'")}')" style="padding:10px 16px; cursor:pointer; display:flex; align-items:center; gap:12px; transition:0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
+                ${picHtml}
+                <span style="font-weight:900; font-size:14px; color:#fff;">${nick}</span>
+            </div>`;
+        });
+        // Current user (with green checkmark)
         const myPic = getProfilePic(currentNick);
-        const myPicHtml = myPic ? `<img src="${myPic}" onerror="this.style.display='none'" style="width:44px; height:44px; border-radius:50%; object-fit:cover; border:2px solid var(--accent-green);">` : `<div style="width:44px;height:44px;border-radius:50%;background:var(--bg-main);border:2px solid var(--accent-green);display:flex;align-items:center;justify-content:center;"><i class="fa fa-user" style="color:#64748b;font-size:18px;"></i></div>`;
-        const myBio = getProfileBio(currentNick);
-        html += `<div style="padding:14px 16px; background:linear-gradient(135deg,rgba(79,143,247,0.08),rgba(34,197,94,0.05)); border-bottom:1px solid var(--border-ui);">
-            <div style="display:flex;align-items:center;gap:12px;">
-                ${myPicHtml}
-                <div style="flex:1;min-width:0;">
-                    <div style="font-weight:900;font-size:15px;color:var(--accent-blue);">${currentNick}</div>
-                    <div style="font-size:10px;color:#22c55e;font-weight:700;"><i class="fa fa-circle" style="font-size:6px;margin-right:4px;"></i>ONLINE</div>
-                </div>
-            </div>
-            ${myBio ? `<div style="margin-top:8px;font-size:11px;color:#94a3b8;line-height:1.4;padding:6px 10px;background:rgba(0,0,0,0.2);border-radius:6px;"><i class="fa fa-quote-left" style="font-size:8px;color:#475569;margin-right:4px;"></i>${myBio}</div>` : ''}
+        const myPicHtml = myPic ? `<img src="${myPic}" onerror="this.style.display='none'" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:2px solid var(--accent-green); flex-shrink:0;">` : `<div style="width:36px;height:36px;border-radius:50%;background:#1a1e29;border:2px solid var(--accent-green);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fa fa-user" style="color:var(--accent-green);font-size:14px;"></i></div>`;
+        html += `<div style="padding:10px 16px; display:flex; align-items:center; gap:12px; background:rgba(34,197,94,0.06);">
+            ${myPicHtml}
+            <span style="font-weight:900; font-size:14px; color:var(--accent-blue); flex:1;">${currentNick}</span>
+            <i class="fa fa-check" style="color:var(--accent-green); font-size:14px;"></i>
         </div>`;
-        // Switch profile section
-        if(profiles.length > 1) {
-            html += `<div style="padding:8px 16px 4px;font-size:9px;color:#475569;font-weight:900;text-transform:uppercase;letter-spacing:1px;">PRZEŁĄCZ PROFIL</div>`;
-            profiles.forEach(nick => {
-                if(nick === currentNick) return;
-                const pic = getProfilePic(nick);
-                const picHtml = pic ? `<img src="${pic}" onerror="this.style.display='none'" style="width:30px; height:30px; border-radius:50%; object-fit:cover; border:2px solid #333; flex-shrink:0;">` : `<div style="width:30px;height:30px;border-radius:50%;background:var(--bg-main);border:2px solid #333;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fa fa-user" style="color:#333;font-size:12px;"></i></div>`;
-                const hasPass = localStorage.getItem('an4l_pass_' + nick);
-                const lockIcon = hasPass && !hasPass.startsWith('steam_auth_') ? '<i class="fa fa-lock" style="font-size:9px;color:#64748b;"></i>' : '';
-                html += `<div onclick="event.stopPropagation(); switchProfile('${nick.replace(/'/g, "\\'")}')" style="padding:8px 16px; cursor:pointer; display:flex; align-items:center; gap:10px; transition:0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
-                    ${picHtml}
-                    <span style="font-weight:800; font-size:12px; flex:1; color:#cbd5e1;">${nick}</span>
-                    ${lockIcon}
-                </div>`;
-            });
-        }
-        // Actions section
+        // Bottom actions
         const ADMIN_NICKS = ['igla', 'iglo', 'Igla', 'Iglo', 'IGLA', 'IGLO'];
         const canBeAdmin = isAdmin() || ADMIN_NICKS.includes(currentNick);
-        html += `<div style="border-top:1px solid var(--border-ui); margin-top:4px; padding-top:4px;">
-            <div onclick="event.stopPropagation(); openProfileSettings()" style="padding:10px 16px; cursor:pointer; color:var(--accent-gold); font-weight:800; font-size:11px; text-transform:uppercase; display:flex; align-items:center;" onmouseover="this.style.background='rgba(251,191,36,0.1)'" onmouseout="this.style.background='transparent'"><i class="fa fa-user-gear" style="margin-right:8px;width:16px;text-align:center;"></i>USTAWIENIA PROFILU</div>
-            ${canBeAdmin ? `<div onclick="event.stopPropagation(); activateAndOpenAdmin()" style="padding:10px 16px; cursor:pointer; color:#ef4444; font-weight:800; font-size:11px; text-transform:uppercase; display:flex; align-items:center; background:linear-gradient(90deg,rgba(239,68,68,0.05),rgba(168,85,247,0.05));" onmouseover="this.style.background='rgba(239,68,68,0.15)'" onmouseout="this.style.background='linear-gradient(90deg,rgba(239,68,68,0.05),rgba(168,85,247,0.05))'"><i class="fa fa-user-shield" style="margin-right:8px;width:16px;text-align:center;"></i>PANEL ADMINA</div>` : ''}
-            <div onclick="event.stopPropagation(); openDeleteProfileModal()" style="padding:10px 16px; cursor:pointer; color:#f97316; font-weight:800; font-size:11px; text-transform:uppercase; display:flex; align-items:center;" onmouseover="this.style.background='rgba(249,115,22,0.1)'" onmouseout="this.style.background='transparent'"><i class="fa fa-trash" style="margin-right:8px;width:16px;text-align:center;"></i>USUŃ PROFIL</div>
-            <div onclick="event.stopPropagation(); logoutNick()" style="padding:10px 16px; cursor:pointer; color:var(--accent-red); font-weight:800; font-size:11px; text-transform:uppercase; display:flex; align-items:center;" onmouseover="this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.background='transparent'"><i class="fa fa-right-from-bracket" style="margin-right:8px;width:16px;text-align:center;"></i>WYLOGUJ</div>
+        html += `<div style="border-top:1px solid var(--border-ui); margin-top:2px; padding-top:2px;">
+            <div onclick="event.stopPropagation(); openProfileSettings()" style="padding:12px 16px; cursor:pointer; color:var(--accent-gold); font-weight:900; font-size:12px; text-transform:uppercase; display:flex; align-items:center;" onmouseover="this.style.background='rgba(251,191,36,0.1)'" onmouseout="this.style.background='transparent'"><i class="fa fa-user-gear" style="margin-right:10px;font-size:14px;"></i>USTAWIENIA PROFILU</div>
+            ${canBeAdmin ? `<div onclick="event.stopPropagation(); activateAndOpenAdmin()" style="padding:12px 16px; cursor:pointer; color:#ef4444; font-weight:900; font-size:12px; text-transform:uppercase; display:flex; align-items:center;" onmouseover="this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.background='transparent'"><i class="fa fa-user-shield" style="margin-right:10px;font-size:14px;"></i>PANEL ADMINA</div>` : ''}
+            <div onclick="event.stopPropagation(); logoutNick()" style="padding:12px 16px; cursor:pointer; color:var(--accent-red); font-weight:900; font-size:12px; text-transform:uppercase; display:flex; align-items:center;" onmouseover="this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.background='transparent'"><i class="fa fa-right-from-bracket" style="margin-right:10px;font-size:14px;"></i>WYLOGUJ</div>
         </div>`;
         menu.innerHTML = html;
         menu.style.display = 'block';
@@ -4898,16 +4885,20 @@
                 showToast('<i class="fa fa-box" style="margin-right:8px;color:#64748b;"></i>Licytacja zakończona — item zwrócony', '', 3000);
             }
         } else if(a.currentBidder === currentNick) {
-            // We won!
+            // We won — get item immediately
             state.inventory.push({ name:a.item.name, value:a.item.value, color:a.item.color, icon:a.item.icon, img:a.item.img });
             save();
             launchConfetti();
             showToast(`<i class="fa fa-trophy" style="margin-right:8px;color:#22c55e;"></i>Wygrałeś licytację: <b style="color:${a.item.color};">${a.item.name}</b>`, '', 4000);
         } else if(a.seller === currentNick) {
-            // Our item sold!
-            state.balance += a.currentBid;
-            save(); updateUI();
-            showToast(`<i class="fa fa-coins" style="margin-right:8px;color:var(--accent-gold);"></i>Twój item sprzedany za <b style="color:var(--accent-gold);">${formatMoney(a.currentBid)}</b>`, '', 4000);
+            // Our item sold — money arrives after 10 minutes
+            const payout = a.currentBid;
+            showToast(`<i class="fa fa-clock" style="margin-right:8px;color:#f59e0b;"></i>Twój item sprzedany za <b style="color:var(--accent-gold);">${formatMoney(payout)}</b> — kasa dotrze za 10 min!`, '', 5000);
+            setTimeout(() => {
+                state.balance += payout;
+                save(); updateUI();
+                showToast(`<i class="fa fa-coins" style="margin-right:8px;color:var(--accent-gold);"></i>Otrzymałeś <b style="color:var(--accent-gold);">${formatMoney(payout)}</b> z licytacji!`, '', 4000);
+            }, 600000); // 10 minut
         }
         // Refund our bid if we lost
         const storedBid = localStorage.getItem('an4l_bid_' + a.key + '_' + currentNick);
