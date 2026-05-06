@@ -23,7 +23,7 @@
         ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #333, #222); border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #444; }
 
-        header { background: linear-gradient(180deg, #0f1318 0%, #0a0d12 100%); border-bottom: 1px solid rgba(255,255,255,0.04); padding: 0 12px; height: 70px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; z-index: 100; box-shadow: 0 4px 40px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.03); position: relative; overflow-x: hidden; max-width: 100vw; gap: 8px; }
+        header { background: linear-gradient(180deg, #0f1318 0%, #0a0d12 100%); border-bottom: 1px solid rgba(255,255,255,0.04); padding: 0 12px; height: 70px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; z-index: 100; box-shadow: 0 4px 40px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.03); position: relative; max-width: 100vw; gap: 8px; }
         .logo { font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 22px; color: var(--accent-gold); letter-spacing: 2px; text-shadow: 0 0 20px var(--glow-gold); transition: text-shadow 0.3s; }
         .logo:hover { text-shadow: 0 0 30px rgba(245,183,49,0.5), 0 0 60px rgba(245,183,49,0.2); }
         .logo span { color: #fff; text-shadow: none; }
@@ -922,6 +922,21 @@
             <div id="admin-ban-list" style="font-size:11px; color:#94a3b8; max-height:120px; overflow-y:auto;"></div>
         </div>
 
+        <div style="background:rgba(79,143,247,0.05); border:1px solid rgba(79,143,247,0.2); border-radius:12px; padding:16px; margin-bottom:16px;">
+            <h3 style="margin:0 0 12px 0; font-size:13px; color:#4f8ff7;"><i class="fa fa-gift" style="margin-right:6px;"></i>DAJ ITEM GRACZOWI</h3>
+            <div style="display:flex; gap:8px; margin-bottom:8px;">
+                <input type="text" id="admin-give-nick" placeholder="Nick gracza" style="flex:1; background:var(--bg-main); border:2px solid #333; border-radius:8px; padding:10px 14px; color:#fff; font-size:13px; outline:none;">
+            </div>
+            <div style="display:flex; gap:8px; margin-bottom:8px;">
+                <input type="text" id="admin-give-item-name" placeholder="Nazwa itemu" style="flex:1; background:var(--bg-main); border:2px solid #333; border-radius:8px; padding:10px 14px; color:#fff; font-size:13px; outline:none;">
+                <input type="number" id="admin-give-item-value" placeholder="Wartość $" style="width:120px; background:var(--bg-main); border:2px solid #333; border-radius:8px; padding:10px 14px; color:#fff; font-size:13px; outline:none;">
+            </div>
+            <div style="display:flex; gap:8px;">
+                <input type="text" id="admin-give-item-img" placeholder="URL obrazka (opcjonalnie)" style="flex:1; background:var(--bg-main); border:2px solid #333; border-radius:8px; padding:10px 14px; color:#fff; font-size:13px; outline:none;">
+                <button class="btn btn-blue" style="width:auto; padding:10px 20px; white-space:nowrap;" onclick="adminGiveItem()"><i class="fa fa-paper-plane" style="margin-right:6px;"></i>WYŚLIJ</button>
+            </div>
+        </div>
+
         <div style="background:rgba(59,130,246,0.05); border:1px solid rgba(59,130,246,0.2); border-radius:12px; padding:16px; margin-bottom:16px;">
             <h3 style="margin:0 0 12px 0; font-size:13px; color:#3b82f6;"><i class="fa fa-trophy" style="margin-right:6px;"></i>RANKING</h3>
             <div style="display:flex; gap:8px;">
@@ -1802,7 +1817,7 @@
         if(pass !== pass2) return showAuthError('reg-error', 'Hasła się nie zgadzają!');
         if(localStorage.getItem('an4l_pass_' + nick)) return showAuthError('reg-error', 'To konto już istnieje! Zaloguj się.');
         localStorage.setItem('an4l_pass_' + nick, pass);
-        const promoEnd = new Date('2025-05-07T14:00:00Z'); // 7 maja 16:00 UTC+2
+        const promoEnd = new Date('2026-05-07T14:00:00Z'); // 7 maja 16:00 UTC+2
         const startBalance = Date.now() < promoEnd.getTime() ? 3005000 : 5000;
         localStorage.setItem('an4l_' + nick, JSON.stringify({ balance: startBalance, debt: 0, inventory: [], cart: [], selectedBots: [], mode: 'classic', battleFormat: '2p', rounds: 0 }));
         currentNick = nick;
@@ -1825,7 +1840,7 @@
             localStorage.setItem('an4l_meta_' + displayName, JSON.stringify(meta));
         }
         if(!localStorage.getItem('an4l_' + displayName)) {
-            const promoEnd = new Date('2025-05-07T14:00:00Z');
+            const promoEnd = new Date('2026-05-07T14:00:00Z');
             const startBal = Date.now() < promoEnd.getTime() ? 3005000 : 5000;
             localStorage.setItem('an4l_' + displayName, JSON.stringify({ balance: startBal, debt: 0, inventory: [], cart: [], selectedBots: [], mode: 'classic', battleFormat: '2p', rounds: 0 }));
         }
@@ -2285,6 +2300,31 @@
         state.inventory.push({ name: 'ADMIN ITEM', value: 1000000, color: '#ef4444', img: null, icon: 'fa-crown' });
         save();
         adminStatus('Dodano item $1M');
+    }
+    function adminGiveItem() {
+        if(!isAdmin()) return;
+        const nick = document.getElementById('admin-give-nick').value.trim();
+        const itemName = document.getElementById('admin-give-item-name').value.trim();
+        const itemValue = parseInt(document.getElementById('admin-give-item-value').value) || 0;
+        const itemImg = document.getElementById('admin-give-item-img').value.trim() || null;
+        if(!nick) return adminStatus('Wpisz nick gracza!', '#ef4444');
+        if(!itemName) return adminStatus('Wpisz nazwę itemu!', '#ef4444');
+        if(itemValue <= 0) return adminStatus('Wartość musi być > 0!', '#ef4444');
+        const targetKey = 'an4l_' + nick;
+        const raw = localStorage.getItem(targetKey);
+        if(!raw) return adminStatus(`Gracz "${nick}" nie istnieje!`, '#ef4444');
+        try {
+            const targetState = JSON.parse(raw);
+            if(!targetState.inventory) targetState.inventory = [];
+            const newItem = { name: itemName, value: itemValue, color: itemValue >= 1000 ? '#fbbf24' : itemValue >= 100 ? '#ec4899' : itemValue >= 10 ? '#a855f7' : '#3b82f6', img: itemImg, icon: 'fa-gift' };
+            targetState.inventory.push(newItem);
+            localStorage.setItem(targetKey, JSON.stringify(targetState));
+            adminStatus(`Dano "${itemName}" ($${itemValue.toLocaleString()}) graczowi ${nick}`);
+            document.getElementById('admin-give-item-name').value = '';
+            document.getElementById('admin-give-item-value').value = '';
+            document.getElementById('admin-give-item-img').value = '';
+            if(nick === currentNick) { state = targetState; updateUI(); }
+        } catch(e) { adminStatus('Błąd: ' + e.message, '#ef4444'); }
     }
     function adminBan() {
         if(!isAdmin()) return;
