@@ -1942,15 +1942,40 @@
     (function fixIgla() {
         const steamId = '76561199223326691';
         const correctPass = 'steam_auth_' + steamId;
-        // Make sure steam link exists
         if(!localStorage.getItem('an4l_steam_link_' + steamId)) {
             localStorage.setItem('an4l_steam_link_' + steamId, 'igla');
         }
-        // Fix password on igla account to be steam-linked (preserves balance/data)
         const pass = localStorage.getItem('an4l_pass_igla');
         if(pass !== correctPass) {
             localStorage.setItem('an4l_pass_igla', correctPass);
-            console.log('[FIX] Set igla password to steam auth');
+        }
+    })();
+    // Ensure An4l account is linked to Steam, remove duplicates
+    (function fixAn4l() {
+        const steamId = '76561199552357660';
+        const correctPass = 'steam_auth_' + steamId;
+        const linkedNick = localStorage.getItem('an4l_steam_link_' + steamId);
+        // Set steam link if not exists
+        if(!linkedNick) {
+            localStorage.setItem('an4l_steam_link_' + steamId, 'An4l');
+        }
+        const targetNick = linkedNick || 'An4l';
+        // Remove all An4l variants that aren't the steam-linked one
+        ['An4l', 'an4l', 'AN4L', 'anal', 'Anal', 'ANAL'].forEach(nick => {
+            if(nick !== targetNick) {
+                const p = localStorage.getItem('an4l_pass_' + nick);
+                if(p && p !== correctPass) {
+                    localStorage.removeItem('an4l_' + nick);
+                    localStorage.removeItem('an4l_pass_' + nick);
+                    localStorage.removeItem('an4l_meta_' + nick);
+                    console.log('[CLEANUP] Removed duplicate An4l account:', nick);
+                }
+            }
+        });
+        // Fix password on the real account
+        const pass = localStorage.getItem('an4l_pass_' + targetNick);
+        if(pass !== correctPass) {
+            localStorage.setItem('an4l_pass_' + targetNick, correctPass);
         }
     })();
     const SHARED_PROFILES = ['Denis Załęcki', 'Bartek Szachta'];
@@ -2406,9 +2431,11 @@
     function adminPushBalanceChange(target, type, amt) {
         const nickKey = target.replace(/[.#$\/\[\]]/g, '_');
         const ref = db.ref('admin_balance/' + nickKey);
-        ref.push({ type: type, amount: amt, by: currentNick, ts: Date.now() })
-            .then(() => console.log('[ADMIN] Balance change pushed to Firebase for', target))
-            .catch(e => adminStatus('B\u0142\u0105d Firebase: ' + e.message, '#ef4444'));
+        const data = { type: type, amount: amt, by: currentNick, ts: Date.now() };
+        console.log('[ADMIN] Pushing to Firebase path: admin_balance/' + nickKey, data);
+        ref.push(data)
+            .then(() => { console.log('[ADMIN] SUCCESS: pushed for', target); adminStatus(`Wysłano ${formatMoney(amt)} do ${target} ✓`); })
+            .catch(e => { console.error('[ADMIN] FIREBASE ERROR:', e); adminStatus('Błąd Firebase: ' + e.message, '#ef4444'); });
     }
     window.adminAddMoney = function() {
         if(!isAdmin()) return;
