@@ -4943,7 +4943,7 @@
         const duration = parseInt(document.getElementById('auction-duration').value);
         const auctionData = {
             seller: currentNick,
-            item: { name: it.name, value: it.value, color: it.color, icon: it.icon, img: it.img || null },
+            item: { name: it.name, value: it.value, color: it.color||'#3b82f6', icon: it.icon||'fa-gem', img: it.img||null },
             startPrice: startPrice,
             currentBid: startPrice,
             currentBidder: null,
@@ -5053,7 +5053,7 @@
             // No bids — return item to seller via Firebase (deterministic key prevents duplicates)
             db.ref('pending_items/' + aKey + '_return').set({
                 recipient: a.seller,
-                item: { name:a.item.name, value:a.item.value, color:a.item.color, icon:a.item.icon, img:a.item.img },
+                item: { name:a.item.name||'Item', value:a.item.value||0, color:a.item.color||'#3b82f6', icon:a.item.icon||'fa-gem', img:a.item.img||null },
                 reason: 'auction_no_bids',
                 createdAt: Date.now()
             });
@@ -5061,7 +5061,7 @@
             // Item sold — give item to winner via Firebase
             db.ref('pending_items/' + aKey + '_winner').set({
                 recipient: a.currentBidder,
-                item: { name:a.item.name, value:a.item.value, color:a.item.color, icon:a.item.icon, img:a.item.img },
+                item: { name:a.item.name||'Item', value:a.item.value||0, color:a.item.color||'#3b82f6', icon:a.item.icon||'fa-gem', img:a.item.img||null },
                 reason: 'auction_won',
                 createdAt: Date.now()
             });
