@@ -1293,15 +1293,17 @@
         if(!claimedId) return false;
         let steamId = '';
         if(claimedId.includes('/id/')) {
-            steamId = claimedId.split('/id/')[1];
+            steamId = claimedId.split('/id/')[1].replace(/[^0-9]/g, '');
         } else {
             const m = claimedId.match(/(\d{17})/);
             steamId = m ? m[1] : '';
         }
-        if(!steamId) return false;
+        if(!steamId || steamId.length < 17) { console.error('[STEAM] Invalid steamId:', steamId, 'from claimedId:', claimedId); return false; }
+        console.log('[STEAM] Login detected, steamId:', steamId);
         window.history.replaceState({}, '', window.location.pathname);
         // Check if this Steam ID already has a linked account
         const linkedNick = localStorage.getItem('an4l_steam_link_' + steamId);
+        console.log('[STEAM] Linked nick:', linkedNick);
         if(linkedNick && localStorage.getItem('an4l_' + linkedNick)) {
             currentNick = linkedNick;
             document.getElementById('login-overlay').style.display = 'none';
@@ -3870,13 +3872,6 @@
         if(adminPass !== 'steam_auth_' + ADMIN_STEAM_ID) {
             checkIPBan();
         }
-        // Auto-login from saved session
-        const savedUser = localStorage.getItem('an4l_lastuser');
-        if(savedUser && localStorage.getItem('an4l_pass_' + savedUser) && localStorage.getItem('an4l_' + savedUser)) {
-            currentNick = savedUser;
-            document.getElementById('login-overlay').style.display = 'none';
-            load();
-        }
 
         // Ensure default profiles exist
         if (!localStorage.getItem('an4l_Denis Załęcki')) {
@@ -3898,8 +3893,18 @@
             }
         });
 
-        // Handle Steam OpenID return
-        handleSteamReturn();
+        // Handle Steam OpenID return FIRST (priority over saved session)
+        const steamHandled = handleSteamReturn();
+        
+        // Auto-login from saved session (only if Steam didn't handle it)
+        if(!steamHandled) {
+            const savedUser = localStorage.getItem('an4l_lastuser');
+            if(savedUser && localStorage.getItem('an4l_pass_' + savedUser) && localStorage.getItem('an4l_' + savedUser)) {
+                currentNick = savedUser;
+                document.getElementById('login-overlay').style.display = 'none';
+                load();
+            }
+        }
 
         renderShop();
         renderCart();
