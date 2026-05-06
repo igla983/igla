@@ -5251,9 +5251,12 @@
                     ? `<div style="font-size:11px;color:#64748b;">Twoja licytacja${a.currentBidder ? ' (jest oferta)' : ''}</div>${cancelBtn}`
                     : isMyBid
                     ? `<div style="font-size:11px;color:#22c55e;font-weight:900;"><i class="fa fa-check" style="margin-right:4px;"></i>Prowadzisz!</div>`
-                    : `<div style="display:flex;gap:6px;align-items:center;">
-                        <input type="number" id="bid-${a.key}" value="${minBid}" min="${minBid}" style="width:100px;padding:6px 8px;background:#0f172a;border:1px solid #333;border-radius:6px;color:#fff;font-size:12px;font-family:'Rajdhani',sans-serif;font-weight:900;">
-                        <button class="btn btn-gold" style="width:auto;padding:6px 14px;font-size:11px;" onclick="placeBid('${a.key}',${minBid})"><i class="fa fa-gavel" style="margin-right:4px;"></i>LICYTUJ</button>
+                    : `<div style="display:flex;flex-direction:column;gap:6px;">
+                        <div style="font-size:10px;color:#64748b;">Min: ${formatMoney(minBid)}</div>
+                        <div style="display:flex;gap:6px;align-items:center;">
+                            <input type="number" id="bid-${a.key}" placeholder="${minBid}" min="${minBid}" style="width:140px;padding:8px 12px;background:#0f172a;border:2px solid #333;border-radius:8px;color:#fbbf24;font-size:14px;font-family:'Rajdhani',sans-serif;font-weight:900;outline:none;transition:0.2s;" onfocus="this.style.borderColor='#fbbf24'" onblur="this.style.borderColor='#333'">
+                            <button class="btn btn-gold" style="width:auto;padding:8px 16px;font-size:12px;" onclick="placeBid('${a.key}',${minBid})"><i class="fa fa-gavel" style="margin-right:4px;"></i>LICYTUJ</button>
+                        </div>
                     </div>`;
                 return `<div style="display:flex;align-items:center;gap:16px;padding:16px 20px;background:var(--bg-card);border:1px solid var(--border-ui);border-radius:12px;">
                     <div style="flex-shrink:0;width:70px;text-align:center;">${vis}</div>
@@ -5294,8 +5297,8 @@
 
     function placeBid(aKey, minBid) {
         const inp = document.getElementById('bid-' + aKey);
-        const amount = inp ? parseInt(inp.value) : minBid;
-        if(!amount || amount < minBid) return alert('Minimalna oferta: ' + formatMoney(minBid));
+        const amount = inp && inp.value ? parseInt(inp.value) : minBid;
+        if(!amount || isNaN(amount) || amount < minBid) return alert('Minimalna oferta: ' + formatMoney(minBid));
         if(state.balance < amount) return alert('Brak kasy!');
         db.ref('auctions/' + aKey).once('value', snap => {
             if(!snap.exists()) return alert('Licytacja nie istnieje!');
