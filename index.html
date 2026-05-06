@@ -954,7 +954,7 @@
 
         <div style="background:rgba(245,158,11,0.05); border:1px solid rgba(245,158,11,0.2); border-radius:12px; padding:16px; margin-bottom:16px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                <h3 style="margin:0; font-size:13px; color:#f59e0b;"><i class="fa fa-network-wired" style="margin-right:6px;"></i>LOGI IP (ostatnie 100)</h3>
+                <h3 style="margin:0; font-size:13px; color:#f59e0b;"><i class="fa fa-network-wired" style="margin-right:6px;"></i>LOGI IP (unikalne)</h3>
                 <button onclick="renderAdminIPLogs()" style="background:none;border:1px solid #f59e0b;color:#f59e0b;border-radius:4px;padding:4px 10px;font-size:10px;font-weight:900;cursor:pointer;"><i class="fa fa-rotate" style="margin-right:4px;"></i>ODŚWIEŻ</button>
             </div>
             <div id="admin-iplogs-list" style="font-size:11px; color:#94a3b8; max-height:240px; overflow-y:auto;"></div>
@@ -2583,15 +2583,19 @@
         });
     }
 
+    var _ipLogsListener = null;
     function renderAdminIPLogs() {
         const list = document.getElementById('admin-iplogs-list');
         if(!list) return;
         list.innerHTML = '<div style="color:#64748b;">Ładowanie...</div>';
-        db.ref('iplogs').limitToLast(100).on('value', snap => {
+        // Remove old listener to prevent duplicates
+        if(_ipLogsListener) { db.ref('iplogs_latest').off('value', _ipLogsListener); _ipLogsListener = null; }
+        // Use iplogs_latest for unique IPs (one entry per IP, most recent visit)
+        _ipLogsListener = db.ref('iplogs_latest').on('value', snap => {
             if(!snap.exists()) { list.innerHTML = '<div style="color:#64748b;">Brak logów</div>'; return; }
             const entries = [];
             snap.forEach(c => entries.push({key: c.key, ...c.val()}));
-            entries.sort((a,b) => (b.timestamp||0) - (a.timestamp||0)); // newest first
+            entries.sort((a,b) => (b.timestamp||0) - (a.timestamp||0));
             list.innerHTML = entries.map(e => {
                 const date = new Date(e.timestamp);
                 const timeStr = date.toLocaleString('pl-PL', {month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
