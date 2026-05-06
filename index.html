@@ -4178,6 +4178,15 @@
             state.balance -= it.value;
             state.inventory.push({name: it.name, value: it.value, color: it.color, img: it.img, icon: it.icon});
             save();
+            // Pay the seller via Firebase (by nick)
+            db.ref('pending_payouts/market_' + key + '_seller').set({
+                seller: it.seller,
+                amount: it.value,
+                itemName: it.name,
+                itemColor: it.color || '#fff',
+                payoutAt: Date.now(),
+                createdAt: Date.now()
+            });
             snap.ref.remove();
             renderMarket();
         });
@@ -4941,42 +4950,43 @@
     }
 
     function finalizeAuction(a) {
+        const aKey = a.key;
         if(!a.currentBidder) {
-            // No bids — return item to seller
-            if(a.seller === currentNick) {
-                state.inventory.push({ name:a.item.name, value:a.item.value, color:a.item.color, icon:a.item.icon, img:a.item.img });
-                save();
-                showToast('<i class="fa fa-box" style="margin-right:8px;color:#64748b;"></i>Licytacja zakończona — item zwrócony', '', 3000);
-            }
-        } else if(a.currentBidder === currentNick) {
-            // We won!
-            state.inventory.push({ name:a.item.name, value:a.item.value, color:a.item.color, icon:a.item.icon, img:a.item.img });
-            save();
-            launchConfetti();
-            showToast(`<i class="fa fa-trophy" style="margin-right:8px;color:#22c55e;"></i>Wygrałeś licytację: <b style="color:${a.item.color};">${a.item.name}</b>`, '', 4000);
-        } else if(a.seller === currentNick) {
-            // Our item sold — seller gets money after 10 min delay
-            const payoutTime = Date.now() + 600000; // 10 minutes
-            db.ref('pending_payouts').push({
-                seller: currentNick,
+            // No bids — return item to seller via Firebase (deterministic key prevents duplicates)
+            db.ref('pending_items/' + aKey + '_return').set({
+                recipient: a.seller,
+                item: { name:a.item.name, value:a.item.value, color:a.item.color, icon:a.item.icon, img:a.item.img },
+                reason: 'auction_no_bids',
+                createdAt: Date.now()
+            });
+        } else {
+            // Item sold — give item to winner via Firebase
+            db.ref('pending_items/' + aKey + '_winner').set({
+                recipient: a.currentBidder,
+                item: { name:a.item.name, value:a.item.value, color:a.item.color, icon:a.item.icon, img:a.item.img },
+                reason: 'auction_won',
+                createdAt: Date.now()
+            });
+            // Give money to seller immediately via Firebase
+            db.ref('pending_payouts/' + aKey + '_seller').set({
+                seller: a.seller,
                 amount: a.currentBid,
                 itemName: a.item.name,
                 itemColor: a.item.color,
-                payoutAt: payoutTime,
+                payoutAt: Date.now(),
                 createdAt: Date.now()
             });
-            showToast(`<i class="fa fa-clock" style="margin-right:8px;color:#f59e0b;"></i>Item sprzedany za <b style="color:var(--accent-gold);">${formatMoney(a.currentBid)}</b> — wypłata za 10 min!`, '', 5000);
         }
         // Refund our bid if we lost
-        const storedBid = localStorage.getItem('an4l_bid_' + a.key + '_' + currentNick);
+        const storedBid = localStorage.getItem('an4l_bid_' + aKey + '_' + currentNick);
         if(storedBid && a.currentBidder !== currentNick) {
             state.balance += parseInt(storedBid);
             save(); updateUI();
         }
-        localStorage.removeItem('an4l_bid_' + a.key + '_' + currentNick);
+        localStorage.removeItem('an4l_bid_' + aKey + '_' + currentNick);
     }
 
-    // Check pending payouts every 30 seconds
+    // Check pending payouts every 15 seconds (seller gets money)
     setInterval(() => {
         if(!currentNick) return;
         db.ref('pending_payouts').once('value', snap => {
@@ -4992,7 +5002,29 @@
                 }
             });
         });
-    }, 30000);
+    }, 15000);
+
+    // Check pending items every 15 seconds (buyer/seller gets item)
+    setInterval(() => {
+        if(!currentNick) return;
+        db.ref('pending_items').once('value', snap => {
+            if(!snap.exists()) return;
+            snap.forEach(child => {
+                const p = child.val();
+                if(p.recipient === currentNick) {
+                    state.inventory.push({ name:p.item.name, value:p.item.value, color:p.item.color, icon:p.item.icon, img:p.item.img });
+                    save();
+                    if(p.reason === 'auction_won') {
+                        launchConfetti();
+                        showToast(`<i class="fa fa-trophy" style="margin-right:8px;color:#22c55e;"></i>Wygrałeś licytację: <b style="color:${p.item.color};">${p.item.name}</b>`, '', 4000);
+                    } else {
+                        showToast('<i class="fa fa-box" style="margin-right:8px;color:#64748b;"></i>Licytacja zakończona — item zwrócony', '', 3000);
+                    }
+                    child.ref.remove();
+                }
+            });
+        });
+    }, 15000);
 
     // --- RANKING TYGODNIOWY ---
     function getWeekKey() {
