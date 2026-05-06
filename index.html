@@ -1935,11 +1935,18 @@
         document.getElementById('login-pass').value = '';
         document.getElementById('profile-menu').style.display = 'none';
     }
+    const SHARED_PROFILES = ['Denis Załęcki', 'Bartek Szachta'];
+    const SHARED_PASSWORDS = { 'Denis Załęcki': 'cwel', 'Bartek Szachta': 'konfident' };
+    // Initialize shared profiles on startup
+    SHARED_PROFILES.forEach(nick => {
+        if(!localStorage.getItem('an4l_pass_' + nick)) localStorage.setItem('an4l_pass_' + nick, SHARED_PASSWORDS[nick]);
+        if(!localStorage.getItem('an4l_' + nick)) localStorage.setItem('an4l_' + nick, JSON.stringify({ balance: 5000, debt: 0, inventory: [], cart: [], selectedBots: [], mode: 'classic', battleFormat: '2p', rounds: 0 }));
+    });
     function getAllProfiles() {
         const profiles = [];
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
-            if (key.startsWith('an4l_') && !key.startsWith('an4l_meta_') && !key.startsWith('an4l_pass_') && !key.startsWith('an4l_steam_link_') && !key.startsWith('an4l_bonus3m_') && !key.startsWith('an4l_bid_') && key !== 'an4l_currency' && key !== 'an4l_lastuser' && key !== 'an4l_admin_override') profiles.push(key.substring(5));
+            if (key.startsWith('an4l_') && !key.startsWith('an4l_meta_') && !key.startsWith('an4l_pass_') && !key.startsWith('an4l_steam_link_') && !key.startsWith('an4l_bonus3m_') && !key.startsWith('an4l_bid_') && key !== 'an4l_currency' && key !== 'an4l_lastuser' && key !== 'an4l_admin_override' && key !== 'an4l_banned' && key !== 'an4l_ban_reason') profiles.push(key.substring(5));
         }
         return profiles.sort();
     }
@@ -2125,7 +2132,25 @@
             setTimeout(() => document.getElementById('switch-pass-input').focus(), 100);
             return;
         }
+        doSwitch(nick);
+    }
+    function doSwitch(nick) {
+        // When leaving a shared profile, save state back to the real user too
+        if(SHARED_PROFILES.includes(currentNick)) {
+            // Find the real user (non-shared) that was active before
+            const realUser = localStorage.getItem('an4l_shared_origin');
+            if(realUser) localStorage.setItem('an4l_' + realUser, JSON.stringify(state));
+        }
         save();
+        // When switching TO a shared profile, copy current state and remember origin
+        if(SHARED_PROFILES.includes(nick)) {
+            if(!SHARED_PROFILES.includes(currentNick)) {
+                localStorage.setItem('an4l_shared_origin', currentNick);
+            }
+            localStorage.setItem('an4l_' + nick, JSON.stringify(state));
+        } else {
+            localStorage.removeItem('an4l_shared_origin');
+        }
         currentNick = nick;
         document.getElementById('profile-menu').style.display = 'none';
         load();
@@ -2135,11 +2160,8 @@
         const pass = document.getElementById('switch-pass-input').value.trim();
         const passKey = localStorage.getItem('an4l_pass_' + pendingSwitchNick);
         if(pass !== passKey) { document.getElementById('switch-pass-error').innerText = 'Złe hasło!'; return; }
-        save();
-        currentNick = pendingSwitchNick;
         closeSwitchPass();
-        load();
-        if(_lastLoggedIP) logIPVisit(_lastLoggedIP);
+        doSwitch(pendingSwitchNick);
     }
     function closeSwitchPass() {
         document.getElementById('switch-pass-modal').style.display = 'none';
