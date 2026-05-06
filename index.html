@@ -2433,7 +2433,7 @@
             }
             // Log this IP visit
             logIPVisit(ip);
-        } catch(e) { if(e.message === 'IP banned') throw e; /* Network error - allow access */ }
+        } catch(e) { if(e.message !== 'IP banned') console.warn('[IP] checkIPBan error (allowing access):', e.message); }
     }
 
     var _lastLoggedIP = null;
