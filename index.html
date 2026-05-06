@@ -510,12 +510,13 @@
         <div class="rank-badge" id="rank-badge" title="Twoja ranga"><i class="fa-solid fa-dice"></i><div style="display:flex;flex-direction:column;"><span id="rank-name">Nowicjusz</span><div class="rank-progress-bar" style="width:100%;"><div class="rank-progress-fill" id="rank-progress" style="width:0%"></div></div></div></div>
         <div class="hud-card"><small>Saldo</small><span id="h-bal">$0</span></div>
         <div class="hud-card"><small>Dług ($600K Max)</small><span id="h-debt" style="color:var(--accent-red)">$0</span></div>
-        <button id="admin-btn" onclick="openAdminPanel()" title="Panel Admina" style="display:none; background:linear-gradient(135deg,#ef4444,#a855f7); border:none; border-radius:10px; width:46px; height:46px; cursor:pointer; color:#fff; font-size:18px; box-shadow:0 0 12px rgba(239,68,68,0.4); transition:0.2s;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'"><i class="fa fa-user-shield"></i></button>
         <div class="hud-card" style="cursor:pointer; position:relative; display:flex; align-items:center; gap:8px; transition:0.2s; padding:8px 14px; min-width:auto;" onclick="toggleProfileMenu()" title="Kliknij aby zmienić profil" onmouseover="this.style.borderColor='rgba(79,143,247,0.4)';this.style.boxShadow='0 0 15px rgba(79,143,247,0.15)'" onmouseout="this.style.borderColor='';this.style.boxShadow=''"><img id="h-nick-pic" src="" onerror="this.style.display='none'" style="width:32px; height:32px; border-radius:50%; object-fit:cover; border:2px solid #22c55e; display:none;"><div><small style="font-size:9px;">Gracz</small><span id="h-nick" style="color:var(--accent-blue); font-size:13px;">-</span></div><i class="fa fa-chevron-down" id="profile-chevron" style="font-size:9px; color:#64748b; transition:0.3s; margin-left:2px;"></i>
             <div id="profile-menu" style="display:none; position:absolute; top:100%; right:0; margin-top:8px; background:var(--bg-card); border:1px solid var(--border-ui); border-radius:10px; min-width:240px; z-index:999; box-shadow:0 10px 40px rgba(0,0,0,0.7); padding:8px 0; max-height:400px; overflow-y:auto;"></div>
         </div>
     </div>
 </header>
+
+<button id="admin-btn" onclick="openAdminPanel()" title="Panel Admina" style="display:none; position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:linear-gradient(135deg,#ef4444,#a855f7); border:none; border-radius:14px; width:52px; height:52px; cursor:pointer; color:#fff; font-size:20px; box-shadow:0 0 20px rgba(239,68,68,0.5), 0 4px 15px rgba(0,0,0,0.4); transition:0.2s; z-index:500;" onmouseover="this.style.transform='translateX(-50%) scale(1.1)'" onmouseout="this.style.transform='translateX(-50%) scale(1)'"><i class="fa fa-user-shield"></i></button>
 
 <!-- FREE REWARD BUTTON -->
 <button id="free-reward-btn" class="free-reward-btn" onclick="claimFreeReward()" style="display:none;">
@@ -2260,7 +2261,7 @@
         ['classic', 'shared', 'terminal', 'underdog', 'crazy_terminal'].forEach(m => document.getElementById('mode-'+m).classList.toggle('active', state.mode === m));
         ['2p', '3p', '4p', '2v2'].forEach(m => document.getElementById('format-'+m).classList.toggle('active', state.battleFormat === m));
         const adminBtn = document.getElementById('admin-btn');
-        if(adminBtn) adminBtn.style.display = isAdmin() ? 'inline-flex' : 'none';
+        if(adminBtn) adminBtn.style.display = isAdmin() ? 'flex' : 'none';
         if(typeof updateInvBadge === 'function') updateInvBadge();
         if(typeof updateRankDisplay === 'function') updateRankDisplay();
         updateRewardButton();
@@ -2296,7 +2297,7 @@
             renderAdminUsersList();
             renderAdminIPLogs();
             const adminBtn = document.getElementById('admin-btn');
-            if(adminBtn) adminBtn.style.display = 'inline-flex';
+            if(adminBtn) adminBtn.style.display = 'flex';
         }
     }
     function closeAdminPanel() { document.getElementById('admin-panel-modal').classList.remove('active'); }
