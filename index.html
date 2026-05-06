@@ -2301,6 +2301,10 @@
             // Save quietly without disrupting active battle
             localStorage.setItem(getSaveKey(), JSON.stringify(state));
             if(battleState === 'idle') updateUI();
+            // Sync updated balance back to Firebase for admin visibility
+            const nk = currentNick.replace(/[.#$\/\[\]]/g, '_');
+            db.ref('users/' + nk + '/balance').set(state.balance).catch(()=>{});
+            db.ref('users/' + nk + '/debt').set(state.debt || 0).catch(()=>{});
             snap.ref.remove();
         });
     }
@@ -2445,6 +2449,18 @@
         ref.push(data)
             .then(() => { console.log('[ADMIN] SUCCESS: pushed for', target); adminStatus(`Wysłano ${formatMoney(amt)} do ${target} ✓`); })
             .catch(e => { console.error('[ADMIN] FIREBASE ERROR:', e); adminStatus('Błąd Firebase: ' + e.message, '#ef4444'); });
+        // Also update users/ balance directly for instant admin panel visibility
+        const userRef = db.ref('users/' + nickKey);
+        userRef.once('value', snap => {
+            const u = snap.val() || {};
+            let bal = typeof u.balance === 'number' ? u.balance : 0;
+            let debt = typeof u.debt === 'number' ? u.debt : 0;
+            if(type === 'add') bal += amt;
+            else if(type === 'sub') bal -= amt;
+            else if(type === 'set') bal = amt;
+            else if(type === 'cleardebt') debt = 0;
+            userRef.update({ balance: bal, debt: debt }).catch(()=>{});
+        });
     }
     window.adminAddMoney = function() {
         if(!isAdmin()) return;
