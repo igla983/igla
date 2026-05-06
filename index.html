@@ -5240,14 +5240,27 @@
         const weekKey = getWeekKey();
         const list = document.getElementById('ranking-list');
         list.innerHTML = '<div style="text-align:center;padding:40px;color:#64748b;"><i class="fa fa-spinner fa-spin" style="margin-right:8px;"></i>Ładowanie...</div>';
-        db.ref(`ranking/${weekKey}`).once('value', snap => {
-            if(!snap.exists()) {
+        // Fetch both ranking data and all users, merge them
+        Promise.all([
+            db.ref(`ranking/${weekKey}`).once('value'),
+            db.ref('users').once('value')
+        ]).then(([rankSnap, usersSnap]) => {
+            const spentMap = {};
+            if(rankSnap.exists()) rankSnap.forEach(c => { spentMap[c.key] = c.val() || 0; });
+            // Add all registered users with 0 if not in ranking
+            if(usersSnap.exists()) usersSnap.forEach(c => {
+                const nick = c.val().nick || c.key;
+                if(!(nick in spentMap)) spentMap[nick] = 0;
+            });
+            // Also add current user
+            if(currentNick && !(currentNick in spentMap)) spentMap[currentNick] = 0;
+            let entries = Object.keys(spentMap).map(nick => ({ nick, spent: spentMap[nick] }));
+            entries.sort((a, b) => b.spent - a.spent);
+            entries = entries.slice(0, 20);
+            if(entries.length === 0) {
                 list.innerHTML = '<div style="text-align:center;padding:40px;color:#64748b;"><i class="fa fa-ghost" style="font-size:30px;margin-bottom:10px;opacity:0.3;display:block;"></i>Brak danych w tym tygodniu</div>';
                 return;
             }
-            let entries = [];
-            snap.forEach(c => entries.push({ nick: c.key, spent: c.val() || 0 }));
-            entries.sort((a, b) => b.spent - a.spent);
             const medals = ['🥇','🥈','🥉'];
             list.innerHTML = entries.map((e, i) => {
                 const medal = i < 3 ? medals[i] : `<span style="color:#64748b;font-weight:900;">#${i+1}</span>`;
