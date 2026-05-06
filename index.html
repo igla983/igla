@@ -1266,9 +1266,9 @@
             { name: "AWP Dragon Lore FN", value: 9000, color: "#ec4899", img: "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf_jdk4veqYaF7IfysCnWRxuF4j-B-Xxa_nBovp3Pdwtj9cC_GaAd0DZdwQu9fuhS4kNy0NePntVTbjYpCyyT_3CgY5i9j_a9cBkcCWUKV", chance: 0.007 }
         ]},
         { name: "EMS One Katowice 2014", color: "#e11d48", icon: "fa-fire-flame-curved", price: 10000, img: false, items: [
-            { name: "Sticker | 3DMAX (Holo) Katowice 2014", value: 3000, color: "#94a3b8", img: "https://cdn.steamstatic.com/apps/730/icons/econ/stickers/emskatowice2014/3dmax_holo_1355_37.9e0e2f1142ee19ea665c76581e1c092aa32bc273.png", chance: 0.20 },
-            { name: "Sticker | Clan-Mystik (Holo) Katowice 2014", value: 5000, color: "#94a3b8", img: "https://cdn.steamstatic.com/apps/730/icons/econ/stickers/emskatowice2014/mystik_holo_1355_37.96024d8613b3b0bf5961033eccc56c528ccff786.png", chance: 0.15 },
-            { name: "Sticker | compLexity (Holo) Katowice 2014", value: 4000, color: "#3b82f6", img: "https://cdn.steamstatic.com/apps/730/icons/econ/stickers/emskatowice2014/complexity_holo_1355_37.2efab768182dbb3f8a81349b36750c1b36291801.png", chance: 0.13 },
+            { name: "Sticker | 3DMAX (Holo) Katowice 2014", value: 3000, color: "#94a3b8", img: "https://cdn.steamstatic.com/apps/730/icons/econ/stickers/emskatowice2014/3dmax_holo_1355_37.9e0e2f1142ee19ea665c76581e1c092aa32bc273.png", chance: 0.205 },
+            { name: "Sticker | Clan-Mystik (Holo) Katowice 2014", value: 5000, color: "#94a3b8", img: "https://cdn.steamstatic.com/apps/730/icons/econ/stickers/emskatowice2014/mystik_holo_1355_37.96024d8613b3b0bf5961033eccc56c528ccff786.png", chance: 0.155 },
+            { name: "Sticker | compLexity (Holo) Katowice 2014", value: 4000, color: "#3b82f6", img: "https://cdn.steamstatic.com/apps/730/icons/econ/stickers/emskatowice2014/complexity_holo_1355_37.2efab768182dbb3f8a81349b36750c1b36291801.png", chance: 0.135 },
             { name: "Sticker | Fnatic (Holo) Katowice 2014", value: 4000, color: "#3b82f6", img: "https://cdn.steamstatic.com/apps/730/icons/econ/stickers/emskatowice2014/fnatic_holo_1355_37.90ba2b35076907c6b400a82cc224b0b7e7af2bbc.png", chance: 0.12 },
             { name: "Sticker | HellRaisers (Holo) Katowice 2014", value: 8000, color: "#3b82f6", img: "https://cdn.steamstatic.com/apps/730/icons/econ/stickers/emskatowice2014/hellraisers_holo_1355_37.bba3d508f97f5017d1b97424be05aafe4b974e5c.png", chance: 0.10 },
             { name: "Sticker | Natus Vincere (Holo) Katowice 2014", value: 15000, color: "#a855f7", img: "https://cdn.steamstatic.com/apps/730/icons/econ/stickers/emskatowice2014/navi_holo_1355_37.d1db2d5e8be15eb9a6779d05c3c29e453ce6eb62.png", chance: 0.08 },
@@ -1285,6 +1285,8 @@
     // --- AUTO-BALANCE CHANCES: proportional to case price vs item values ---
     function balanceCaseChances(caseData) {
         if (!caseData.items || caseData.items.length < 2) return;
+        // Skip sticker cases - they have manually set chances
+        if (caseData.name.includes('Katowice') || caseData.name.includes('Sticker')) return;
         const sorted = [...caseData.items].sort((a, b) => a.value - b.value);
         const N = sorted.length;
         const targetEV = caseData.price * 0.90;
