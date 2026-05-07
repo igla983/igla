@@ -563,9 +563,13 @@
                     <div class="vol-wrap">
                         <button id="btn-volume-toggle" class="btn-vol" onclick="toggleVolumePanel()" title="Głośność"><i class="fa-solid fa-volume-high"></i></button>
                         <div id="volume-panel">
-                            <label>GŁOŚNOŚĆ</label>
+                            <label>GŁOŚNOŚĆ OGÓLNA</label>
                             <input type="range" id="vol-slider" min="0" max="100" value="100" oninput="setVolume(this.value/100)">
                             <span id="vol-label">100%</span>
+                            <div style="width:100%;height:1px;background:rgba(255,255,255,0.08);margin:4px 0;"></div>
+                            <label><i class="fa fa-box-open" style="margin-right:4px;"></i>SKRZYNKI (BITWA)</label>
+                            <input type="range" id="vol-battle-slider" min="0" max="100" value="50" oninput="setBattleVolume(this.value/100)">
+                            <span id="vol-battle-label">50%</span>
                         </div>
                     </div>
                     <button class="btn btn-gold" style="width:auto; padding:12px 24px; font-size:13px; font-weight:900;" onclick="showBattleCreator()"><i class="fa fa-plus" style="margin-right:8px;"></i>STWÓRZ BITWĘ</button>
@@ -1405,8 +1409,12 @@
     const audioCtx = new AudioContext();
     const masterGain = audioCtx.createGain();
     masterGain.connect(audioCtx.destination);
+    const battleGain = audioCtx.createGain();
+    battleGain.connect(masterGain);
+    battleGain.gain.value = 0.5;
     let volumeLevel = 1.0;
     let isMuted = false;
+    let battleVolume = 0.5;
 
     function setVolume(val) {
         volumeLevel = Math.max(0, Math.min(1, val));
@@ -1421,6 +1429,14 @@
         if (btn) btn.classList.toggle('muted', volumeLevel === 0);
         if (label) label.textContent = Math.round(volumeLevel * 100) + '%';
         if (slider) slider.value = Math.round(volumeLevel * 100);
+    }
+    function setBattleVolume(val) {
+        battleVolume = Math.max(0, Math.min(1, val));
+        battleGain.gain.value = battleVolume;
+        const label = document.getElementById('vol-battle-label');
+        const slider = document.getElementById('vol-battle-slider');
+        if (label) label.textContent = Math.round(battleVolume * 100) + '%';
+        if (slider) slider.value = Math.round(battleVolume * 100);
     }
     function toggleVolumePanel() {
         const p = document.getElementById('volume-panel');
@@ -1558,7 +1574,7 @@
         f.type = 'bandpass'; f.frequency.setValueAtTime(3000, t); f.Q.setValueAtTime(2, t);
         g.gain.setValueAtTime(0.15, t);
         g.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
-        osc.connect(f); osc2.connect(f); f.connect(g); g.connect(masterGain);
+        osc.connect(f); osc2.connect(f); f.connect(g); g.connect(battleState !== 'idle' ? battleGain : masterGain);
         osc.start(t); osc.stop(t + 0.04);
         osc2.start(t); osc2.stop(t + 0.04);
     }
@@ -1597,7 +1613,8 @@
         const ng = audioCtx.createGain();
         ng.gain.setValueAtTime(0.04, t);
         ng.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
-        noise.connect(bp); bp.connect(ng); ng.connect(masterGain);
+        const _rareGain = battleState !== 'idle' ? battleGain : masterGain;
+        noise.connect(bp); bp.connect(ng); ng.connect(_rareGain);
         noise.start(t); noise.stop(t + 0.8);
         // Rising chord
         [523, 659, 784, 1047, 1319].forEach((freq, i) => {
@@ -1608,7 +1625,7 @@
             g.gain.setValueAtTime(0, t);
             g.gain.linearRampToValueAtTime(0.1, t + i * 0.1 + 0.05);
             g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.1 + 0.5);
-            o.connect(g); g.connect(masterGain);
+            o.connect(g); g.connect(_rareGain);
             o.start(t + i * 0.1); o.stop(t + i * 0.1 + 0.5);
         });
     }
@@ -1633,7 +1650,7 @@
         g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
         const lp = audioCtx.createBiquadFilter();
         lp.type = 'lowpass'; lp.frequency.setValueAtTime(2000, t);
-        noise.connect(lp); osc.connect(lp); lp.connect(g); g.connect(masterGain);
+        noise.connect(lp); osc.connect(lp); lp.connect(g); g.connect(battleState !== 'idle' ? battleGain : masterGain);
         noise.start(t); noise.stop(t + 0.015);
         osc.start(t); osc.stop(t + 0.05);
     }
