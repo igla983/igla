@@ -722,7 +722,7 @@
         <div class="upgrade-box" style="margin: 0 auto; max-width: 500px; border-color: var(--accent-blue);">
             <i class="fa-solid fa-building-columns" style="font-size: 50px; color: var(--accent-blue); margin-bottom: 20px;"></i>
             <h2>BANK CENTRALNY</h2>
-            <p style="color: #64748b; margin: 15px 0;">Limit długu: $600,000. Podatek 15% co 10 rund.</p>
+            <p style="color: #64748b; margin: 15px 0;">Limit długu: $600,000.</p>
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px;">
                 <span style="color:#64748b; font-weight:900; font-size:12px; white-space:nowrap;">KWOTA $</span>
                 <input type="number" id="bank-amount" value="10000" min="1" style="flex:1; background:var(--bg-main); border:1px solid #333; border-radius:8px; padding:12px 15px; color:#fff; font-family:'Rajdhani',sans-serif; font-size:20px; font-weight:900; text-align:center; outline:none;">
@@ -4275,7 +4275,6 @@
             if(!state.battlesPlayed) state.battlesPlayed = 0;
             state.battlesPlayed += 1;
             checkMilestone(0, 1);
-            if(state.rounds % 10 === 0 && state.debt > 0) { let tax = state.balance * 0.15; state.balance -= tax; state.debt -= tax; }
             checkRankUp();
         }
 
