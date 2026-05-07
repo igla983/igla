@@ -1803,7 +1803,7 @@
     const CURRENCIES = { USD: { symbol: '$', rate: 1 }, EUR: { symbol: '€', rate: 0.92 }, PLN: { symbol: 'zł', rate: 4.05 } };
     let currentCurrency = localStorage.getItem('an4l_currency') || 'USD';
     function changeCurrency(c) { currentCurrency = c; localStorage.setItem('an4l_currency', c); updateUI(); renderShop(); }
-    function formatMoney(amount) { const cur = CURRENCIES[currentCurrency]; const converted = Math.round(amount * cur.rate); return `${cur.symbol}${converted.toLocaleString()}`; }
+    function formatMoney(amount) { const cur = CURRENCIES[currentCurrency]; const converted = Math.round(amount * cur.rate * 100) / 100; return `${cur.symbol}${converted.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`; }
 
     // --- AUTH SYSTEM ---
     function switchAuthTab(tab) {
