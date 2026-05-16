@@ -2027,6 +2027,9 @@
     }
     function saveProfileMeta(nick, meta) {
         localStorage.setItem('an4l_meta_' + nick, JSON.stringify(meta));
+        // Sync to Firebase for cross-browser access
+        const nk = nick.replace(/[.#$\/\[\]]/g, '_');
+        db.ref('users/' + nk + '/meta').set(meta).catch(()=>{});
     }
     function getProfilePic(nick) {
         const meta = getProfileMeta(nick);
@@ -2527,11 +2530,24 @@
         applyAdminBalance();
         listenForBotRewards();
         tryReconnectBattle();
-        // Sync balance to Firebase on every login for admin visibility
+        // Sync balance + profile meta to Firebase on every login
         if(currentNick) {
             const nk = currentNick.replace(/[.#$\/\[\]]/g, '_');
             db.ref('users/' + nk + '/balance').set(state.balance).catch(()=>{});
             db.ref('users/' + nk + '/debt').set(state.debt || 0).catch(()=>{});
+            // Sync profile pic/bio: upload local → Firebase, or download Firebase → local
+            const localMeta = getProfileMeta(currentNick);
+            if(localMeta.pic) {
+                db.ref('users/' + nk + '/meta').set(localMeta).catch(()=>{});
+            } else {
+                db.ref('users/' + nk + '/meta').once('value', snap => {
+                    if(snap.exists() && snap.val().pic) {
+                        localStorage.setItem('an4l_meta_' + currentNick, JSON.stringify(snap.val()));
+                        const picEl2 = document.getElementById('h-nick-pic');
+                        if(picEl2) { picEl2.src = snap.val().pic; picEl2.style.display = 'block'; }
+                    }
+                });
+            }
         }
         document.getElementById('h-nick').innerText = currentNick;
         const pic = getProfilePic(currentNick);
@@ -5802,10 +5818,18 @@
         ]).then(([rankSnap, usersSnap]) => {
             const spentMap = {};
             if(rankSnap.exists()) rankSnap.forEach(c => { spentMap[c.key] = c.val() || 0; });
-            // Add all registered users with 0 if not in ranking
+            // Add all registered users with 0 if not in ranking + cache their profile pics
             if(usersSnap.exists()) usersSnap.forEach(c => {
-                const nick = c.val().nick || c.key;
+                const u = c.val();
+                const nick = u.nick || c.key;
                 if(!(nick in spentMap)) spentMap[nick] = 0;
+                // Cache profile meta from Firebase to localStorage (cross-browser sync)
+                if(u.meta && (u.meta.pic || u.meta.bio)) {
+                    const existing = getProfileMeta(nick);
+                    if(!existing.pic && u.meta.pic) {
+                        localStorage.setItem('an4l_meta_' + nick, JSON.stringify(u.meta));
+                    }
+                }
             });
             // Also add current user
             if(currentNick && !(currentNick in spentMap)) spentMap[currentNick] = 0;
